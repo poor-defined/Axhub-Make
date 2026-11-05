@@ -1,3 +1,4 @@
+import { applyHostPolicyToAgentMessage } from './host-prompt-policy';
 import { createElementLocator, locateElement } from '../locator';
 import { generateFullElementLabel, generateStableElementKey } from '../element-key';
 import type {
@@ -318,6 +319,7 @@ export function createAgentBridgeService(options: {
   persistence: EditorPersistenceService;
   summaries: EditorSummariesService;
   bridgeOptions: ResolvedWebEditorOptions['agentBridge'];
+  transformPrompt?: (prompt: string) => string;
   onAvailabilityChange?: (available: boolean) => void;
 }): EditorAgentBridgeService {
   let active = false;
@@ -2673,7 +2675,7 @@ export function createAgentBridgeService(options: {
       throw new Error(AGENT_BRIDGE_NOT_CONNECTED_ERROR);
     }
     logDebug('Sending WS message', message);
-    socket.send(JSON.stringify(message));
+    socket.send(JSON.stringify(applyHostPolicyToAgentMessage(message, options.transformPrompt)));
   }
 
   function scheduleReconnect(): void {
@@ -3822,7 +3824,7 @@ export function createAgentBridgeService(options: {
     const meta = resolveElementTaskMeta(element);
     const promptImages = collectPromptImagesForElements([element]);
     const messageWithImageAssets = appendPromptImageAssetPathsToMessage(
-      prompt,
+      options.transformPrompt?.(prompt) ?? prompt,
       promptImages,
     );
     const sessionIdToReuse = reusableConversation?.sessionId ?? null;

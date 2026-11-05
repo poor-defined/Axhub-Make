@@ -536,9 +536,11 @@ export function createEditorSummariesService(options: {
   getPersistenceScope?: () => PrototypeEditCommentsPersistenceScope | null;
   getPersistedPrototypeCommentsDocument?: () => PrototypeEditCommentsDocument | null;
   buildCopyPromptOverride?: (context: CommentaryCopyPromptContext) => string;
+  transformPrompt?: (prompt: string) => string;
   getCommentarySkillOptions?: () => readonly CommentarySkillOption[];
 }): EditorSummariesService {
   const { state, buildCopyPromptOverride } = options;
+  const transformPrompt = (prompt: string) => prompt.trim() ? (options.transformPrompt?.(prompt) ?? prompt) : '';
   const promptContext = resolvePromptContext(options.promptContext, options.projectPath);
   const getResourceContext = options.getResourceContext ?? (() => null);
   const readPersistedPrototypeCommentsDocument =
@@ -1500,14 +1502,14 @@ export function createEditorSummariesService(options: {
       try {
         const context = getCopyPromptContext();
         if (context) {
-          return buildCopyPromptOverride(context);
+          return transformPrompt(buildCopyPromptOverride(context));
         }
       } catch (error) {
         console.warn('[Commentary] Host buildCopyPrompt failed, falling back to default:', error);
       }
     }
 
-    return defaultPrompt;
+    return transformPrompt(defaultPrompt);
   }
 
   function getCopyPromptFilteredNotice(): string | undefined {
@@ -1615,7 +1617,7 @@ export function createEditorSummariesService(options: {
       }
     }
 
-    return lines.join('\n');
+    return transformPrompt(lines.join('\n'));
   }
 
   function buildSaveRunPrompt(): string {

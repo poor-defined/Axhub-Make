@@ -1,5 +1,6 @@
 import type { AcpProvider as AcpPromptProvider } from '../../../common/assistant-context/types';
 import type { ContextBundleV2 } from '@axhub/acp/runtime';
+import { withPrototypeWireframePolicy } from '../../../common/prototypeWireframePolicy';
 import { getGenerationArtifactHistoryStore } from '../ai-generation/generationArtifactHistoryStore';
 import { withProjectScope } from '../../services/projectScope';
 
@@ -139,7 +140,7 @@ export function buildPrototypeGenerationPrompt({
     theme ? `- 设计系统：${theme}` : '',
   ].filter(Boolean);
 
-  return [
+  return withPrototypeWireframePolicy([
     '你正在为 Axhub Make 当前项目生成/更新 prototype 原型资源；这是一次非交互式任务：用户无法补充信息，不要追问用户，直接完成。',
     '跳过浏览器验证；不要运行 `check-app-ready.mjs`。',
     '',
@@ -158,7 +159,7 @@ export function buildPrototypeGenerationPrompt({
     formatKnownPrototypes(knownPrototypes),
     '',
     '最终消息：已完成',
-  ].join('\n');
+  ].join('\n'));
 }
 
 async function executePrototypeSessionRun(payload: {

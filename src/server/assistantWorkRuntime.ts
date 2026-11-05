@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { buildPrototypeWireframeSystemContext, withPrototypeWireframePolicy } from '../common/prototypeWireframePolicy.ts';
 
 import { runAcpChatCommand, type AcpChatRunResult } from './acpChatRunner.ts';
 import { createAssistantWorkDispatcher, type AssistantWorkAcpAdapter, type AssistantWorkAcpRuntimeStatus, type AssistantWorkDispatcher } from './assistantWorkDispatcher.ts';
@@ -82,9 +83,9 @@ function createRuntimeAdapter(options: {
         model: options.model || undefined,
         workspacePath: options.projectRoot,
         conversationStorePath: `${options.projectRoot}/.axhub/make/runtime/assistant-work/conversations/${threadId}.json`,
-        prompt: objective,
+        prompt: withPrototypeWireframePolicy(objective),
         scene: 'canvas-assistant-work',
-        system: 'Perform the requested canvas task through the server-provided axhub-canvas MCP only. Read the current canvas and revision before every mutation. Never write files directly.',
+        system: buildPrototypeWireframeSystemContext('Perform the requested canvas task through the server-provided axhub-canvas MCP only. Read the current canvas and revision before every mutation. Never write files directly.'),
         mcpServers: [{
           name: 'axhub-canvas',
           type: 'http',

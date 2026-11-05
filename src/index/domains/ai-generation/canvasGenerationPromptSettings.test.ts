@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { withPrototypeWireframePolicy } from '../../../common/prototypeWireframePolicy';
 
 import {
   appendCanvasGenerationFinalGuide,
@@ -199,7 +200,7 @@ describe('appendCanvasGenerationPromptSettings', () => {
       settings: {},
     });
 
-    expect(defaultPrompt).toBe('做一个会员增长工作台');
+    expect(defaultPrompt).toBe(withPrototypeWireframePolicy('做一个会员增长工作台'));
     expect(defaultPrompt).not.toContain('rules/requirements-alignment-guide.md');
   });
 
@@ -414,7 +415,7 @@ describe('appendCanvasGenerationPromptSettings', () => {
       },
     });
 
-    expect(prompt).toBe('做一个 CRM 工作台');
+    expect(prompt).toBe(withPrototypeWireframePolicy('做一个 CRM 工作台'));
     expect(prompt).not.toContain('原型生成设置');
     expect(prompt).not.toContain('- 页面数量：1 个');
     expect(prompt).not.toContain('- 设计系统：未指定');

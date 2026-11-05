@@ -2491,6 +2491,7 @@ function resolveWebEditorOptions(options = {}) {
     host: {
       getResourceContext: options.host?.getResourceContext ?? (() => null),
       buildCopyPrompt: options.host?.buildCopyPrompt ?? void 0,
+      transformPrompt: options.host?.transformPrompt ?? void 0,
       getCurrentHoveredElement: options.host?.getCurrentHoveredElement ?? void 0,
       getElementTools: options.host?.getElementTools ?? void 0,
       onElementToolAction: options.host?.onElementToolAction ?? void 0,
@@ -4319,6 +4320,19 @@ function createFeedbackService(options) {
     }
   }
   return { confirm, alert, prompt, toast };
+}
+
+// src/core/editor/host-prompt-policy.ts
+function applyHostPolicyToAgentMessage(message, transformPrompt) {
+  if (!transformPrompt || message.type !== "integration.context.update") return message;
+  const payload = message.payload;
+  const context = payload?.context;
+  if (!payload || !context || typeof context !== "object" || Array.isArray(context)) return message;
+  const systemContext = typeof context.systemContext === "string" ? context.systemContext : "";
+  return { ...message, payload: { ...payload, context: {
+    ...context,
+    systemContext: transformPrompt(systemContext || "\u5C06\u5BBF\u4E3B\u9879\u76EE\u89C4\u5219\u5E94\u7528\u4E8E\u540E\u7EED\u7684\u754C\u9762\u751F\u6210\u4E0E\u4FEE\u6539\uFF1B\u6B64\u5904\u4E0D\u89E6\u53D1\u4EFB\u52A1\uFF0C\u4E5F\u4E0D\u6539\u5199\u539F\u59CB\u6279\u6CE8\u3002")
+  } } };
 }
 
 // src/core/editor/agent-bridge-internals/constants.ts
@@ -6635,7 +6649,7 @@ function createAgentBridgeService(options) {
       throw new Error(AGENT_BRIDGE_NOT_CONNECTED_ERROR);
     }
     logDebug("Sending WS message", message);
-    socket.send(JSON.stringify(message));
+    socket.send(JSON.stringify(applyHostPolicyToAgentMessage(message, options.transformPrompt)));
   }
   function scheduleReconnect() {
     if (!active || !hasRequiredConfig() || reconnectTimerId !== null) return;
@@ -7633,7 +7647,7 @@ function createAgentBridgeService(options) {
     const meta = resolveElementTaskMeta(element);
     const promptImages = collectPromptImagesForElements([element]);
     const messageWithImageAssets = appendPromptImageAssetPathsToMessage(
-      prompt,
+      options.transformPrompt?.(prompt) ?? prompt,
       promptImages
     );
     const sessionIdToReuse = reusableConversation?.sessionId ?? null;
@@ -36077,6 +36091,7 @@ function appendListSection(lines, title, values) {
 }
 function createEditorSummariesService(options) {
   const { state: state2, buildCopyPromptOverride } = options;
+  const transformPrompt = (prompt) => prompt.trim() ? options.transformPrompt?.(prompt) ?? prompt : "";
   const promptContext = resolvePromptContext(options.promptContext, options.projectPath);
   const getResourceContext = options.getResourceContext ?? (() => null);
   const readPersistedPrototypeCommentsDocument = options.getPersistedPrototypeCommentsDocument ?? (() => null);
@@ -36755,13 +36770,13 @@ ${lines.join("\n")}
       try {
         const context = getCopyPromptContext();
         if (context) {
-          return buildCopyPromptOverride(context);
+          return transformPrompt(buildCopyPromptOverride(context));
         }
       } catch (error) {
         console.warn("[Commentary] Host buildCopyPrompt failed, falling back to default:", error);
       }
     }
-    return defaultPrompt;
+    return transformPrompt(defaultPrompt);
   }
   function getCopyPromptFilteredNotice() {
     return void 0;
@@ -36852,7 +36867,7 @@ ${lines.join("\n")}
         itemIndex += 1;
       }
     }
-    return lines.join("\n");
+    return transformPrompt(lines.join("\n"));
   }
   function buildSaveRunPrompt() {
     const undoStack = getActiveTransactions();
@@ -37258,6 +37273,7 @@ function createCommentary(options = {}) {
     getPersistenceScope: resolvedOptions.host.getPersistenceScope,
     getPersistedPrototypeCommentsDocument: () => persistence?.getPersistedPrototypeCommentsDocument() ?? null,
     buildCopyPromptOverride: resolvedOptions.host.buildCopyPrompt,
+    transformPrompt: resolvedOptions.host.transformPrompt,
     getCommentarySkillOptions: () => resolvedOptions.ui.commentarySkillOptions
   });
   const feedback = createFeedbackService({
@@ -38068,6 +38084,7 @@ function createCommentary(options = {}) {
       ...resolvedOptions.agentBridge,
       projectPath: resolvedProjectPath
     },
+    transformPrompt: resolvedOptions.host.transformPrompt,
     onAvailabilityChange: (available) => {
       if (agentBridge?.isConnected() && !state2.uiSettings.agentAwake) {
         state2.uiSettings = {

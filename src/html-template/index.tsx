@@ -20,6 +20,7 @@ import {
 } from '../common/documentCommentsPersistence';
 import { createQuickEditRequestRegistry } from '../common/quickEditRequestRegistry';
 import { normalizeMakeServerOrigin } from '../common/makeServerOrigin';
+import { withPrototypeWireframePolicy } from '../common/prototypeWireframePolicy';
 import { requestParentAxureExport } from './axureExportBridge';
 import type {
   QuickEditSaveAction,
@@ -240,6 +241,7 @@ function ensureCommentEditor(options?: {
       skillInstallSource: MAKE_COMMENTARY_SKILL_INSTALL_SOURCE,
     },
     host: {
+      transformPrompt: withPrototypeWireframePolicy,
       getResourceContext: buildHtmlResourceContext,
       getCurrentHoveredElement: () => document.querySelector(':hover'),
       getPersistenceScope: () => {

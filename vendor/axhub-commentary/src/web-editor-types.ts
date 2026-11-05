@@ -914,6 +914,8 @@ export interface CommentaryHostOptions {
    * If omitted, the editor falls back to its built-in prompt builder.
    */
   buildCopyPrompt?: (context: CommentaryCopyPromptContext) => string;
+  /** Apply host-owned project rules to outgoing prompts without changing saved annotations. */
+  transformPrompt?: (prompt: string) => string;
   /** Return optional host-owned actions for the selected element card. */
   getElementTools?: (element: Element | null) => CommentaryElementTool[];
   /** Run a host-owned selected-element action. */

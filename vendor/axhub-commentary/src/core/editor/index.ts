@@ -127,6 +127,7 @@ export function createCommentary(options: CommentaryInitOptions = {}): Commentar
     getPersistedPrototypeCommentsDocument: () =>
       persistence?.getPersistedPrototypeCommentsDocument() ?? null,
     buildCopyPromptOverride: resolvedOptions.host.buildCopyPrompt,
+    transformPrompt: resolvedOptions.host.transformPrompt,
     getCommentarySkillOptions: () => resolvedOptions.ui.commentarySkillOptions,
   });
   const feedback = createFeedbackService({
@@ -1121,6 +1122,7 @@ export function createCommentary(options: CommentaryInitOptions = {}): Commentar
       ...resolvedOptions.agentBridge,
       projectPath: resolvedProjectPath,
     },
+    transformPrompt: resolvedOptions.host.transformPrompt,
     onAvailabilityChange: (available) => {
       if (agentBridge?.isConnected() && !state.uiSettings.agentAwake) {
         state.uiSettings = {

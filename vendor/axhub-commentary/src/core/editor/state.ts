@@ -171,6 +171,7 @@ export interface ResolvedWebEditorOptions {
     Pick<
       CommentaryHostOptions,
       | 'buildCopyPrompt'
+      | 'transformPrompt'
       | 'getCurrentHoveredElement'
       | 'getElementTools'
       | 'onElementToolAction'
@@ -489,6 +490,7 @@ export function resolveWebEditorOptions(
     host: {
       getResourceContext: options.host?.getResourceContext ?? (() => null),
       buildCopyPrompt: options.host?.buildCopyPrompt ?? undefined,
+      transformPrompt: options.host?.transformPrompt ?? undefined,
       getCurrentHoveredElement: options.host?.getCurrentHoveredElement ?? undefined,
       getElementTools: options.host?.getElementTools ?? undefined,
       onElementToolAction: options.host?.onElementToolAction ?? undefined,

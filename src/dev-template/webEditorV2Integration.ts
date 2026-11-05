@@ -1,3 +1,4 @@
+import { withPrototypeWireframePolicy } from '../common/prototypeWireframePolicy';
 import type {
   CommentaryDebugState,
   CommentaryEditedSnapshot,
@@ -2126,6 +2127,7 @@ export const createWebEditorV2Controller = (
           buildCopyPrompt:
             options.host?.buildCopyPrompt
             ?? buildHostCopyPrompt,
+          transformPrompt: withPrototypeWireframePolicy,
           persistenceAdapter:
             options.host?.persistenceAdapter
             ?? createPrototypeCommentsPersistenceAdapter({

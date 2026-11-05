@@ -1,4 +1,5 @@
 import type { AiImageGenerationConfig } from './projectCore/index.ts';
+import { withPrototypeWireframePolicy } from '../common/prototypeWireframePolicy.ts';
 import {
   AcpChatRunError,
   createAcpOneShotThreadId,
@@ -252,6 +253,7 @@ export function buildImageGenerationPrompt(params: {
   const model = normalizeImageModel(params.imageModel);
   return [
     'Generate image assets for Axhub Make.',
+    'Project wireframe rules take precedence over UI image skill styling defaults; UI mockups and interface assets must remain low-fidelity wireframes.',
     'Use the generate_image tool and return the generated image metadata.',
     'Do not call any direct image generation HTTP endpoint.',
     'For UI, web, app, interface, product-screen, or design-mockup requests, first use the project-local $ui-design-image skill and follow its device/aspect-ratio defaults when size is auto or the user did not specify a canvas ratio.',
@@ -259,7 +261,7 @@ export function buildImageGenerationPrompt(params: {
       ? 'When passing image size to gpt-image-2, custom WxH sizes must use dimensions divisible by 16, max side below 3840px, aspect ratio no wider than 3:1, and total pixels from 655,360 to 8,294,400; express exact phone/desktop proportions in the prompt text.'
       : 'When passing image size to non-gpt-image-2 models, use only auto, 1024x1024, 1024x1536, or 1536x1024; express exact phone/desktop proportions in the prompt text.',
     '',
-    `Prompt: ${params.prompt}`,
+    `Prompt: ${withPrototypeWireframePolicy(params.prompt)}`,
     '',
     'Requested image parameters:',
     ...(params.imageModel ? [`- model: ${params.imageModel}`] : []),

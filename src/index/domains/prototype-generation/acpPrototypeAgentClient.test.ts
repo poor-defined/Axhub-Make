@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PROTOTYPE_WIREFRAME_POLICY } from '../../../common/prototypeWireframePolicy';
 
 import {
   buildPrototypeGenerationPrompt,
@@ -52,7 +53,7 @@ describe('ACP prototype agent client', () => {
       },
     });
 
-    expect(prompt.split('\n')).toHaveLength(20);
+    expect(prompt).toContain(PROTOTYPE_WIREFRAME_POLICY);
     expect(prompt).toContain('做一个 CRM 工作台');
     expect(prompt).toContain('只在当前 prototype 中新增/更新页面');
     expect(prompt).toContain('src/prototypes/dashboard/');

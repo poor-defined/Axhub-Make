@@ -1,4 +1,5 @@
 import type { CanvasAiScene } from '../shared/CanvasGenerationComposer';
+import { withPrototypeWireframePolicy } from '../../../common/prototypeWireframePolicy';
 import { isDocumentTemplateCompatibleWithFormat } from '../../services/documentTemplates';
 
 export interface CanvasPrototypePromptSettings {
@@ -222,12 +223,12 @@ export function appendPrototypeStartPromptSettings({
 }): string {
   const hasCount = typeof settings.count === 'number' && Number.isFinite(settings.count);
   const count = hasCount ? Math.max(1, Math.min(4, Math.round(Number(settings.count)))) : null;
-  return appendSettingsBlock(prompt, '原型生成设置：', [
+  return withPrototypeWireframePolicy(appendSettingsBlock(prompt, '原型生成设置：', [
     count == null ? '' : `- 方案数量：${count} 个`,
     formatMultiOptionInstruction(count, 'prototype'),
     isSpecifiedValue(settings.themeName) ? `- 设计系统：${formatOptionalValue(settings.themeName)}` : '',
     formatPrototypeRequirementsAnalysisInstruction(settings.needsRequirementsAnalysis),
-  ]);
+  ]));
 }
 
 export function appendImageStartPromptSettings({
@@ -315,7 +316,7 @@ export function appendCanvasGenerationPromptSettings({
     ? appendCanvasWorkspaceInstruction(promptWithSettings, canvasContext)
     : promptWithSettings;
   return appendCanvasGenerationFinalGuide({
-    prompt: promptWithCanvasWorkspace,
+    prompt: scene === 'page' || scene === 'design' ? withPrototypeWireframePolicy(promptWithCanvasWorkspace) : promptWithCanvasWorkspace,
     finalGuide,
   });
 }

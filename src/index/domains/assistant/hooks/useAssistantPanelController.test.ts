@@ -917,7 +917,8 @@ describe('useAssistantPanelController source', () => {
 
     expect(source).toContain('postAssistantContextToWindowWithRetry(childWindow, nextUrl, contextOverride);');
     expect(source).toContain("const childWindow = window.open(nextUrl, '_blank', windowFeatures);");
-    expect(source).toContain("const windowFeatures = contextOverride ? undefined : 'noopener,noreferrer';");
+    expect(source).toContain('const windowFeatures = undefined;');
+    expect(source).not.toContain('if (!targetWindow || !context)');
     expect(itemContextSource).toContain("void ensureAssistantReadyThenOpen('button', url.toString(), targetPath, 'window', itemContext, {");
     expect(itemContextSource).toContain("panelMode: 'general-ai',");
     expect(itemContextSource).not.toContain("searchParams.set('targetPath'");
