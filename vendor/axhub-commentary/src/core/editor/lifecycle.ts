@@ -22,6 +22,7 @@ import {
   isExportableDesignElement,
 } from '../../design-tool-export';
 import { clearEditorRuntimeRefs, resetEditorTransientState } from './state';
+import { getSelectedElements, getSelectionActionTargets } from './element-selection';
 import type { EditorLifecycleDeps, ExternalEditingElementTarget } from './contracts';
 import { resolveTextCommentElementMeta, TEXT_COMMENT_TARGET_ATTR } from './text-comment-target';
 import { getGlobalCommentaryTweakProtocol } from '../../tweak/protocol';
@@ -224,7 +225,13 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
 
   function buildHostSendToAgentAction(element?: Element | null): CommentaryHostToolbarAction {
     const meta = services.changes.getMetaForElement(element ?? null);
-    const promptText = element ? buildSaveRunPromptForAgentElement(element) : '';
+    const selection = getSelectionActionTargets(state, element ?? null);
+    const entries = selection.flatMap((target) => {
+      const prompt = buildSaveRunPromptForAgentElement(target);
+      const targetMeta = services.changes.getMetaForElement(target);
+      return prompt && targetMeta ? [{ prompt, meta: targetMeta }] : [];
+    });
+    const promptText = entries.map((entry) => entry.prompt).join('\n\n');
     return meta?.elementKey
       ? {
           type: 'send-to-agent',
@@ -233,6 +240,12 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
           locator: meta.locator,
           label: meta.label,
           promptText: promptText || undefined,
+          ...(selection.length > 1
+            ? { targets: entries.map((entry) => ({
+                ...toExternalEditingTarget(entry.meta),
+                ...(entry.meta.commentId ? { commentId: entry.meta.commentId } : {}),
+              })) }
+            : {}),
         }
       : { type: 'send-to-agent' };
   }
@@ -542,6 +555,13 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
   function resolvePromptTargetRefs(
     preferredElement?: Element | null,
   ): ExternalEditingElementTarget[] {
+    const selection = getSelectionActionTargets(state, preferredElement ?? state.selectedElement);
+    if (selection.length > 1) {
+      return selection.flatMap((element) => {
+        const meta = services.changes.getMetaForElement(element);
+        return meta && buildSaveRunPromptForAgentElement(element) ? [toExternalEditingTarget(meta)] : [];
+      });
+    }
     const recoveredTargets = resolvePromptTargetRefsFromEditHistory();
     if (recoveredTargets.length > 0) {
       return recoveredTargets;
@@ -575,6 +595,8 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
   }
 
   function resolvePromptTargets(preferredElement?: Element | null): Element[] {
+    const selection = getSelectionActionTargets(state, preferredElement ?? state.selectedElement);
+    if (selection.length > 1) return selection;
     const recoveredElements = resolvePromptTargetsFromEditHistory();
     if (recoveredElements.length > 0) {
       return recoveredElements;
@@ -1554,6 +1576,9 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
 
       state.positionTracker = createPositionTracker({
         onPositionUpdate: services.interaction.handlePositionUpdate,
+        getAdditionalSelectionElements: () => getSelectedElements(state).filter(
+          (element) => element !== state.selectedElement,
+        ),
       });
 
       state.commentShortcutCleanup = null;
@@ -1669,7 +1694,7 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
           ? undefined
           : (_x, _y, modifiers, event) => {
               const target =
-                state.selectionEngine?.findBestTargetFromEvent(event, modifiers) ?? null;
+                state.selectionEngine?.findBestTargetFromEvent(event, { ...modifiers, meta: false }) ?? null;
               return services.agentBridge.resolveSelectableElement(target);
             },
         getSelectedElement: () => state.selectedElement,
@@ -1853,9 +1878,12 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
             }
           },
           onSendCurrentElementPromptToAgent: async (element) => {
+            const selectedTargets = getSelectionActionTargets(state, element);
             if (shouldDelegateAiActionToHost()) {
-              const targetRef = resolvePromptTargetRef(element);
-              const editingRun = beginHostExternalEditing(targetRef ? [targetRef] : []);
+              const targetRefs = selectedTargets.length > 1
+                ? resolvePromptTargetRefs(element)
+                : [resolvePromptTargetRef(element)].filter((ref): ref is ExternalEditingElementTarget => ref !== null);
+              const editingRun = beginHostExternalEditing(targetRefs);
               const handled = await runHostAiAction(buildHostSendToAgentAction(element));
               if (!handled) {
                 const message = lastHostAiActionError || '宿主暂未处理 AI 执行请求。';
@@ -1872,7 +1900,11 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
               throw new Error('当前元素没有可发送给 AI 的编辑。');
             }
             try {
-              await services.agentBridge.handleSendPromptToAgentForElement(element, prompt);
+              if (selectedTargets.length > 1) {
+                await services.agentBridge.handleSendPromptToAgentForElements(selectedTargets, buildSaveRunPromptForAgentElement);
+              } else {
+                await services.agentBridge.handleSendPromptToAgentForElement(element, prompt);
+              }
             } finally {
               state.positionTracker?.forceUpdate(true);
             }
@@ -2072,7 +2104,10 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
                 }
               : null;
           },
-          canEditAiNote: (element) => !Boolean(services.changes.getMetaForElement(element)?.readOnly),
+          canEditAiNote: (element) => getSelectionActionTargets(state, element).every(
+            (target) => !services.changes.getMetaForElement(target)?.readOnly
+              && !services.agentBridge.isElementInteractionLocked(target),
+          ),
           canClearCurrentElementEdits: (element) => !Boolean(services.changes.getMetaForElement(element)?.readOnly),
           onDeleteExternalComment: (element, commentId) => {
             if (services.changes.getMetaForElement(element)?.readOnly) return false;
@@ -2082,51 +2117,60 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
           onPrepareAiNoteImages: options.ui.onPrepareImageAttachments,
           getAiNoteImages: (element) => services.changes.getImagesForElement(element),
           getHoveredElement: () => state.hoveredElement,
+          getSelectedElements: () => getSelectedElements(state),
           onRememberSelectionAnchor: (element, selectionAnchor) => {
             services.changes.rememberSelectionAnchor(element, selectionAnchor);
           },
-          onAiNoteChange: async (element, note, noteOptions) => {
-            if (services.changes.getMetaForElement(element)?.readOnly) return;
-            if (options.ui.externalAnnotationMode && element) {
-              const meta = services.changes.getMetaForElement(element);
-              if (meta) {
-                const existing = meta.externalComments?.[0];
-                meta.externalComments = note.trim()
-                  ? [{
-                      id: existing?.id || `review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                      authorId: existing?.authorId || 'pending-reviewer',
-                      authorName: existing?.authorName || options.ui.commenterName || '评审者',
-                      content: note.trim(),
-                      createdAt: existing?.createdAt || Date.now(),
-                      updatedAt: Date.now(),
-                    }]
-                  : [];
+          onAiNoteChange: async (selectedElement, note, noteOptions) => {
+            const targets = selectedElement
+              ? getSelectionActionTargets(state, selectedElement, noteOptions?.targetElements)
+              : [null];
+            const screenshotUpdates: Promise<unknown>[] = [];
+            for (const element of targets) {
+              if (services.changes.getMetaForElement(element)?.readOnly
+                || services.agentBridge.isElementInteractionLocked(element)) continue;
+              if (options.ui.externalAnnotationMode && element) {
+                const meta = services.changes.getMetaForElement(element);
+                if (meta) {
+                  const existing = meta.externalComments?.[0];
+                  meta.externalComments = note.trim()
+                    ? [{
+                        id: existing?.id || `review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                        authorId: existing?.authorId || 'pending-reviewer',
+                        authorName: existing?.authorName || options.ui.commenterName || '评审者',
+                        content: note.trim(),
+                        createdAt: existing?.createdAt || Date.now(),
+                        updatedAt: Date.now(),
+                      }]
+                    : [];
+                }
               }
-            }
-            if (noteOptions) {
-              services.changes.setNoteForElement(element, note, noteOptions);
-            } else {
-              services.changes.setNoteForElement(element, note);
-            }
-            if (element) {
-              const shouldCaptureTargetScreenshot =
-                state.uiSettings.captureTargetScreenshot &&
-                resolveActiveInteractionProfile() !== 'text-comment';
-              const initialSelectionElement =
-                state.selectedElement === element ? state.initialSelectionElement : undefined;
-              const targetScreenshotSync = targetScreenshotCoordinator.syncAfterNoteSave(
-                element,
-                note,
-                initialSelectionElement ?? undefined,
-              );
-              if (shouldCaptureTargetScreenshot) {
-                await targetScreenshotSync;
+              if (noteOptions) {
+                services.changes.setNoteForElement(element, note, noteOptions);
               } else {
-                void targetScreenshotSync;
+                services.changes.setNoteForElement(element, note);
               }
+              if (element) {
+                const shouldCaptureTargetScreenshot =
+                  state.uiSettings.captureTargetScreenshot &&
+                  resolveActiveInteractionProfile() !== 'text-comment';
+                const initialSelectionElement =
+                  state.selectedElement === element ? state.initialSelectionElement : undefined;
+                const targetScreenshotSync = targetScreenshotCoordinator.syncAfterNoteSave(
+                  element,
+                  note,
+                  initialSelectionElement ?? undefined,
+                );
+                if (shouldCaptureTargetScreenshot) {
+                  screenshotUpdates.push(targetScreenshotSync);
+                } else {
+                  void targetScreenshotSync;
+                }
+              }
+              state.positionTracker?.forceUpdate(true);
+              syncCommentContextAfterNoteSave(element, note);
             }
-            state.positionTracker?.forceUpdate(true);
-            syncCommentContextAfterNoteSave(element, note);
+            await Promise.all(screenshotUpdates);
           },
           onAiNoteImagesChange: (element, images) => {
             if (services.changes.getMetaForElement(element)?.readOnly) return;
@@ -2151,6 +2195,7 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
               state.canvasOverlay?.setHoverRect(null);
               state.canvasOverlay?.setSelectionEffect('default');
               state.canvasOverlay?.setSelectionRect(null);
+              state.canvasOverlay?.setAdditionalSelectionRects([]);
               state.canvasOverlay?.render();
               state.handlesController?.setSelectionRect(null);
             } else {
@@ -2373,6 +2418,7 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
         // Reset transient selection/edit state but keep the panel alive.
         state.hoveredElement = null;
         state.selectedElement = null;
+        state.selectedElements = [];
         state.initialSelectionElement = null;
         state.selectionAnchor = null;
         state.pendingHoverTransition = false;

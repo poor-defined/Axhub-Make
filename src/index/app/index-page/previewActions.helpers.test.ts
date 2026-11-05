@@ -185,6 +185,31 @@ describe('previewActions.helpers', () => {
       .toEqual([{ commentId: 'comment-a', elementKey: 'card-a', targetRef: { locator: locatorA, label: 'Card A' } }]);
   });
 
+  it('tracks every selected comment through grouped AI completion and unlock', () => {
+    const locator = { selectors: ['button'], fingerprint: 'button', path: [0] };
+    const targets = resolveAnnotationActionEditingTargets({
+      type: 'send-to-agent', elementKey: 'a', commentId: 'comment-a', locator,
+      targets: [
+        { elementKey: 'a', commentId: 'comment-a', locator, label: 'A' },
+        { elementKey: 'b', commentId: 'comment-b', locator, label: 'B' },
+        { elementKey: 'a', commentId: 'comment-a', locator, label: 'duplicate' },
+      ],
+    });
+    expect(targets).toEqual([
+      { elementKey: 'a', commentId: 'comment-a', targetRef: { locator, label: 'A' } },
+      { elementKey: 'b', commentId: 'comment-b', targetRef: { locator, label: 'B' } },
+    ]);
+  });
+
+  it('does not reuse the primary comment identity for another selected element', () => {
+    const locator = { selectors: ['button'], fingerprint: 'button', path: [0] };
+    expect(resolveAnnotationActionEditingTargets({
+      type: 'send-to-agent', elementKey: 'b', commentId: 'comment-b',
+      targets: [{ elementKey: 'a', locator, label: 'A' }],
+    }, [{ elementKey: 'a', commentId: 'comment-a', locator, label: 'A', note: 'A', imageCount: 0, changeKinds: [] }]))
+      .toEqual([{ elementKey: 'a', commentId: 'comment-a', targetRef: { locator, label: 'A' } }]);
+  });
+
   it('recovers a saved comment id for an explicit element action', () => {
     const locatorA = { selectors: ['[data-card="a"]'], fingerprint: 'card-a', path: [0] };
 

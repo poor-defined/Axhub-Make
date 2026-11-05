@@ -970,6 +970,9 @@ export function createPersistenceService(options: {
     state.processedEditTimestampsByKey.clear();
     state.selectionAnchor = null;
     state.selectedElement = null;
+    state.selectedElements = [];
+    state.dismissedSelectionMarkerKeys.clear();
+    state.multiSelectionSessionMarkerKeys.clear();
     state.initialSelectionElement = null;
     commentStateByCommentId.clear();
   }

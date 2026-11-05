@@ -13,6 +13,7 @@ export interface ComputePromptCardPositionOptions {
   viewportWidth: number;
   viewportHeight: number;
   propertyPanelEnabled: boolean;
+  pinnedToTopRight?: boolean;
   safePaddingPx?: number;
   propertyPanelWidth?: number;
   propertyPanelRight?: number;
@@ -73,6 +74,9 @@ export function computePromptCardPosition(options: ComputePromptCardPositionOpti
   const maxLeft = propertyPanelEnabled && propertyPanelMaxLeft >= safePaddingPx
     ? Math.min(viewportMaxLeft, propertyPanelMaxLeft)
     : viewportMaxLeft;
+  if (options.pinnedToTopRight) {
+    return { left: Math.round(maxLeft), top: Math.round(safePaddingPx) };
+  }
   const preferredRightLeft = anchorRect.left + anchorRect.width + anchorGapPx;
   const preferredLeftLeft = anchorRect.left - anchorGapPx - cardWidth;
   const fitsRight = preferredRightLeft >= safePaddingPx && preferredRightLeft <= maxLeft;

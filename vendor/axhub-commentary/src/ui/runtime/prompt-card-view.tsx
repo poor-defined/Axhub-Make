@@ -14,6 +14,8 @@ import {
   FileTextOutlined,
   FormatPainterOutlined,
   MessageOutlined,
+  PushpinOutlined,
+  PushpinFilled,
 } from '@ant-design/icons';
 import { Dropdown, Input, Popconfirm, Tooltip } from 'antd';
 import { computePromptCardPosition } from '../prompt-card-position';
@@ -362,6 +364,10 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
     const {
       options,
       currentTarget,
+      selectedElementCount = 1,
+      pinnedToTopRight = false,
+      onPinnedToTopRightChange,
+      propertyPanelOpen = false,
       anchorRect,
       uiMode,
       interactionProfile,
@@ -665,15 +671,17 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       bubbleStyleEditorOpen,
     ]);
 
-    // Track visualViewport resize (keyboard show/hide) for mobile repositioning
+    // Reposition even when resizing the viewport leaves the target rect unchanged.
     const [visualViewportKey, setVisualViewportKey] = React.useState(0);
     React.useEffect(() => {
-      if (!isMobileDevice()) return;
-      const vv = window.visualViewport;
-      if (!vv) return;
+      const vv = isMobileDevice() ? window.visualViewport : null;
       const handleResize = () => setVisualViewportKey((k) => k + 1);
-      vv.addEventListener('resize', handleResize);
-      return () => vv.removeEventListener('resize', handleResize);
+      window.addEventListener('resize', handleResize);
+      vv?.addEventListener('resize', handleResize);
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        vv?.removeEventListener('resize', handleResize);
+      };
     }, []);
 
     const promptPosition = React.useMemo(() => {
@@ -690,7 +698,8 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
         cardHeight: promptCardSize?.height ?? PROMPT_CARD_ESTIMATED_HEIGHT,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
-        propertyPanelEnabled,
+        propertyPanelEnabled: propertyPanelEnabled && (!pinnedToTopRight || propertyPanelOpen),
+        pinnedToTopRight,
         safePaddingPx: SAFE_PADDING_PX,
         propertyPanelWidth: PROPERTY_PANEL_WIDTH,
         propertyPanelRight: PROPERTY_PANEL_RIGHT,
@@ -702,6 +711,8 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       currentTarget,
       promptCardSize,
       propertyPanelEnabled,
+      pinnedToTopRight,
+      propertyPanelOpen,
       toolMinimized,
       uiMode,
       visualViewportKey,
@@ -1304,6 +1315,11 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
             gap: 8,
           }}
         >
+          {selectedElementCount > 1 ? (
+            <span data-we-selection-count="true" style={{ fontSize: 12, color: EDITOR_CHROME.textMuted }}>
+              已选 {selectedElementCount} 个元素
+            </span>
+          ) : null}
           <div
             data-we-prompt-card-tool-actions="true"
             style={{ display: 'flex', alignItems: 'center', gap: 2 }}
@@ -1529,6 +1545,15 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
               borderLeft: `1px solid ${EDITOR_CHROME.border}`,
             }}
           >
+            {!isMobileDevice() && onPinnedToTopRightChange ? (
+              <IconActionButton
+                title={pinnedToTopRight ? '取消固定，跟随元素' : '固定到右上角'}
+                icon={pinnedToTopRight ? <PushpinFilled /> : <PushpinOutlined />}
+                pressed={pinnedToTopRight}
+                tone={pinnedToTopRight ? 'accent' : 'dark'}
+                onClick={() => onPinnedToTopRightChange(!pinnedToTopRight)}
+              />
+            ) : null}
             <IconActionButton
               title={promptCardCloseActionTitle}
               icon={<CloseToolIcon />}

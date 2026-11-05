@@ -786,6 +786,11 @@ export type CommentaryHostToolbarAction =
       elementKey?: WebEditorElementKey;
       pane?: 'primary' | 'secondary';
       promptText?: string;
+      /** Explicit members of a Command-click group, including persisted comment identities. */
+      targets?: Array<CommentaryExternalEditingTargetRef & {
+        elementKey: WebEditorElementKey;
+        commentId?: string;
+      }>;
     } & CommentaryExternalEditingTargetRef)
   | { type: 'interrupt-agent' }
   | { type: 'copy-prompt'; clipboard?: 'host' }

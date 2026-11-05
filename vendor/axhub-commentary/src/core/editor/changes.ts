@@ -56,9 +56,10 @@ const CHANGE_MARKER_TASK_GLYPHS = {
 export function filterVisibleChangeMarkerMetas(
   metas: readonly ElementEditMeta[],
   activeMarkerKey: WebEditorElementKey | null,
+  dismissedSelectionMarkerKeys: ReadonlySet<WebEditorElementKey> = new Set(),
 ): ElementEditMeta[] {
-  if (!activeMarkerKey) return metas.slice();
-  return metas.filter((meta) => meta.elementKey !== activeMarkerKey);
+  return metas.filter((meta) => meta.elementKey !== activeMarkerKey
+    && !dismissedSelectionMarkerKeys.has(meta.elementKey));
 }
 
 export function createChangesService(options: {
@@ -610,7 +611,9 @@ export function createChangesService(options: {
       return resolveEditableElementIdentity(selected).elementKey;
     })();
 
-    const visibleMetas = filterVisibleChangeMarkerMetas(dirtyMetas, activeMarkerKey);
+    const visibleMetas = filterVisibleChangeMarkerMetas(
+      dirtyMetas, activeMarkerKey, state.dismissedSelectionMarkerKeys,
+    );
     const commenterColors = buildCommenterColorMap(
       visibleMetas.map((meta) => meta.author),
     );
@@ -1168,6 +1171,7 @@ export function createChangesService(options: {
   ): void {
     state.changeMarkersVisible = visible;
     if (config.persist !== false) {
+      if (visible) state.dismissedSelectionMarkerKeys.clear();
       options.persistMarkerVisibility(visible);
       options.scheduleCacheWrite();
     }

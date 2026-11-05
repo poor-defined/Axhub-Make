@@ -385,6 +385,10 @@ export interface EditorRuntimeState {
   hoveredElement: Element | null;
   pendingHoverTransition: boolean;
   selectedElement: Element | null;
+  selectedElements: Element[];
+  /** Presentation-only cleanup for a finished multi-element comment session. */
+  dismissedSelectionMarkerKeys: Set<WebEditorElementKey>;
+  multiSelectionSessionMarkerKeys: Set<WebEditorElementKey>;
   initialSelectionElement: Element | null;
   selectionAnchor: MarkerAnchor | null;
   commentEntryMode: CommentEntryMode;
@@ -565,6 +569,9 @@ export function createEditorRuntimeState(): EditorRuntimeState {
     hoveredElement: null,
     pendingHoverTransition: false,
     selectedElement: null,
+    selectedElements: [],
+    dismissedSelectionMarkerKeys: new Set(),
+    multiSelectionSessionMarkerKeys: new Set(),
     initialSelectionElement: null,
     selectionAnchor: null,
     commentEntryMode: 'bubble-card',
@@ -609,6 +616,9 @@ export function resetEditorTransientState(state: EditorRuntimeState): void {
   state.markerLayer = null;
   state.hoveredElement = null;
   state.selectedElement = null;
+  state.selectedElements = [];
+  state.dismissedSelectionMarkerKeys.clear();
+  state.multiSelectionSessionMarkerKeys.clear();
   state.initialSelectionElement = null;
   state.selectionAnchor = null;
   state.pendingHoverTransition = false;
@@ -647,6 +657,9 @@ export function clearEditorRuntimeRefs(state: EditorRuntimeState): void {
   state.markerLayer = null;
   state.hoveredElement = null;
   state.selectedElement = null;
+  state.selectedElements = [];
+  state.dismissedSelectionMarkerKeys.clear();
+  state.multiSelectionSessionMarkerKeys.clear();
   state.initialSelectionElement = null;
   state.selectionAnchor = null;
   state.pendingHoverTransition = false;

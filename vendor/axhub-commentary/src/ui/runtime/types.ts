@@ -214,6 +214,10 @@ export interface PromptCardViewProps
     SharedAnnotationActions {
   options: BreadcrumbsOptions;
   currentTarget: Element | null;
+  selectedElementCount?: number;
+  pinnedToTopRight?: boolean;
+  onPinnedToTopRightChange?: (pinned: boolean) => void;
+  propertyPanelOpen?: boolean;
   anchorRect: ViewportRect | null;
   uiMode: CommentEntryMode;
   interactionProfile: WebEditorInteractionProfile;
@@ -282,6 +286,7 @@ export type AgentPromptRoute = 'frontend' | 'agent-run';
 export type IconActionTone = 'neutral' | 'accent' | 'danger' | 'dark';
 
 export interface IconActionButtonProps {
+  pressed?: boolean;
   title: string;
   icon: React.ReactNode;
   onClick?: () => void;

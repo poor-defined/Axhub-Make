@@ -27,6 +27,10 @@ npx -y @axhub/make@latest
 
 ## 本地开发
 
+此分支支持在元素批注时按住 Command 点击多个元素，再次 Command 点击可取消对应选择，Esc 清空整组。多选后填写的批注会应用到所选元素。
+
+修改 `vendor/axhub-commentary/src/` 后，运行 `pnpm vendor:build:commentary` 更新实际运行的包；相关回归测试使用 `pnpm exec vitest run src/vendor/axhub-commentary`。
+
 管理端页面、服务端 API 和运行时注入必须通过完整开发服务器一起启动：
 
 ```bash

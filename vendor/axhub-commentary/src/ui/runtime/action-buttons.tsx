@@ -92,7 +92,7 @@ export function TooltipButton(props: TooltipButtonProps): React.ReactElement {
 }
 
 export function IconActionButton(props: IconActionButtonProps): React.ReactElement {
-  const { title, icon, onClick, disabled, loading, tone = 'neutral', style } = props;
+  const { title, icon, onClick, disabled, loading, tone = 'neutral', style, pressed } = props;
   const [hovered, setHovered] = React.useState(false);
   const toneStyle = ICON_ACTION_TONE_STYLES[tone];
   const mobile = isMobileDevice();
@@ -104,6 +104,7 @@ export function IconActionButton(props: IconActionButtonProps): React.ReactEleme
         size="small"
         type="text"
         aria-label={title}
+        aria-pressed={pressed}
         icon={loading ? <LoadingOutlined spin /> : icon}
         disabled={disabled}
         onClick={onClick}

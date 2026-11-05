@@ -114,9 +114,8 @@ export interface EventControllerOptions {
   /** Optional fast-path hover target normalizer, e.g. redirect descendants to a task root. */
   resolveTargetForHover?: (element: Element | null) => Element | null;
   /**
-   * Optional custom target finder for selection (click).
-   * If not provided, uses simple elementFromPoint.
-   * Only used for selection, not hover (for performance).
+   * Optional target finder for explicit drill-in/up selection and native-text mode.
+   * Ordinary and Command clicks use the same hit test as the hover outline.
    *
    * The event parameter enables Shadow DOM-aware selection via composedPath().
    */
@@ -639,8 +638,8 @@ export function createEventController(options: EventControllerOptions): EventCon
   }
 
   /**
-   * Get the best target element for selection (can be slower, uses intelligent picking).
-   * Uses custom findTargetForSelect if provided, otherwise falls back to fast method.
+   * Resolve ordinary clicks with the same hit test as hover. Intelligent picking
+   * is reserved for explicit drill-in/up modifiers and native text selection.
    *
    * The event parameter is passed to enable Shadow DOM-aware selection via composedPath().
    */
@@ -652,6 +651,13 @@ export function createEventController(options: EventControllerOptions): EventCon
   ): Element | null {
     if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) {
       return null;
+    }
+
+    // Do not promote the outlined child into a larger "meaningful" ancestor.
+    // Re-hit-test at click time rather than reusing a potentially stale rAF hover.
+    // Command changes selection membership, not the element being targeted.
+    if (!modifiers.alt && !modifiers.ctrl && !options.allowNativeTextSelection) {
+      return getTargetElementAtFast(clientX, clientY);
     }
 
     // Use intelligent target finder if provided (e.g., SelectionEngine)
@@ -973,6 +979,20 @@ export function createEventController(options: EventControllerOptions): EventCon
 
       // Always try to find the best target element first (enables child selection & drill-in/up)
       const target = getTargetElementForSelection(event, event.clientX, event.clientY, modifiers);
+
+      // Command-click toggles membership without first dismissing the active selection.
+      if (target && modifiers.meta && !isTouch) {
+        dragCandidate = null;
+        const initialElement = getInitialSelectionElement(event, target);
+        onSelect({
+          element: target,
+          ...(initialElement ? { initialElement } : {}),
+          modifiers,
+          clientX: event.clientX,
+          clientY: event.clientY,
+        });
+        return;
+      }
 
       // If target is different from current selection:
       // - Desktop: deselect first (go back to hover), user clicks again to select

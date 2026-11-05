@@ -1640,6 +1640,7 @@ export function createAgentBridgeService(options: {
     const selected = state.selectedElement;
     if (selected && selected !== taskRoot && isWithinTaskSubtree(selected, taskRoot)) {
       state.selectedElement = taskRoot;
+      state.selectedElements = [taskRoot];
       state.initialSelectionElement = taskRoot;
       state.positionTracker?.setSelectionElement(taskRoot);
       state.breadcrumbs?.setTarget(taskRoot);
@@ -3648,14 +3649,17 @@ export function createAgentBridgeService(options: {
           },
         ];
       }
-      const locator = createElementLocator(selectedElement);
-      return [
-        {
-          tag: selectedElement.tagName.toLowerCase(),
+      const elements = state.selectedElements.includes(selectedElement)
+        ? state.selectedElements.filter((element) => element.isConnected)
+        : [selectedElement];
+      return elements.map((element) => {
+        const locator = createElementLocator(element);
+        return {
+          tag: element.tagName.toLowerCase(),
           selector: options.summaries.formatSelectorPath(locator),
           label: options.summaries.formatElementLabelFromLocator(locator),
-        },
-      ];
+        };
+      });
     })();
 
     return {

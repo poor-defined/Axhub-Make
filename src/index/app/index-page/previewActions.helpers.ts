@@ -478,6 +478,18 @@ export function resolveAnnotationActionEditingTargets(
     targetRef: { locator: ElementLocator | null; label: string };
 }> {
     if (action?.type === 'send-to-agent') {
+        if (Array.isArray(action.targets) && action.targets.length > 0) {
+            const members = new Map<string, ReturnType<typeof resolveAnnotationActionEditingTargets>[number]>();
+            for (const member of action.targets) {
+                if (!String(member?.elementKey || '').trim()) continue;
+                const [target] = resolveAnnotationActionEditingTargets({
+                    type: 'send-to-agent',
+                    ...member,
+                }, modifiedElements);
+                if (target && !members.has(target.elementKey)) members.set(target.elementKey, target);
+            }
+            if (members.size > 0) return Array.from(members.values());
+        }
         const elementKey = String(action.elementKey || '').trim();
         if (elementKey) {
             const commentId = String(action.commentId || '').trim()

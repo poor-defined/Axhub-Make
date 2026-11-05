@@ -321,6 +321,8 @@ export interface PropertyPanelOptions {
 
   /** Read the current hover target when selection mode is active */
   getHoveredElement?: () => Element | null;
+  /** Live members of the current Command-click selection. */
+  getSelectedElements?: () => readonly Element[];
 
   /** Persist a marker anchor for the target element using viewport coordinates */
   onRememberSelectionAnchor?: (
@@ -332,7 +334,7 @@ export interface PropertyPanelOptions {
   onAiNoteChange?: (
     element: Element | null,
     note: string,
-    options?: { skillIds?: readonly string[] },
+    options?: { skillIds?: readonly string[]; targetElements?: readonly Element[] },
   ) => void | Promise<void>;
 
   /** Update the saved AI note images for the current element */

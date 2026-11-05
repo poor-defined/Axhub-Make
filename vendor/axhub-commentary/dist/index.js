@@ -1,4 +1,3 @@
-"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -2336,6 +2335,7 @@ var DEFAULT_WEB_EDITOR_UI_SETTINGS = {
   captureTargetScreenshot: false,
   documentCommentMode: false,
   pageZoomEnabled: false,
+  promptCardPinnedToTopRight: false,
   agentRunConcurrency: 5
 };
 var AGENT_PROVIDER_SET = /* @__PURE__ */ new Set([
@@ -2377,7 +2377,8 @@ function sanitizeWebEditorUiSettings(value) {
     disablePageAnimations: Boolean(record.disablePageAnimations),
     captureTargetScreenshot: record.captureTargetScreenshot === void 0 ? DEFAULT_WEB_EDITOR_UI_SETTINGS.captureTargetScreenshot : Boolean(record.captureTargetScreenshot),
     documentCommentMode: Boolean(record.documentCommentMode),
-    pageZoomEnabled: Boolean(record.pageZoomEnabled)
+    pageZoomEnabled: Boolean(record.pageZoomEnabled),
+    promptCardPinnedToTopRight: Boolean(record.promptCardPinnedToTopRight)
   };
 }
 function applyInteractionProfileToUiSettings(settings, profile) {
@@ -2570,6 +2571,9 @@ function createEditorRuntimeState() {
     hoveredElement: null,
     pendingHoverTransition: false,
     selectedElement: null,
+    selectedElements: [],
+    dismissedSelectionMarkerKeys: /* @__PURE__ */ new Set(),
+    multiSelectionSessionMarkerKeys: /* @__PURE__ */ new Set(),
     initialSelectionElement: null,
     selectionAnchor: null,
     commentEntryMode: "bubble-card",
@@ -2612,6 +2616,9 @@ function resetEditorTransientState(state2) {
   state2.markerLayer = null;
   state2.hoveredElement = null;
   state2.selectedElement = null;
+  state2.selectedElements = [];
+  state2.dismissedSelectionMarkerKeys.clear();
+  state2.multiSelectionSessionMarkerKeys.clear();
   state2.initialSelectionElement = null;
   state2.selectionAnchor = null;
   state2.pendingHoverTransition = false;
@@ -2649,6 +2656,9 @@ function clearEditorRuntimeRefs(state2) {
   state2.markerLayer = null;
   state2.hoveredElement = null;
   state2.selectedElement = null;
+  state2.selectedElements = [];
+  state2.dismissedSelectionMarkerKeys.clear();
+  state2.multiSelectionSessionMarkerKeys.clear();
   state2.initialSelectionElement = null;
   state2.selectionAnchor = null;
   state2.pendingHoverTransition = false;
@@ -3041,9 +3051,8 @@ var CHANGE_MARKER_TASK_GLYPHS = {
   completed: "\u2713",
   error: "!"
 };
-function filterVisibleChangeMarkerMetas(metas, activeMarkerKey) {
-  if (!activeMarkerKey) return metas.slice();
-  return metas.filter((meta) => meta.elementKey !== activeMarkerKey);
+function filterVisibleChangeMarkerMetas(metas, activeMarkerKey, dismissedSelectionMarkerKeys = /* @__PURE__ */ new Set()) {
+  return metas.filter((meta) => meta.elementKey !== activeMarkerKey && !dismissedSelectionMarkerKeys.has(meta.elementKey));
 }
 function createChangesService(options) {
   const { state: state2 } = options;
@@ -3438,7 +3447,11 @@ function createChangesService(options) {
       if (!selected || !selected.isConnected) return null;
       return resolveEditableElementIdentity(selected).elementKey;
     })();
-    const visibleMetas = filterVisibleChangeMarkerMetas(dirtyMetas, activeMarkerKey);
+    const visibleMetas = filterVisibleChangeMarkerMetas(
+      dirtyMetas,
+      activeMarkerKey,
+      state2.dismissedSelectionMarkerKeys
+    );
     const commenterColors = buildCommenterColorMap(
       visibleMetas.map((meta) => meta.author)
     );
@@ -3901,6 +3914,7 @@ function createChangesService(options) {
   function setChangeMarkersVisible(visible, config = {}) {
     state2.changeMarkersVisible = visible;
     if (config.persist !== false) {
+      if (visible) state2.dismissedSelectionMarkerKeys.clear();
       options.persistMarkerVisibility(visible);
       options.scheduleCacheWrite();
     }
@@ -3998,8 +4012,8 @@ function createChangesService(options) {
 }
 
 // src/core/editor/feedback.ts
-var import_react = __toESM(require("react"));
-var ReactDOMClient = __toESM(require("react-dom/client"));
+var import_react = __toESM(require("react"), 1);
+var ReactDOMClient = __toESM(require("react-dom/client"), 1);
 var import_antd = require("antd");
 
 // src/ui/feedback-bridge.ts
@@ -5837,6 +5851,7 @@ function createAgentBridgeService(options) {
     const selected = state2.selectedElement;
     if (selected && selected !== taskRoot && isWithinTaskSubtree(selected, taskRoot)) {
       state2.selectedElement = taskRoot;
+      state2.selectedElements = [taskRoot];
       state2.initialSelectionElement = taskRoot;
       state2.positionTracker?.setSelectionElement(taskRoot);
       state2.breadcrumbs?.setTarget(taskRoot);
@@ -7472,14 +7487,15 @@ function createAgentBridgeService(options) {
           }
         ];
       }
-      const locator = createElementLocator(selectedElement);
-      return [
-        {
-          tag: selectedElement.tagName.toLowerCase(),
+      const elements = state2.selectedElements.includes(selectedElement) ? state2.selectedElements.filter((element) => element.isConnected) : [selectedElement];
+      return elements.map((element) => {
+        const locator = createElementLocator(element);
+        return {
+          tag: element.tagName.toLowerCase(),
           selector: options.summaries.formatSelectorPath(locator),
           label: options.summaries.formatElementLabelFromLocator(locator)
-        }
-      ];
+        };
+      });
     })();
     return {
       version: "1",
@@ -8514,6 +8530,22 @@ function createEditorIntegrationWsService(options) {
   };
 }
 
+// src/core/editor/element-selection.ts
+function getSelectedElements(state2) {
+  return Array.from(/* @__PURE__ */ new Set([
+    ...state2.selectedElements,
+    ...state2.selectedElement ? [state2.selectedElement] : []
+  ])).filter((element) => element.isConnected);
+}
+function getSelectionActionTargets(state2, element, snapshot) {
+  if (element && snapshot?.includes(element)) {
+    return Array.from(new Set(snapshot)).filter((target) => target.isConnected);
+  }
+  if (!element?.isConnected) return [];
+  const selected = snapshot ? Array.from(new Set(snapshot)).filter((target) => target.isConnected) : getSelectedElements(state2);
+  return selected.includes(element) ? selected : [element];
+}
+
 // src/utils/annotation-comment-bridge.ts
 var ANNOTATION_COMMENT_BRIDGE_KEY = "__AXHUB_ANNOTATION_COMMENT_BRIDGE__";
 var ANNOTATION_MARKER_ATTR = "data-axhub-annotation-marker";
@@ -8590,6 +8622,25 @@ function createInteractionService(options) {
     if (!element.isConnected || agentBridge.isElementInteractionLocked(element)) {
       return false;
     }
+    const previousSelection = getSelectedElements(state2);
+    if (!modifiers.meta && previousSelection.length > 1) dismissMultiSelectionMarkers();
+    const nextSelection = modifiers.meta ? previousSelection.includes(element) ? previousSelection.filter((target) => target !== element) : [...previousSelection, element] : [element];
+    state2.selectedElements = nextSelection;
+    if (nextSelection.length > 1) {
+      for (const target of nextSelection) {
+        const meta = options.changes.getMetaForElement?.(target);
+        if (meta) state2.multiSelectionSessionMarkerKeys.add(meta.elementKey);
+      }
+    }
+    if (nextSelection.length === 0) {
+      clearSelection();
+      return true;
+    }
+    if (!nextSelection.includes(element)) {
+      element = nextSelection[nextSelection.length - 1];
+      initialSelectionElement = element;
+      selectionAnchor = void 0;
+    }
     if (state2.activeTextComment) {
       state2.activeTextComment = null;
       state2.canvasOverlay?.setTextHighlightRects(null);
@@ -8600,15 +8651,18 @@ function createInteractionService(options) {
       state2.breadcrumbs?.setAnchorRect(null);
     }
     options.changes.rememberSelectionAnchor(element, selectionAnchor);
+    const markerMeta = options.changes.getMetaForElement?.(element);
+    if (markerMeta) state2.dismissedSelectionMarkerKeys.delete(markerMeta.elementKey);
     state2.selectedElement = element;
     state2.initialSelectionElement = initialSelectionElement ?? element;
     state2.hoveredElement = null;
     state2.positionTracker?.setHoverElement(null);
     state2.positionTracker?.setSelectionElement(element);
-    state2.positionTracker?.forceUpdate();
+    state2.positionTracker?.forceUpdate(true);
     syncShadowHostMount(element);
     state2.breadcrumbs?.setTarget(element);
     state2.propertyPanel?.setTarget(element);
+    state2.propertyPanel?.refresh();
     state2.handlesController?.setTarget(element);
     state2.parentSelectController?.setTarget(element);
     options.onStatusChange?.();
@@ -8642,8 +8696,21 @@ function createInteractionService(options) {
     closeAnnotationBridgeSelection(element);
     selectResolvedElement(element, modifiers, selectionAnchor, initialSelectionElement);
   }
+  function dismissMultiSelectionMarkers() {
+    const targets = getSelectedElements(state2);
+    if (targets.length > 1) {
+      for (const target of targets) {
+        const meta = options.changes.getMetaForElement?.(target);
+        if (meta) state2.multiSelectionSessionMarkerKeys.add(meta.elementKey);
+      }
+    }
+    for (const key of state2.multiSelectionSessionMarkerKeys) state2.dismissedSelectionMarkerKeys.add(key);
+    state2.multiSelectionSessionMarkerKeys.clear();
+  }
   function handleDeselect() {
+    dismissMultiSelectionMarkers();
     closeAnnotationBridgeSelection(null);
+    state2.selectedElements = [];
     if (!state2.selectedElement && state2.activeTextComment) {
       options.changes.clearPendingSelectionAnchor();
       state2.selectionAnchor = null;
@@ -8700,6 +8767,9 @@ function createInteractionService(options) {
     state2.canvasOverlay.setHoverRect(hoverRect, { animate: animateHover });
     state2.canvasOverlay.setSelectionEffect(selectionEffect);
     state2.canvasOverlay.setSelectionRect(selectionRect);
+    state2.canvasOverlay.setAdditionalSelectionRects(
+      hideChrome || textCommentActive ? [] : rects.additionalSelections ?? getSelectedElements(state2).filter((element) => element !== state2.selectedElement).map((element) => element.getBoundingClientRect())
+    );
     state2.canvasOverlay.setEditingRects(null);
     state2.handlesController?.setSelectionRect(handlesRect);
     state2.parentSelectController?.setSelectionRect(selectionRect);
@@ -8744,6 +8814,7 @@ function createInteractionService(options) {
     return true;
   }
   function clearSelection() {
+    dismissMultiSelectionMarkers();
     const hadElementSelection = Boolean(state2.selectedElement);
     const hadTextCommentSelection = Boolean(state2.activeTextComment);
     if (!hadElementSelection && !hadTextCommentSelection && !state2.selectionAnchor) return;
@@ -8922,6 +8993,7 @@ function createInteractionService(options) {
       offsetY
     });
     state2.selectedElement = null;
+    state2.selectedElements = [];
     state2.initialSelectionElement = null;
     state2.selectionAnchor = markerAnchor;
     state2.hoveredElement = null;
@@ -9867,13 +9939,13 @@ function mountShadowHost(_options = {}) {
 }
 
 // src/ui/runtime/create-web-editor-ui-runtime.tsx
-var import_react21 = __toESM(require("react"));
+var import_react21 = __toESM(require("react"), 1);
 var import_client = require("react-dom/client");
 var import_antd10 = require("antd");
 var import_cssinjs = require("@ant-design/cssinjs");
 
 // src/ui/runtime/runtime-shell.tsx
-var import_react20 = __toESM(require("react"));
+var import_react20 = __toESM(require("react"), 1);
 
 // src/ui/runtime/theme.ts
 var ANCHOR_GAP_PX = 12;
@@ -11827,7 +11899,7 @@ var promptCardStyle = {
 };
 
 // src/ui/runtime/element-agent-task-overlays.tsx
-var import_react2 = __toESM(require("react"));
+var import_react2 = __toESM(require("react"), 1);
 
 // src/ui/runtime/session-activity-utils.ts
 function limitVisibleSessionActivities(items, limit = 3) {
@@ -12310,11 +12382,11 @@ function ElementAgentTaskOverlays(props) {
 }
 
 // src/ui/runtime/prompt-card-view.tsx
-var import_react10 = __toESM(require("react"));
+var import_react10 = __toESM(require("react"), 1);
 var import_react_dom = require("react-dom");
 
 // src/ui/runtime/mobile-selection-overlay.tsx
-var import_react3 = __toESM(require("react"));
+var import_react3 = __toESM(require("react"), 1);
 
 // src/core/editor/screenshot.ts
 var SCREENSHOT_IMAGE_PROXY_PATH = "/api/export/image-proxy";
@@ -13023,6 +13095,9 @@ function computePromptCardPosition(options) {
   );
   const propertyPanelMaxLeft = safeRightX - cardWidth;
   const maxLeft = propertyPanelEnabled && propertyPanelMaxLeft >= safePaddingPx ? Math.min(viewportMaxLeft, propertyPanelMaxLeft) : viewportMaxLeft;
+  if (options.pinnedToTopRight) {
+    return { left: Math.round(maxLeft), top: Math.round(safePaddingPx) };
+  }
   const preferredRightLeft = anchorRect.left + anchorRect.width + anchorGapPx;
   const preferredLeftLeft = anchorRect.left - anchorGapPx - cardWidth;
   const fitsRight = preferredRightLeft >= safePaddingPx && preferredRightLeft <= maxLeft;
@@ -13173,7 +13248,7 @@ function resolvePromptCardCloseActionTitle(platform) {
 }
 
 // src/ui/runtime/action-buttons.tsx
-var import_react4 = __toESM(require("react"));
+var import_react4 = __toESM(require("react"), 1);
 var import_react5 = require("motion/react");
 var import_antd2 = require("antd");
 var import_icons = require("@ant-design/icons");
@@ -13307,7 +13382,7 @@ function TooltipButton(props) {
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_antd2.Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { display: "inline-flex" }, children: import_react4.default.cloneElement(children, { disabled }) }) });
 }
 function IconActionButton(props) {
-  const { title, icon, onClick, disabled, loading, tone = "neutral", style } = props;
+  const { title, icon, onClick, disabled, loading, tone = "neutral", style, pressed } = props;
   const [hovered, setHovered] = import_react4.default.useState(false);
   const toneStyle = ICON_ACTION_TONE_STYLES[tone];
   const mobile = isMobileDevice();
@@ -13318,6 +13393,7 @@ function IconActionButton(props) {
       size: "small",
       type: "text",
       "aria-label": title,
+      "aria-pressed": pressed,
       icon: loading ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_icons.LoadingOutlined, { spin: true }) : icon,
       disabled,
       onClick,
@@ -13575,7 +13651,7 @@ function deriveAgentUiState(options) {
 }
 
 // src/ui/runtime/prompt-image-strip.tsx
-var import_react6 = __toESM(require("react"));
+var import_react6 = __toESM(require("react"), 1);
 var import_icons2 = require("@ant-design/icons");
 var import_jsx_runtime4 = require("react/jsx-runtime");
 var THUMB_SIZE = 28;
@@ -13692,12 +13768,12 @@ function PromptImageStrip(props) {
 }
 
 // src/ui/runtime/prompt-card-design-editor.tsx
-var import_react9 = __toESM(require("react"));
+var import_react9 = __toESM(require("react"), 1);
 var import_icons4 = require("@ant-design/icons");
 var import_antd4 = require("antd");
 
 // src/ui/property-panel/react-design-panel.tsx
-var import_react7 = __toESM(require("react"));
+var import_react7 = __toESM(require("react"), 1);
 var import_antd3 = require("antd");
 var import_icons3 = require("@ant-design/icons");
 var import_jsx_runtime5 = require("react/jsx-runtime");
@@ -15743,7 +15819,7 @@ function normalizeLength(raw) {
 }
 
 // src/ui/runtime/prompt-card-scroll-area.tsx
-var import_react8 = __toESM(require("react"));
+var import_react8 = __toESM(require("react"), 1);
 var import_overlayscrollbars_react = require("overlayscrollbars-react");
 var import_jsx_runtime6 = require("react/jsx-runtime");
 var PROMPT_CARD_SCROLL_OPTIONS = {
@@ -16199,6 +16275,10 @@ var PromptCardView = import_react10.default.forwardRef(
     const {
       options,
       currentTarget,
+      selectedElementCount = 1,
+      pinnedToTopRight = false,
+      onPinnedToTopRightChange,
+      propertyPanelOpen = false,
       anchorRect,
       uiMode,
       interactionProfile,
@@ -16470,12 +16550,14 @@ var PromptCardView = import_react10.default.forwardRef(
     ]);
     const [visualViewportKey, setVisualViewportKey] = import_react10.default.useState(0);
     import_react10.default.useEffect(() => {
-      if (!isMobileDevice()) return;
-      const vv = window.visualViewport;
-      if (!vv) return;
+      const vv = isMobileDevice() ? window.visualViewport : null;
       const handleResize = () => setVisualViewportKey((k) => k + 1);
-      vv.addEventListener("resize", handleResize);
-      return () => vv.removeEventListener("resize", handleResize);
+      window.addEventListener("resize", handleResize);
+      vv?.addEventListener("resize", handleResize);
+      return () => {
+        window.removeEventListener("resize", handleResize);
+        vv?.removeEventListener("resize", handleResize);
+      };
     }, []);
     const promptPosition = import_react10.default.useMemo(() => {
       if (!currentTarget || !anchorRect || toolMinimized || uiMode !== "bubble-card") return null;
@@ -16486,7 +16568,8 @@ var PromptCardView = import_react10.default.forwardRef(
         cardHeight: promptCardSize?.height ?? PROMPT_CARD_ESTIMATED_HEIGHT,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
-        propertyPanelEnabled,
+        propertyPanelEnabled: propertyPanelEnabled && (!pinnedToTopRight || propertyPanelOpen),
+        pinnedToTopRight,
         safePaddingPx: SAFE_PADDING_PX,
         propertyPanelWidth: PROPERTY_PANEL_WIDTH,
         propertyPanelRight: PROPERTY_PANEL_RIGHT,
@@ -16497,6 +16580,8 @@ var PromptCardView = import_react10.default.forwardRef(
       currentTarget,
       promptCardSize,
       propertyPanelEnabled,
+      pinnedToTopRight,
+      propertyPanelOpen,
       toolMinimized,
       uiMode,
       visualViewportKey
@@ -17001,6 +17086,11 @@ var PromptCardView = import_react10.default.forwardRef(
                 gap: 8
               },
               children: [
+                selectedElementCount > 1 ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { "data-we-selection-count": "true", style: { fontSize: 12, color: EDITOR_CHROME.textMuted }, children: [
+                  "\u5DF2\u9009 ",
+                  selectedElementCount,
+                  " \u4E2A\u5143\u7D20"
+                ] }) : null,
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
                   "div",
                   {
@@ -17212,7 +17302,7 @@ var PromptCardView = import_react10.default.forwardRef(
                     ]
                   }
                 ) : null,
-                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
                   "div",
                   {
                     style: {
@@ -17223,15 +17313,27 @@ var PromptCardView = import_react10.default.forwardRef(
                       marginLeft: 2,
                       borderLeft: `1px solid ${EDITOR_CHROME.border}`
                     },
-                    children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
-                      IconActionButton,
-                      {
-                        title: promptCardCloseActionTitle,
-                        icon: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(CloseToolIcon, {}),
-                        tone: "dark",
-                        onClick: handlePromptCardClose
-                      }
-                    )
+                    children: [
+                      !isMobileDevice() && onPinnedToTopRightChange ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                        IconActionButton,
+                        {
+                          title: pinnedToTopRight ? "\u53D6\u6D88\u56FA\u5B9A\uFF0C\u8DDF\u968F\u5143\u7D20" : "\u56FA\u5B9A\u5230\u53F3\u4E0A\u89D2",
+                          icon: pinnedToTopRight ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.PushpinFilled, {}) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.PushpinOutlined, {}),
+                          pressed: pinnedToTopRight,
+                          tone: pinnedToTopRight ? "accent" : "dark",
+                          onClick: () => onPinnedToTopRightChange(!pinnedToTopRight)
+                        }
+                      ) : null,
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                        IconActionButton,
+                        {
+                          title: promptCardCloseActionTitle,
+                          icon: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(CloseToolIcon, {}),
+                          tone: "dark",
+                          onClick: handlePromptCardClose
+                        }
+                      )
+                    ]
                   }
                 )
               ]
@@ -17986,7 +18088,7 @@ var PromptCardView = import_react10.default.forwardRef(
 );
 
 // src/ui/runtime/property-panel-view.tsx
-var import_react14 = __toESM(require("react"));
+var import_react14 = __toESM(require("react"), 1);
 var import_icons8 = require("@ant-design/icons");
 
 // src/utils/page-animation-toggle.ts
@@ -18742,12 +18844,12 @@ function dockFloatingPanelRight(options) {
 }
 
 // src/ui/property-panel/react-page-tweak-panel.tsx
-var import_react12 = __toESM(require("react"));
+var import_react12 = __toESM(require("react"), 1);
 var import_icons7 = require("@ant-design/icons");
 var import_antd7 = require("antd");
 
 // src/ui/property-panel/react-tweak-panel.tsx
-var import_react11 = __toESM(require("react"));
+var import_react11 = __toESM(require("react"), 1);
 var import_icons6 = require("@ant-design/icons");
 var import_antd6 = require("antd");
 var import_jsx_runtime9 = require("react/jsx-runtime");
@@ -19408,7 +19510,7 @@ function ReactPageTweakPanel(props) {
 }
 
 // src/ui/runtime/shortcut-capture-card.tsx
-var import_react13 = __toESM(require("react"));
+var import_react13 = __toESM(require("react"), 1);
 var import_jsx_runtime11 = require("react/jsx-runtime");
 var shortcutCaptureHintStyle = {
   fontSize: 11,
@@ -23018,7 +23120,7 @@ function syncDraftAgainstSaved(prev, nextSaved, resetDraft) {
 }
 
 // src/ui/runtime/runtime-effects/use-feedback-bridge.ts
-var import_react15 = __toESM(require("react"));
+var import_react15 = __toESM(require("react"), 1);
 var import_antd9 = require("antd");
 var HOST_TOAST_EVENT_NAME = "axhub-commentary-host-toast";
 var MESSAGE_TYPES = /* @__PURE__ */ new Set(["success", "info", "warning", "error"]);
@@ -23234,7 +23336,7 @@ function useFeedbackBridge() {
 }
 
 // src/ui/runtime/runtime-effects/use-pointer-tracker.ts
-var import_react16 = __toESM(require("react"));
+var import_react16 = __toESM(require("react"), 1);
 function usePointerTracker() {
   const latestPointerPositionRef = import_react16.default.useRef(null);
   import_react16.default.useEffect(() => {
@@ -23260,7 +23362,7 @@ function usePointerTracker() {
 }
 
 // src/ui/runtime/runtime-effects/use-selection-mode-guards.ts
-var import_react17 = __toESM(require("react"));
+var import_react17 = __toESM(require("react"), 1);
 function useSelectionModeGuards(params) {
   const { propertyPanelOptions, setToolMinimized } = params;
   const initialSelectionModeActive = params.initialSelectionModeActive ?? true;
@@ -23412,7 +23514,7 @@ function useSelectionModeGuards(params) {
 }
 
 // src/ui/runtime/runtime-effects/use-clipboard-comment-paste.ts
-var import_react18 = __toESM(require("react"));
+var import_react18 = __toESM(require("react"), 1);
 
 // src/ui/runtime/dom-utils.ts
 function isEditableOrFormControl(element) {
@@ -24117,7 +24219,7 @@ function useClipboardCommentPaste(params) {
 }
 
 // src/ui/runtime/runtime-effects/use-outside-click-selection-restore.ts
-var import_react19 = __toESM(require("react"));
+var import_react19 = __toESM(require("react"), 1);
 function isElementNode(node) {
   return typeof Element !== "undefined" && node instanceof Element;
 }
@@ -24129,7 +24231,7 @@ function restoreSelectionModeFromOutsidePointerDown(params) {
     selectionNeedsExplicitReactivateRef,
     syncSelectionModeAvailability
   } = params;
-  if (selectionInteractionLockOwnersRef.current.size === 0 && !selectionNeedsExplicitReactivateRef.current) {
+  if (selectionInteractionLockOwnersRef.current.size === 0 && selectionHoverOwnersRef.current.size === 0 && !selectionNeedsExplicitReactivateRef.current) {
     return false;
   }
   const path = typeof event.composedPath === "function" ? event.composedPath() : [];
@@ -24141,14 +24243,20 @@ function restoreSelectionModeFromOutsidePointerDown(params) {
     (node) => isElementNode(node) && (node.getAttribute("data-we-selection-lock-root") === "true" || node.closest('[data-we-selection-lock-root="true"]'))
   );
   if (hitSelectionLockRoot) return false;
-  event.preventDefault();
-  event.stopPropagation();
-  event.stopImmediatePropagation();
+  if (!event.metaKey) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  }
   selectionHoverOwnersRef.current.clear();
   selectionInteractionLockOwnersRef.current.clear();
   selectionNeedsExplicitReactivateRef.current = false;
   syncSelectionModeAvailability();
   return true;
+}
+function restoreSelectionModeFromCommandHover(params) {
+  if (!params.event.metaKey || params.event.buttons !== 0) return false;
+  return restoreSelectionModeFromOutsidePointerDown(params);
 }
 function useOutsideClickSelectionRestore(params) {
   const {
@@ -24167,9 +24275,21 @@ function useOutsideClickSelectionRestore(params) {
         syncSelectionModeAvailability
       });
     };
+    const restoreSelectionForCommandHover = (event) => {
+      restoreSelectionModeFromCommandHover({
+        event,
+        selectionInteractionLockOwnersRef,
+        selectionHoverOwnersRef,
+        selectionNeedsExplicitReactivateRef,
+        syncSelectionModeAvailability
+      });
+    };
+    const moveEventType = typeof PointerEvent === "undefined" ? "mousemove" : "pointermove";
     window.addEventListener("pointerdown", restoreSelectionAfterOutsideClick, true);
+    window.addEventListener(moveEventType, restoreSelectionForCommandHover, true);
     return () => {
       window.removeEventListener("pointerdown", restoreSelectionAfterOutsideClick, true);
+      window.removeEventListener(moveEventType, restoreSelectionForCommandHover, true);
     };
   }, [
     selectionHoverOwnersRef,
@@ -24461,6 +24581,7 @@ function WebEditorUiApp(props) {
   const inlineTextTargetRef = import_react20.default.useRef(null);
   const uiModeRef = import_react20.default.useRef(initialUiMode);
   const noteStateRef = import_react20.default.useRef(noteState);
+  const noteTargetElementsRef = import_react20.default.useRef([]);
   const textStateRef = import_react20.default.useRef(textState);
   const imageStateRef = import_react20.default.useRef(imageState);
   const annotationStateRef = import_react20.default.useRef(annotationState);
@@ -24589,6 +24710,10 @@ function WebEditorUiApp(props) {
         nextSavedNote,
         resetDraft
       );
+      if (resetDraft || !next.dirty) {
+        const selected = propertyPanelOptions?.getSelectedElements?.() ?? [];
+        noteTargetElementsRef.current = element && selected.includes(element) ? selected.slice() : element ? [element] : [];
+      }
       const nextState = {
         savedNote: next.saved,
         draftNote: next.draft,
@@ -24706,7 +24831,8 @@ function WebEditorUiApp(props) {
       const skillsDirty = nextSkillIds.join("\0") !== (noteStateRef.current.savedNoteMeta?.skillIds ?? []).join("\0");
       if (!noteStateRef.current.noteDirty && !skillsDirty) return false;
       await propertyPanelOptions.onAiNoteChange(element, nextValue, {
-        skillIds: nextSkillIds
+        skillIds: nextSkillIds,
+        targetElements: noteTargetElementsRef.current
       });
       if (currentTargetRef.current === element) {
         const nextState = {
@@ -25419,6 +25545,13 @@ function WebEditorUiApp(props) {
         ref: breadcrumbsRef,
         options: breadcrumbsOptions,
         currentTarget,
+        selectedElementCount: propertyPanelOptions?.getSelectedElements?.().length ?? (currentTarget ? 1 : 0),
+        pinnedToTopRight: uiSettings.promptCardPinnedToTopRight,
+        propertyPanelOpen,
+        onPinnedToTopRightChange: (pinned) => handleUiSettingsChange({
+          ...uiSettings,
+          promptCardPinnedToTopRight: pinned
+        }),
         anchorRect,
         uiMode,
         interactionProfile,
@@ -25941,6 +26074,7 @@ function createCanvasOverlay(options) {
   let hoverRect = null;
   let hoverAnimation = null;
   let selectionRect = null;
+  let additionalSelectionRects = [];
   let selectionEffect = "default";
   let editingRects = null;
   let dragGhostRect = null;
@@ -26283,6 +26417,9 @@ function createCanvasOverlay(options) {
     clearCanvas();
     drawTextHighlightRects(textHighlightRects);
     drawBox(hoverRectToRender, OVERLAY_BOX_STYLES.hover);
+    for (const rect of additionalSelectionRects) {
+      drawBox(rect, OVERLAY_BOX_STYLES.selection);
+    }
     if (selectionEffect !== "ai-editing") {
       drawBox(
         selectionRect,
@@ -26334,6 +26471,10 @@ function createCanvasOverlay(options) {
     syncAiSelectionEffect();
     markDirty();
   }
+  function setAdditionalSelectionRects(rects) {
+    additionalSelectionRects = rects;
+    markDirty();
+  }
   function setSelectionEffect(effect) {
     if (selectionEffect === effect) return;
     selectionEffect = effect;
@@ -26369,6 +26510,7 @@ function createCanvasOverlay(options) {
     hoverRect = null;
     hoverAnimation = null;
     selectionRect = null;
+    additionalSelectionRects = [];
     selectionEffect = "default";
     editingRects = null;
     textHighlightRects = null;
@@ -26407,6 +26549,7 @@ function createCanvasOverlay(options) {
     clear,
     setHoverRect,
     setSelectionRect,
+    setAdditionalSelectionRects,
     setSelectionEffect,
     setEditingRects,
     setTextHighlightRects,
@@ -28842,6 +28985,9 @@ function createEventController(options) {
     if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) {
       return null;
     }
+    if (!modifiers.alt && !modifiers.ctrl && !options.allowNativeTextSelection) {
+      return getTargetElementAtFast(clientX, clientY);
+    }
     if (findTargetForSelect) {
       const target = findTargetForSelect(clientX, clientY, modifiers, event);
       if (target && isOverlayElement2(target)) return null;
@@ -29034,6 +29180,18 @@ function createEventController(options) {
       if (!shouldProcessAsPrimaryPointer(event)) return;
       const selected = getSelectedElement?.() ?? null;
       const target2 = getTargetElementForSelection(event, event.clientX, event.clientY, modifiers);
+      if (target2 && modifiers.meta && !isTouch) {
+        dragCandidate = null;
+        const initialElement2 = getInitialSelectionElement(event, target2);
+        onSelect({
+          element: target2,
+          ...initialElement2 ? { initialElement: initialElement2 } : {},
+          modifiers,
+          clientX: event.clientX,
+          clientY: event.clientY
+        });
+        return;
+      }
       if (target2 && target2 !== selected) {
         dragCandidate = null;
         if (isTouch) {
@@ -29344,7 +29502,9 @@ function rectApproximatelyEqual(a, b) {
   return approximatelyEqual(a.left, b.left) && approximatelyEqual(a.top, b.top) && approximatelyEqual(a.width, b.width) && approximatelyEqual(a.height, b.height);
 }
 function trackedRectsEqual(a, b) {
-  return rectApproximatelyEqual(a.hover, b.hover) && rectApproximatelyEqual(a.selection, b.selection);
+  const extraA = a.additionalSelections ?? [];
+  const extraB = b.additionalSelections ?? [];
+  return rectApproximatelyEqual(a.hover, b.hover) && rectApproximatelyEqual(a.selection, b.selection) && extraA.length === extraB.length && extraA.every((rect, index) => rectApproximatelyEqual(rect, extraB[index]));
 }
 function createPositionTracker(options) {
   const { onPositionUpdate } = options;
@@ -29410,6 +29570,7 @@ function createPositionTracker(options) {
     }
   }
   function computeRects() {
+    const additionalSelections = (options.getAdditionalSelectionElements?.() ?? []).map((element) => readElementRect2(resolveConnected(element))).filter((rect) => rect !== null);
     const resolvedHover = resolveConnected(hoverElement);
     const resolvedSelection = resolveConnected(selectionElement);
     if (hoverElement && !resolvedHover) {
@@ -29421,11 +29582,12 @@ function createPositionTracker(options) {
     }
     if (resolvedHover && resolvedSelection && resolvedHover === resolvedSelection) {
       const rect = readElementRect2(resolvedHover);
-      return { hover: rect, selection: rect };
+      return { hover: rect, selection: rect, additionalSelections };
     }
     return {
       hover: readElementRect2(resolvedHover),
-      selection: readElementRect2(resolvedSelection)
+      selection: readElementRect2(resolvedSelection),
+      additionalSelections
     };
   }
   function updateIfChanged() {
@@ -31653,14 +31815,24 @@ function createLifecycleService(deps) {
   }
   function buildHostSendToAgentAction(element) {
     const meta = services.changes.getMetaForElement(element ?? null);
-    const promptText = element ? buildSaveRunPromptForAgentElement(element) : "";
+    const selection = getSelectionActionTargets(state2, element ?? null);
+    const entries = selection.flatMap((target) => {
+      const prompt = buildSaveRunPromptForAgentElement(target);
+      const targetMeta = services.changes.getMetaForElement(target);
+      return prompt && targetMeta ? [{ prompt, meta: targetMeta }] : [];
+    });
+    const promptText = entries.map((entry) => entry.prompt).join("\n\n");
     return meta?.elementKey ? {
       type: "send-to-agent",
       ...meta.commentId ? { commentId: meta.commentId } : {},
       elementKey: meta.elementKey,
       locator: meta.locator,
       label: meta.label,
-      promptText: promptText || void 0
+      promptText: promptText || void 0,
+      ...selection.length > 1 ? { targets: entries.map((entry) => ({
+        ...toExternalEditingTarget(entry.meta),
+        ...entry.meta.commentId ? { commentId: entry.meta.commentId } : {}
+      })) } : {}
     } : { type: "send-to-agent" };
   }
   function toExternalEditingTarget(meta) {
@@ -31886,6 +32058,13 @@ ${externalSection}` : promptWithSkills;
     ).sort((a, b) => Number(b.dirtySince ?? 0) - Number(a.dirtySince ?? 0)).map(toExternalEditingTarget);
   }
   function resolvePromptTargetRefs(preferredElement) {
+    const selection = getSelectionActionTargets(state2, preferredElement ?? state2.selectedElement);
+    if (selection.length > 1) {
+      return selection.flatMap((element) => {
+        const meta = services.changes.getMetaForElement(element);
+        return meta && buildSaveRunPromptForAgentElement(element) ? [toExternalEditingTarget(meta)] : [];
+      });
+    }
     const recoveredTargets = resolvePromptTargetRefsFromEditHistory();
     if (recoveredTargets.length > 0) {
       return recoveredTargets;
@@ -31903,6 +32082,8 @@ ${externalSection}` : promptWithSkills;
     return resolvePromptTargetRefsFromEditHistory()[0] ?? null;
   }
   function resolvePromptTargets(preferredElement) {
+    const selection = getSelectionActionTargets(state2, preferredElement ?? state2.selectedElement);
+    if (selection.length > 1) return selection;
     const recoveredElements = resolvePromptTargetsFromEditHistory();
     if (recoveredElements.length > 0) {
       return recoveredElements;
@@ -32703,7 +32884,10 @@ ${externalSection}` : promptWithSkills;
         state2.textCommentTargetElement = null;
       }
       state2.positionTracker = createPositionTracker({
-        onPositionUpdate: services.interaction.handlePositionUpdate
+        onPositionUpdate: services.interaction.handlePositionUpdate,
+        getAdditionalSelectionElements: () => getSelectedElements(state2).filter(
+          (element) => element !== state2.selectedElement
+        )
       });
       state2.commentShortcutCleanup = null;
       state2.transactionManager = createTransactionManager({
@@ -32797,7 +32981,7 @@ ${externalSection}` : promptWithSkills;
         onDeselect: services.interaction.handleDeselect,
         resolveTargetForHover: isTextComment ? void 0 : (target) => services.agentBridge.resolveSelectableElement(target),
         findTargetForSelect: isTextComment ? void 0 : (_x, _y, modifiers, event) => {
-          const target = state2.selectionEngine?.findBestTargetFromEvent(event, modifiers) ?? null;
+          const target = state2.selectionEngine?.findBestTargetFromEvent(event, { ...modifiers, meta: false }) ?? null;
           return services.agentBridge.resolveSelectableElement(target);
         },
         getSelectedElement: () => state2.selectedElement,
@@ -32957,9 +33141,10 @@ ${externalSection}` : promptWithSkills;
             }
           },
           onSendCurrentElementPromptToAgent: async (element) => {
+            const selectedTargets = getSelectionActionTargets(state2, element);
             if (shouldDelegateAiActionToHost()) {
-              const targetRef = resolvePromptTargetRef(element);
-              const editingRun = beginHostExternalEditing(targetRef ? [targetRef] : []);
+              const targetRefs = selectedTargets.length > 1 ? resolvePromptTargetRefs(element) : [resolvePromptTargetRef(element)].filter((ref) => ref !== null);
+              const editingRun = beginHostExternalEditing(targetRefs);
               const handled = await runHostAiAction(buildHostSendToAgentAction(element));
               if (!handled) {
                 const message = lastHostAiActionError || "\u5BBF\u4E3B\u6682\u672A\u5904\u7406 AI \u6267\u884C\u8BF7\u6C42\u3002";
@@ -32976,7 +33161,11 @@ ${externalSection}` : promptWithSkills;
               throw new Error("\u5F53\u524D\u5143\u7D20\u6CA1\u6709\u53EF\u53D1\u9001\u7ED9 AI \u7684\u7F16\u8F91\u3002");
             }
             try {
-              await services.agentBridge.handleSendPromptToAgentForElement(element, prompt);
+              if (selectedTargets.length > 1) {
+                await services.agentBridge.handleSendPromptToAgentForElements(selectedTargets, buildSaveRunPromptForAgentElement);
+              } else {
+                await services.agentBridge.handleSendPromptToAgentForElement(element, prompt);
+              }
             } finally {
               state2.positionTracker?.forceUpdate(true);
             }
@@ -33159,7 +33348,9 @@ ${externalSection}` : promptWithSkills;
               externalComments: meta.externalComments
             } : null;
           },
-          canEditAiNote: (element) => !Boolean(services.changes.getMetaForElement(element)?.readOnly),
+          canEditAiNote: (element) => getSelectionActionTargets(state2, element).every(
+            (target) => !services.changes.getMetaForElement(target)?.readOnly && !services.agentBridge.isElementInteractionLocked(target)
+          ),
           canClearCurrentElementEdits: (element) => !Boolean(services.changes.getMetaForElement(element)?.readOnly),
           onDeleteExternalComment: (element, commentId) => {
             if (services.changes.getMetaForElement(element)?.readOnly) return false;
@@ -33169,46 +33360,52 @@ ${externalSection}` : promptWithSkills;
           onPrepareAiNoteImages: options.ui.onPrepareImageAttachments,
           getAiNoteImages: (element) => services.changes.getImagesForElement(element),
           getHoveredElement: () => state2.hoveredElement,
+          getSelectedElements: () => getSelectedElements(state2),
           onRememberSelectionAnchor: (element, selectionAnchor) => {
             services.changes.rememberSelectionAnchor(element, selectionAnchor);
           },
-          onAiNoteChange: async (element, note, noteOptions) => {
-            if (services.changes.getMetaForElement(element)?.readOnly) return;
-            if (options.ui.externalAnnotationMode && element) {
-              const meta = services.changes.getMetaForElement(element);
-              if (meta) {
-                const existing = meta.externalComments?.[0];
-                meta.externalComments = note.trim() ? [{
-                  id: existing?.id || `review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                  authorId: existing?.authorId || "pending-reviewer",
-                  authorName: existing?.authorName || options.ui.commenterName || "\u8BC4\u5BA1\u8005",
-                  content: note.trim(),
-                  createdAt: existing?.createdAt || Date.now(),
-                  updatedAt: Date.now()
-                }] : [];
+          onAiNoteChange: async (selectedElement, note, noteOptions) => {
+            const targets = selectedElement ? getSelectionActionTargets(state2, selectedElement, noteOptions?.targetElements) : [null];
+            const screenshotUpdates = [];
+            for (const element of targets) {
+              if (services.changes.getMetaForElement(element)?.readOnly || services.agentBridge.isElementInteractionLocked(element)) continue;
+              if (options.ui.externalAnnotationMode && element) {
+                const meta = services.changes.getMetaForElement(element);
+                if (meta) {
+                  const existing = meta.externalComments?.[0];
+                  meta.externalComments = note.trim() ? [{
+                    id: existing?.id || `review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                    authorId: existing?.authorId || "pending-reviewer",
+                    authorName: existing?.authorName || options.ui.commenterName || "\u8BC4\u5BA1\u8005",
+                    content: note.trim(),
+                    createdAt: existing?.createdAt || Date.now(),
+                    updatedAt: Date.now()
+                  }] : [];
+                }
               }
-            }
-            if (noteOptions) {
-              services.changes.setNoteForElement(element, note, noteOptions);
-            } else {
-              services.changes.setNoteForElement(element, note);
-            }
-            if (element) {
-              const shouldCaptureTargetScreenshot = state2.uiSettings.captureTargetScreenshot && resolveActiveInteractionProfile() !== "text-comment";
-              const initialSelectionElement = state2.selectedElement === element ? state2.initialSelectionElement : void 0;
-              const targetScreenshotSync = targetScreenshotCoordinator.syncAfterNoteSave(
-                element,
-                note,
-                initialSelectionElement ?? void 0
-              );
-              if (shouldCaptureTargetScreenshot) {
-                await targetScreenshotSync;
+              if (noteOptions) {
+                services.changes.setNoteForElement(element, note, noteOptions);
               } else {
-                void targetScreenshotSync;
+                services.changes.setNoteForElement(element, note);
               }
+              if (element) {
+                const shouldCaptureTargetScreenshot = state2.uiSettings.captureTargetScreenshot && resolveActiveInteractionProfile() !== "text-comment";
+                const initialSelectionElement = state2.selectedElement === element ? state2.initialSelectionElement : void 0;
+                const targetScreenshotSync = targetScreenshotCoordinator.syncAfterNoteSave(
+                  element,
+                  note,
+                  initialSelectionElement ?? void 0
+                );
+                if (shouldCaptureTargetScreenshot) {
+                  screenshotUpdates.push(targetScreenshotSync);
+                } else {
+                  void targetScreenshotSync;
+                }
+              }
+              state2.positionTracker?.forceUpdate(true);
+              syncCommentContextAfterNoteSave(element, note);
             }
-            state2.positionTracker?.forceUpdate(true);
-            syncCommentContextAfterNoteSave(element, note);
+            await Promise.all(screenshotUpdates);
           },
           onAiNoteImagesChange: (element, images) => {
             if (services.changes.getMetaForElement(element)?.readOnly) return;
@@ -33233,6 +33430,7 @@ ${externalSection}` : promptWithSkills;
               state2.canvasOverlay?.setHoverRect(null);
               state2.canvasOverlay?.setSelectionEffect("default");
               state2.canvasOverlay?.setSelectionRect(null);
+              state2.canvasOverlay?.setAdditionalSelectionRects([]);
               state2.canvasOverlay?.render();
               state2.handlesController?.setSelectionRect(null);
             } else {
@@ -33408,6 +33606,7 @@ ${externalSection}` : promptWithSkills;
         state2.panelOnlyMode = true;
         state2.hoveredElement = null;
         state2.selectedElement = null;
+        state2.selectedElements = [];
         state2.initialSelectionElement = null;
         state2.selectionAnchor = null;
         state2.pendingHoverTransition = false;
@@ -34531,6 +34730,9 @@ function createPersistenceService(options) {
     state2.processedEditTimestampsByKey.clear();
     state2.selectionAnchor = null;
     state2.selectedElement = null;
+    state2.selectedElements = [];
+    state2.dismissedSelectionMarkerKeys.clear();
+    state2.multiSelectionSessionMarkerKeys.clear();
     state2.initialSelectionElement = null;
     commentStateByCommentId.clear();
   }
@@ -38173,38 +38375,3 @@ function createCommentary(options = {}) {
 function createWebEditorV2(options = {}) {
   return createCommentary(options);
 }
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
-  AXHUB_WEB_EDITOR_AGENT_REQUEST,
-  GLOBAL_COMMENTARY_TWEAK_PROTOCOL_KEY,
-  PROMPT_CARD_SKILLS,
-  PROMPT_CARD_SKILL_OPTIONS,
-  WEB_EDITOR_V1_ACTIONS,
-  WEB_EDITOR_V2_ACTIONS,
-  buildAcpConversationRuntimeUrl,
-  buildAcpRuntimeEventsUrl,
-  buildExternalCommentsPromptSection,
-  createCommentary,
-  createCommentaryTweakProtocol,
-  createCommentaryVoiceTarget,
-  createWebEditorAgentRequestMessage,
-  createWebEditorV2,
-  ensureGlobalCommentaryTweakProtocol,
-  getGlobalCommentaryTweakProtocol,
-  groupExternalCommentsByAuthor,
-  installGlobalCommentaryReviewCommentProtocol,
-  isAcpRuntimeEventStatus,
-  isTerminalAcpRunState,
-  isWebEditorAgentRequestMessage,
-  matchesAcpRuntimeStatus,
-  normalizePromptCardSkillIds,
-  notifyGlobalCommentaryTweakProtocol,
-  postWebEditorAgentRequest,
-  readAcpRuntimeStatusesFromSseChunk,
-  resolveCommentaryDiagramTarget,
-  resolveCommentaryElementIdentity,
-  resolveCommentaryVoiceTargetElement,
-  sanitizeCommentaryVoiceTarget,
-  subscribeAcpRuntimeStatuses,
-  waitForAcpRuntimeTerminalStatus
-});

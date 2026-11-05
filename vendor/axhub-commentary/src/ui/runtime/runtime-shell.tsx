@@ -262,6 +262,7 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
   const inlineTextTargetRef = React.useRef<HTMLElement | null>(null);
   const uiModeRef = React.useRef<CommentEntryMode>(initialUiMode);
   const noteStateRef = React.useRef<SharedNoteState>(noteState);
+  const noteTargetElementsRef = React.useRef<readonly Element[]>([]);
   const textStateRef = React.useRef<SharedTextState>(textState);
   const imageStateRef = React.useRef<SharedImageState>(imageState);
   const annotationStateRef = React.useRef<SharedAnnotationState>(annotationState);
@@ -419,6 +420,12 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
         nextSavedNote,
         resetDraft,
       );
+      if (resetDraft || !next.dirty) {
+        const selected = propertyPanelOptions?.getSelectedElements?.() ?? [];
+        noteTargetElementsRef.current = element && selected.includes(element)
+          ? selected.slice()
+          : element ? [element] : [];
+      }
       const nextState = {
         savedNote: next.saved,
         draftNote: next.draft,
@@ -555,6 +562,7 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
 
       await propertyPanelOptions.onAiNoteChange(element, nextValue, {
         skillIds: nextSkillIds,
+        targetElements: noteTargetElementsRef.current,
       });
 
       if (currentTargetRef.current === element) {
@@ -1381,6 +1389,13 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
           ref={breadcrumbsRef}
           options={breadcrumbsOptions}
           currentTarget={currentTarget}
+          selectedElementCount={propertyPanelOptions?.getSelectedElements?.().length ?? (currentTarget ? 1 : 0)}
+          pinnedToTopRight={uiSettings.promptCardPinnedToTopRight}
+          propertyPanelOpen={propertyPanelOpen}
+          onPinnedToTopRightChange={(pinned) => handleUiSettingsChange({
+            ...uiSettings,
+            promptCardPinnedToTopRight: pinned,
+          })}
           anchorRect={anchorRect}
           uiMode={uiMode}
           interactionProfile={interactionProfile}
