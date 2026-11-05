@@ -676,24 +676,11 @@ export default function ExportModal({
                                 <div className="rounded-md border">
                                     <div className="flex items-start justify-between gap-4 px-4 py-3">
                                         <div className="space-y-1">
-                                            <div className="text-sm font-medium">复制时自动 AI 整理</div>
-                                            <p className="text-xs text-muted-foreground">关闭后仍会显示复制预览，可手动整理或复制原始结构</p>
-                                        </div>
-                                        <Switch
-                                            checked={Boolean(axureCopyOptions.aiOrganize)}
-                                            onCheckedChange={(checked) => setAxureCopyOptions((prev) => ({ ...prev, aiOrganize: checked }))}
-                                            aria-label="复制时自动 AI 整理"
-                                        />
-                                    </div>
-                                    <div className="h-px bg-border" />
-                                    <div className="flex items-start justify-between gap-4 px-4 py-3">
-                                        <div className="space-y-1">
                                             <div className="text-sm font-medium">保留 Axure 层级</div>
                                             <p className="text-xs text-muted-foreground">关闭后将减少大量动态面板</p>
                                         </div>
                                         <Switch
                                             checked={axureCopyOptions.preserveHierarchy}
-                                            disabled={Boolean(axureCopyOptions.aiOrganize)}
                                             onCheckedChange={(checked) => {
                                                 setAxureCopyOptions((prev) => ({ ...prev, preserveHierarchy: checked }));
                                             }}

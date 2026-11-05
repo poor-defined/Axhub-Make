@@ -29,7 +29,9 @@ describe('Axure organization hook lifecycle', () => {
     let renderer!: ReactTestRenderer;
     await act(async () => { renderer = create(React.createElement(Probe, { scopeKey: 'page-a' })); });
     let pending!: Promise<void>;
-    await act(async () => { pending = current.session.start(payload); });
+    await act(async () => { await current.session.start(payload); });
+    expect(fetchMock).not.toHaveBeenCalled();
+    await act(async () => { pending = current.session.organize('使用中文命名'); });
     expect(current.state.phase).toBe('analyzing');
     const signal = (fetchMock.mock.calls[0] as any)[1].signal as AbortSignal;
     await act(async () => { renderer.update(React.createElement(Probe, { scopeKey: 'page-b' })); });
@@ -38,11 +40,31 @@ describe('Axure organization hook lifecycle', () => {
     expect(current.state.phase).toBe('idle');
     expect(copy).not.toHaveBeenCalled();
 
-    await act(async () => { pending = current.session.start(payload); });
+    await act(async () => { await current.session.start(payload); pending = current.session.organize(); });
     await act(async () => { secondaryFrame.dispatchEvent(new Event('load')); });
     await act(async () => { finish(Response.json({ plan })); await pending; });
     expect(current.state.phase).toBe('idle');
     await act(async () => { renderer.unmount(); });
     expect(remove).toHaveBeenCalledWith('load', expect.any(Function));
+  });
+  it('forwards the original snapshot with prior plan and cumulative naming rules on a follow-up', async () => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+    const fetchMock = vi.fn(async () => Response.json({ plan }));
+    vi.stubGlobal('fetch', fetchMock);
+    const getPreviewIframe = () => null;
+    const copy = vi.fn(async () => {});
+    let current!: ReturnType<typeof useAxureTreeOrganization>;
+    function Probe() {
+      current = useAxureTreeOrganization({ projectId: 'test', scopeKey: 'test', getPreviewIframe, copy });
+      return null;
+    }
+    let renderer!: ReactTestRenderer;
+    await act(async () => { renderer = create(React.createElement(Probe)); });
+    await act(async () => { await current.session.start(payload); await current.session.organize('使用中文'); });
+    await act(async () => { await current.session.organize('按钮加 btn_ 前缀'); });
+    const body = JSON.parse((fetchMock.mock.calls[1] as any)[1].body);
+    expect(body.context).toEqual({ instructions: ['使用中文', '按钮加 btn_ 前缀'], previousPlan: plan });
+    expect(body.summary.nodes[1].name).toBe('div');
+    await act(async () => { renderer.unmount(); });
   });
 });

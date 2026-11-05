@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { AxureTreePayload, AxureTreeSummary } from '../../../common/axureTreeOrganization';
+import type { AxureTreePayload, AxureTreeSummary, AxureOrganizationContext } from '../../../common/axureTreeOrganization';
 import { withProjectScope } from '../../services/projectScope';
 import { createAxureOrganizationSession, type AxureOrganizationState } from './axureOrganizationSession';
 
-export async function requestAxureTreeOrganization(projectId: string, summary: AxureTreeSummary, signal: AbortSignal): Promise<unknown> {
+export async function requestAxureTreeOrganization(projectId: string, summary: AxureTreeSummary, signal: AbortSignal, context?: AxureOrganizationContext): Promise<unknown> {
   const response = await fetch(withProjectScope('/api/axure/organize', { projectId }), {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ summary }), signal: AbortSignal.any([signal, AbortSignal.timeout(130_000)]),
+    body: JSON.stringify({ summary, context }), signal: AbortSignal.any([signal, AbortSignal.timeout(130_000)]),
   });
   const body = await response.json();
   if (!response.ok) throw new Error(typeof body?.error === 'string' ? body.error : `AI 整理失败（${response.status}）`);
@@ -24,7 +24,7 @@ export function useAxureTreeOrganization(options: {
   latest.current = options;
   const [state, setState] = useState<AxureOrganizationState>({ phase: 'idle' });
   const [session] = useState(() => createAxureOrganizationSession({
-    analyze: (summary, signal) => requestAxureTreeOrganization(latest.current.projectId, summary, signal),
+    analyze: (summary, signal, context) => requestAxureTreeOrganization(latest.current.projectId, summary, signal, context),
     copy: (payload, signal) => latest.current.copy(payload, signal),
     onChange: setState,
   }));

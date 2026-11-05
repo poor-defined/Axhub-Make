@@ -29,13 +29,17 @@ npx -y @axhub/make@latest
 
 项目需求、交付状态和关联实施计划统一维护在[项目需求库](docs/requirements/README.md)。
 
-当前测试分支为 `codex/selected-elements-axure-export`。macOS 双击桌面“启动 Axhub Make 开发分支.command”，或在仓库运行 `./scripts/start-test-environment.command`，即可启动或打开 `http://127.0.0.1:53818`。需要 Node.js 22+、pnpm 10 和 Git；启动器校验分支、安装缺失依赖并重建批注包，使用独立的 `.local/development-home` 状态与 ACP 端口 32125。保持启动服务的终端打开，按 Control+C 停止服务。
+当前测试分支为 `codex/axure-manual-ai-refinement`。macOS 双击桌面“启动 Axhub Make 开发分支.command”，或在仓库运行 `./scripts/start-test-environment.command`，即可启动或打开 `http://127.0.0.1:53818`。需要 Node.js 22+、pnpm 10 和 Git；启动器校验分支、安装缺失依赖并重建批注包，使用独立的 `.local/development-home` 状态与 ACP 端口 32125。保持启动服务的终端打开，按 Control+C 停止服务。
 
 REQ-008 的全局风格规则位于 `src/common/prototypeWireframePolicy.ts`，统一用于原型/画布生成、对话、单选/多选/追加批注及外部 AI 上下文。AI 生成和修改采用黑白灰低保真线框图，保留业务内容、可编辑元素与交互；局部修改只转换本次涉及的区域。纯文档、JSON 和 Axure 组件树整理仍保持原定输出格式。
 
 线框图回归可运行 `pnpm exec vitest run src/common/prototypeWireframePolicy.test.ts src/common/wireframePromptIntegration.test.ts src/index/domains/assistant/assistantWindowContext.test.ts src/vendor/axhub-commentary/wireframe-prompts.test.ts src/server/assistantWorkRuntime.test.ts src/server/__tests__/ai-runs-api.test.ts src/server/__tests__/ai-image-generation.test.ts`。开发环境和 ACP 可用时，可手动运行 `pnpm exec tsx scripts/regression/req008-wireframe-smoke.mts`，使用已配置的模型执行真实生成与多选批注修改，仅写入系统临时目录并输出风格检查报告；默认读取独立开发配置，也可用 `REQ008_CONFIG_PATH` 指定配置文件。此检查会调用 AI，不属于默认测试套件。
 
-复制可编辑原型到 Axure 时，会先显示组件树确认窗口，再由你选择复制版本。整页导出及 React/HTML 预览中批注框的 Axure 按钮共用此流程。默认自动进行 AI 整理；关闭“复制时自动 AI 整理”后，仍可在窗口中手动整理或复制原始结构。该设置沿用项目导出偏好，使用“设置”里的对话 AI 提供方与模型；自动整理替代原始 DOM 层级。
+复制可编辑原型到 Axure 时，先采集当前原型并打开组件树确认窗口，可以直接复制原始结构。AI 整理只在窗口中手动点击后执行，已移除“复制时自动 AI 整理”配置，旧的开关偏好不再生效。整页和 React/HTML 批注选区入口共用此流程。
+
+REQ-010：窗口下方可输入整理、命名规范，查看本次对话记录，并继续提出修改要求。AI 使用“设置”里的对话提供方与模型，每轮结合累积要求和上一版方案生成完整新版本；不改变页面视觉或业务内容。失败保留上一版有效结构，支持重试，关闭或切换资源会清空本次对话。每条要求最多 2000 字，最多累计 20 条；达到上限后重新打开窗口开始新一轮。
+
+手动与多轮整理测试可运行 `pnpm exec vitest run src/index/domains/export src/index/components/dialogs/AxureTreeOrganizationDialog.test.ts src/index/utils/exportModalPreferences.test.ts src/server/__tests__/axure-tree-organization-api.test.ts`。开发 ACP 可用时，`REQ010_PROJECT_ID=<开发项目ID> pnpm exec tsx scripts/regression/req010-axure-refinement-smoke.mts` 可验证真实 AI 两轮命名与分组；仅发送合成组件树、不改项目和剪贴板，会使用已配置模型。
 
 整理逻辑位于 `src/common/axureTreeOrganization.ts`，AI 服务入口位于 `src/server/managementApi.axureTreeOrganization.ts`，前端任务与状态位于 `src/index/domains/export/`。首次分析最多接受 2000 个结构节点及受限大小的摘要；已有 SVG、遮罩和分组作为整体保留。失败后可以重试整理或复制原始结构，复制失败可直接重试，不会再次调用 AI。
 

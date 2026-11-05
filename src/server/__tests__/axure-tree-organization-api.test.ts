@@ -52,6 +52,25 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('Axure tree organization API', () => {
+  it('sends accumulated user requirements and the last plan while retaining the original snapshot and JSON constraints', async () => {
+    const context = { instructions: ['使用中文', '按钮统一 btn_ 前缀'], previousPlan: plan };
+    expect((await request({ summary, context })).status).toBe(200);
+    const input = vi.mocked(runAcpChatCommand).mock.calls[0][0];
+    expect(input.prompt).toContain('使用中文'); expect(input.prompt).toContain('btn_');
+    expect(JSON.parse(String(input.prompt).split('用户整理要求与上一版参考方案：\n')[1])).toEqual(context);
+    expect(JSON.parse(String(input.prompt).split('以下是本次导出快照的数据：\n')[1].split('\n\n')[0])).toEqual(summary);
+    expect(input.system).toContain('完整替换方案');
+    expect(input.system).toContain('不得修改视觉');
+  });
+  it.each([
+    { instructions: ['x'.repeat(2001)] }, { instructions: Array(21).fill('规则') },
+    { instructions: [17] }, { instructions: ['规则'], unknown: true },
+    { instructions: [], previousPlan: { ...plan, renames: [{ id: 'outside-selection', name: '不能引入' }] } },
+  ])('rejects invalid conversation context before starting AI: %j', async (context) => {
+    expect((await request({ summary, context })).status).toBe(400);
+    expect(runAcpChatCommand).not.toHaveBeenCalled();
+    expect(resolveAssistantRuntime).not.toHaveBeenCalled();
+  });
   it('uses configured AI in plan mode and returns a validated operation plan', async () => {
     const result = await request({ summary });
     expect(result).toMatchObject({ status: 200, body: { plan } });

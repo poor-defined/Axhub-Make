@@ -4351,7 +4351,7 @@ export function useIndexPagePreviewActions(params: any) {
         currentRuntimeExportResource?.clientUrl, currentRuntimeExportResourceType,
         selectedPageId, viewMode, elementIframeKey,
         previewConfig.previewMode,
-        axureCopyOptions.aiOrganize, axureCopyOptions.preserveHierarchy, axureCopyOptions.preserveSvgIcons,
+        axureCopyOptions.preserveHierarchy, axureCopyOptions.preserveSvgIcons,
     ]);
     const copyPreparedAxurePayload = useCallback(async (payload: AxureTreePayload, signal: AbortSignal) => {
         const available = await checkAxureAvailable(signal);
@@ -4372,11 +4372,11 @@ export function useIndexPagePreviewActions(params: any) {
         prepareSelectionAxureExportRef.current = (payload) => {
             if (!payload || typeof payload !== 'object' || !Array.isArray((payload as AxureTreePayload).scene?.items)) return false;
             if (axureCapturePendingRef.current || axureOrganization.session.getState().phase !== 'idle') return false;
-            void axureOrganization.session.start(payload as AxureTreePayload, axureCopyOptions.aiOrganize !== false);
+            void axureOrganization.session.start(payload as AxureTreePayload);
             return true;
         };
         return () => { prepareSelectionAxureExportRef.current = null; };
-    }, [axureOrganization.session, axureCopyOptions.aiOrganize]);
+    }, [axureOrganization.session]);
 
     const showCrossOriginPreviewActionHint = useCallback(() => {
         const targetIframe = getPreviewIframe();
@@ -4398,19 +4398,18 @@ export function useIndexPagePreviewActions(params: any) {
             messageApi.warning(exportAvailability.axureRuntimeDisabledReason);
             return;
         }
-        const hide = messageApi.loading('正在复制到 Axure...', 0);
+        const hide = messageApi.loading('正在采集原型结构...', 0);
         axureCapturePendingRef.current = true;
         const scope = axureOrganization.session.getScope();
         const iframe = getPreviewIframe();
         const generation = getPreviewIframeGeneration(iframe);
         try {
-            const captureOptions = options.aiOrganize ? { ...options, preserveHierarchy: false } : options;
-            const payload = await requestAxureJson(captureOptions);
+            const payload = await requestAxureJson(options);
             if (scope !== axureOrganization.session.getScope() || iframe !== getPreviewIframe()
                 || generation !== getPreviewIframeGeneration(iframe)) return;
             if (axureOrganization.session.getState().phase !== 'idle') return;
-            // Both automatic and manual modes must show the intermediate confirmation step.
-            void axureOrganization.session.start(payload, options.aiOrganize !== false);
+            // Capture first. AI runs only after an explicit action inside the confirmation dialog.
+            void axureOrganization.session.start(payload);
         } catch (error: any) {
             console.error('复制到 Axure 失败:', error);
             void postProjectCommunicationRecord(currentRuntimeExportResource, 'exports', {
@@ -5040,13 +5039,11 @@ export function useIndexPagePreviewActions(params: any) {
                 isFullScreen: imageConfig.isFullScreen,
             },
             axureCopyOptions: {
-                aiOrganize: Boolean(axureCopyOptions.aiOrganize),
                 preserveHierarchy: axureCopyOptions.preserveHierarchy,
                 preserveSvgIcons: axureCopyOptions.preserveSvgIcons,
             },
         });
     }, [
-        axureCopyOptions.aiOrganize,
         axureCopyOptions.preserveHierarchy,
         axureCopyOptions.preserveSvgIcons,
         exportPreferencesStorageKey,

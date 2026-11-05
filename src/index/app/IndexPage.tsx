@@ -3017,6 +3017,7 @@ export default function IndexPage({
                 state={preview.axureOrganization.state}
                 onCancel={preview.axureOrganization.session.cancel}
                 onRetry={() => { void preview.axureOrganization.session.retry(); }}
+                onOrganize={(instruction) => { void preview.axureOrganization.session.organize(instruction); }}
                 onCopy={(version) => { void preview.axureOrganization.session.copy(version); }}
             />
             <input

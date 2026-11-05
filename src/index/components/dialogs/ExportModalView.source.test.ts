@@ -7,6 +7,12 @@ function readSource() {
 }
 
 describe('ExportModalView source', () => {
+  it('removes the automatic AI preference and keeps original hierarchy capture configurable', () => {
+    const source = readSource();
+    expect(source).not.toContain('复制时自动 AI 整理');
+    expect(source).not.toContain('aiOrganize');
+    expect(source).toContain('保留 Axure 层级');
+  });
   it('renames the dynamic Axure prototype tab without changing the tab key', () => {
     const source = readSource();
 

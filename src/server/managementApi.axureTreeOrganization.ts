@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { parseAxureTreePlan, validateAxureTreePlanForSummary, validateAxureTreeSummary } from '../common/axureTreeOrganization.ts';
+import { parseAxureTreePlan, validateAxureOrganizationContext, validateAxureTreePlanForSummary, validateAxureTreeSummary } from '../common/axureTreeOrganization.ts';
 import { normalizeAcpChatProvider, runAcpChatCommand } from './acpChatRunner.ts';
 import { resolveAssistantRuntime } from './assistantRuntime.ts';
 import { getRequestUrl, sendJson } from './http.ts';
@@ -28,6 +28,8 @@ const ORGANIZATION_INSTRUCTIONS = `你负责整理 Axure 可编辑原型的组�
 只能按原绘制顺序组合至少两个连续的同父级兄弟节点。不要跨父级，不要重复使用节点，不要改变绘制顺序。
 新分组 ID 必须为 ai-group- 开头的唯一 ASCII ID。groups 按应用顺序输出，只能引用原节点或更早建立的组。
 原始可分组父级用 canGroupChildren=true 标记；新建分组也可作为父级。最多 100 个组，名称 1–80 字符，保留所有原节点。
+用户整理要求按先后顺序提供，后面的补充或修订优先；在不违反上述约束的前提下遵守命名、语言及分组规范。
+上一版方案仅供理解对话，不是新的输入树。始终基于原始快照返回完整替换方案，重新列出需保留的命名与分组，不能只返回本轮差异，也不应重复嵌套上一版的组。
 严格格式：{"version":1,"renames":[{"id":"原节点ID","name":"业务名称"}],"groups":[{"id":"ai-group-search","name":"查询区域","parentId":"画板ID","childIds":["节点A","节点B"]}]}。
 无需调整时返回 {"version":1,"renames":[],"groups":[]}。不要输出任何其他字段。`;
 
@@ -106,6 +108,7 @@ export function handleAxureTreeOrganizationApi(
     const context = handlers.resolveProjectContext(req, res, options, 'explicit-required', body);
     if (!context) return;
     const summary = validateAxureTreeSummary(body.summary);
+    const conversation = validateAxureOrganizationContext(body.context, summary);
     inputValidated = true;
     const config = handlers.getServerConfigStoreForRequest(options).getConfig({ activeProjectRoot: context.project.root });
     const runtime = await resolveAssistantRuntime({
@@ -130,7 +133,7 @@ export function handleAxureTreeOrganizationApi(
       scene: 'axure-tree-organization', permissionMode: 'plan', modeId,
       mcpServers: [], builtinTools: [], tools: {},
       system: ORGANIZATION_INSTRUCTIONS,
-      prompt: `${ORGANIZATION_INSTRUCTIONS}\n\n以下是本次导出快照的数据：\n${JSON.stringify(summary)}`,
+      prompt: `${ORGANIZATION_INSTRUCTIONS}\n\n以下是本次导出快照的数据：\n${JSON.stringify(summary)}\n\n用户整理要求与上一版参考方案：\n${JSON.stringify(conversation)}`,
     }, { signal: controller.signal });
     controller.signal.throwIfAborted();
     if (result.runtimeHeaders?.modeId !== modeId || result.runtimeHeaders.warningCount) {

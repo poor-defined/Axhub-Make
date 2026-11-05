@@ -28,6 +28,29 @@ export interface AxureTreePlan {
   groups: Array<{ id: string; name: string; parentId: string; childIds: string[] }>;
 }
 
+export const AXURE_ORGANIZATION_LIMITS = { instructionChars: 2000, instructions: 20 } as const;
+export interface AxureOrganizationContext {
+  instructions: string[];
+  previousPlan?: AxureTreePlan;
+}
+
+export function validateAxureOrganizationContext(value: unknown, summary: AxureTreeSummary): AxureOrganizationContext {
+  if (value === undefined) return { instructions: [] };
+  const context = object(value);
+  exactKeys(context, ['instructions', 'previousPlan']);
+  const raw = context.instructions ?? [];
+  if (!Array.isArray(raw) || raw.length > AXURE_ORGANIZATION_LIMITS.instructions) fail('整理要求最多保留 20 条，请重新打开窗口开始新一轮');
+  const instructions = raw.map((instruction) => {
+    if (typeof instruction !== 'string' || !instruction.trim() || instruction.length > AXURE_ORGANIZATION_LIMITS.instructionChars) {
+      fail('每条整理要求必须为 1–2000 个字符');
+    }
+    return instruction.trim();
+  });
+  const previousPlan = context.previousPlan === undefined ? undefined : validateAxureTreePlan(context.previousPlan);
+  if (previousPlan) validateAxureTreePlanForSummary(summary, previousPlan);
+  return { instructions, ...(previousPlan ? { previousPlan } : {}) };
+}
+
 function fail(message: string): never { throw new Error(`Axure 组件树：${message}`); }
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('数据格式无效');
