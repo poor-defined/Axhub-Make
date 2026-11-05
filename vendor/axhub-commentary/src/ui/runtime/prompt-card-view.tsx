@@ -969,6 +969,10 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       canExportSelectionToDesignTool,
       getExportSelectionToDesignToolBlockReason,
     });
+    const axureSelectionExportAction = getDesignToolExportActionState({
+      tool: 'axure', currentTarget, uiMode, toolMinimized, selectedElementCount,
+      onExportSelectionToDesignTool, canExportSelectionToDesignTool, getExportSelectionToDesignToolBlockReason,
+    });
     const textCommentMode = interactionProfile === 'text-comment';
     const {
       currentTask: currentAgentTask,
@@ -1473,7 +1477,18 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                 }}
               />
             ) : null}
-            {designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? (
+            {axureSelectionExportAction.visible && !textCommentMode ? (
+              <IconActionButton
+                title={axureSelectionExportAction.title}
+                icon={<ExportOutlined />}
+                tone="dark"
+                disabled={axureSelectionExportAction.disabled}
+                onClick={() => {
+                  triggerDesignToolExportAction({ tool: 'axure', currentTarget: promptTarget, onExportSelectionToDesignTool });
+                }}
+              />
+            ) : null}
+            {designAdjustmentTool !== 'axure' && designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? (
               <IconActionButton
                 title={designToolExportAction.title}
                 icon={<ExportOutlined />}

@@ -29,7 +29,7 @@ npx -y @axhub/make@latest
 
 项目需求、交付状态和关联实施计划统一维护在[项目需求库](docs/requirements/README.md)。
 
-当前测试分支为 `codex/global-ai-wireframe-style`。macOS 双击桌面“启动 Axhub Make 开发分支.command”，或在仓库运行 `./scripts/start-test-environment.command`，即可启动或打开 `http://127.0.0.1:53818`。需要 Node.js 22+、pnpm 10 和 Git；启动器校验分支、安装缺失依赖并重建批注包，使用独立的 `.local/development-home` 状态与 ACP 端口 32125。保持启动服务的终端打开，按 Control+C 停止服务。
+当前测试分支为 `codex/selected-elements-axure-export`。macOS 双击桌面“启动 Axhub Make 开发分支.command”，或在仓库运行 `./scripts/start-test-environment.command`，即可启动或打开 `http://127.0.0.1:53818`。需要 Node.js 22+、pnpm 10 和 Git；启动器校验分支、安装缺失依赖并重建批注包，使用独立的 `.local/development-home` 状态与 ACP 端口 32125。保持启动服务的终端打开，按 Control+C 停止服务。
 
 REQ-008 的全局风格规则位于 `src/common/prototypeWireframePolicy.ts`，统一用于原型/画布生成、对话、单选/多选/追加批注及外部 AI 上下文。AI 生成和修改采用黑白灰低保真线框图，保留业务内容、可编辑元素与交互；局部修改只转换本次涉及的区域。纯文档、JSON 和 Axure 组件树整理仍保持原定输出格式。
 
@@ -40,6 +40,10 @@ REQ-008 的全局风格规则位于 `src/common/prototypeWireframePolicy.ts`，�
 整理逻辑位于 `src/common/axureTreeOrganization.ts`，AI 服务入口位于 `src/server/managementApi.axureTreeOrganization.ts`，前端任务与状态位于 `src/index/domains/export/`。首次分析最多接受 2000 个结构节点及受限大小的摘要；已有 SVG、遮罩和分组作为整体保留。失败后可以重试整理或复制原始结构，复制失败可直接重试，不会再次调用 AI。
 
 此分支支持在元素批注时按住 Command 点击多个元素，再次 Command 点击可取消对应选择，Esc 清空整组。多选后填写的批注会应用到所选元素。
+
+REQ-009：选中元素后，使用批注卡片的“仅导出选中元素到 Axure”按钮，打开原有组件树确认窗口，再复制到 Axure。Command 多选导出整组；选中容器包含其内部可见内容，父子选择去重，保留相对位置、裁剪和独立图层。入口不依赖设计工具偏好；整页复制入口仍导出整页。失效、AI 更新中、空内容或采集期间布局变化时中止。SVG 内部 path/g 等节点需改选完整 SVG 容器；无法安全合并的跨容器交错层叠会提示分别导出或选择共同容器。
+
+选区实现位于 `vendor/axhub-commentary/src/axure-selection.ts`、`design-tool-export.ts` 与 `core/editor/selection-export.ts`。运行 `pnpm exec vitest run src/vendor/axhub-commentary src/index/domains/export src/common/axureTreeOrganization.test.ts` 可验证选择快照、合并、真实采集器与整理流程。可用 `REQ009_SMOKE_OUTPUT=/tmp/req009-selection.json pnpm exec vitest run src/vendor/axhub-commentary/selection-axure-real-core.test.ts` 保存两个虚构矩形的真实采集/合并/分组样本，用于本机 Axure Bridge 粘贴验证；默认测试不写剪贴板。
 
 修改 `vendor/axhub-commentary/src/` 后，运行 `pnpm vendor:build:commentary` 更新实际运行的包；相关回归测试使用 `pnpm exec vitest run src/vendor/axhub-commentary`。
 

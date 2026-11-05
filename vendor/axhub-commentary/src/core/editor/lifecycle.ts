@@ -16,11 +16,7 @@ import {
 import { createPerfMonitor } from '../perf-monitor';
 import { createDesignTokensService } from '../design-tokens';
 import { locateElement } from '../locator';
-import {
-  exportSelectionToDesignTool,
-  getDesignToolExportBlockReason,
-  isExportableDesignElement,
-} from '../../design-tool-export';
+import { createSelectionExportActions } from './selection-export';
 import { clearEditorRuntimeRefs, resetEditorTransientState } from './state';
 import { getSelectedElements, getSelectionActionTargets } from './element-selection';
 import type { EditorLifecycleDeps, ExternalEditingElementTarget } from './contracts';
@@ -2031,36 +2027,13 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
             }
             return services.summaries.getSaveRunPromptForElementBlockReason(element);
           },
-          canExportSelectionToDesignTool: (_tool, element) => {
-            const targetElement = resolvePromptTarget(element);
-            return isExportableDesignElement(targetElement);
-          },
-          onExportSelectionToDesignTool: async (tool, element) => {
-            const targetElement = resolvePromptTarget(element);
-            if (!targetElement) {
-              throw new Error('当前没有可导出的元素。');
-            }
-            try {
-              const prepareInHost = tool === 'axure' && typeof rawOptions.ui?.onPrepareAxureExport === 'function';
-              await exportSelectionToDesignTool(tool, targetElement, prepareInHost ? {
-                prepareAxureExport: options.ui.onPrepareAxureExport,
-              } : undefined);
-              services.feedback.toast('success', prepareInHost ? '已打开 Axure 整理预览，请确认后复制' : `已导出到 ${tool}`);
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              services.feedback.toast('error', message || `导出到 ${tool} 失败`);
-            }
-          },
-          getExportSelectionToDesignToolBlockReason: (_tool, element) => {
-            const targetElement = resolvePromptTarget(element);
-            if (!targetElement) {
-              return '当前没有可导出的元素';
-            }
-            if (services.agentBridge.isElementInteractionLocked(targetElement)) {
-              return '当前元素正在由 AI 更新';
-            }
-            return getDesignToolExportBlockReason(targetElement);
-          },
+          ...createSelectionExportActions({
+            state,
+            isLocked: (target) => services.agentBridge.isElementInteractionLocked(target),
+            toast: (tone, message) => services.feedback.toast(tone, message),
+            prepareAxureExport: typeof rawOptions.ui?.onPrepareAxureExport === 'function'
+              ? options.ui.onPrepareAxureExport : undefined,
+          }),
           canEditText: (element) => services.textSession.isEditable(element),
           getTextValue: (element) => services.textSession.getText(element),
           onTextValueChange: (element, value, previousValue) => {

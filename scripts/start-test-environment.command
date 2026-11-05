@@ -4,7 +4,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PAT
 umask 077
 
 repo_dir="${0:A:h:h}"
-expected_branch='codex/global-ai-wireframe-style'
+expected_branch='codex/selected-elements-axure-export'
 dev_url='http://127.0.0.1:53818'
 
 finish() {

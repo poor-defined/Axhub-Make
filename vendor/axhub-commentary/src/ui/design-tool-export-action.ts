@@ -11,6 +11,7 @@ export function getDesignToolExportLabel(tool: WebEditorDesignAdjustmentTool): s
 }
 
 export function getDesignToolExportActionState(options: {
+  selectedElementCount?: number;
   tool: WebEditorDesignAdjustmentTool | null;
   currentTarget: Element | null;
   uiMode: CommentEntryMode;
@@ -40,7 +41,9 @@ export function getDesignToolExportActionState(options: {
     };
   }
 
-  const label = getDesignToolExportLabel(tool);
+  const label = tool === 'axure'
+    ? `仅导出选中元素到 Axure（${options.selectedElementCount ?? 1} 个；容器包含子元素）`
+    : getDesignToolExportLabel(tool);
   const hostCanExport = options.canExportSelectionToDesignTool?.(tool, options.currentTarget) ?? true;
   if (!options.onExportSelectionToDesignTool || hostCanExport === false) {
     return {

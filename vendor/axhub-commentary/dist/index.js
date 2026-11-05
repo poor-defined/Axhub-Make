@@ -13141,7 +13141,7 @@ function getDesignToolExportActionState(options) {
       label: ""
     };
   }
-  const label = getDesignToolExportLabel(tool);
+  const label = tool === "axure" ? `\u4EC5\u5BFC\u51FA\u9009\u4E2D\u5143\u7D20\u5230 Axure\uFF08${options.selectedElementCount ?? 1} \u4E2A\uFF1B\u5BB9\u5668\u5305\u542B\u5B50\u5143\u7D20\uFF09` : getDesignToolExportLabel(tool);
   const hostCanExport = options.canExportSelectionToDesignTool?.(tool, options.currentTarget) ?? true;
   if (!options.onExportSelectionToDesignTool || hostCanExport === false) {
     return {
@@ -16804,6 +16804,16 @@ var PromptCardView = import_react10.default.forwardRef(
       canExportSelectionToDesignTool,
       getExportSelectionToDesignToolBlockReason
     });
+    const axureSelectionExportAction = getDesignToolExportActionState({
+      tool: "axure",
+      currentTarget,
+      uiMode,
+      toolMinimized,
+      selectedElementCount,
+      onExportSelectionToDesignTool,
+      canExportSelectionToDesignTool,
+      getExportSelectionToDesignToolBlockReason
+    });
     const textCommentMode = interactionProfile === "text-comment";
     const {
       currentTask: currentAgentTask,
@@ -17247,7 +17257,19 @@ var PromptCardView = import_react10.default.forwardRef(
                           }
                         }
                       ) : null,
-                      designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      axureSelectionExportAction.visible && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                        IconActionButton,
+                        {
+                          title: axureSelectionExportAction.title,
+                          icon: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.ExportOutlined, {}),
+                          tone: "dark",
+                          disabled: axureSelectionExportAction.disabled,
+                          onClick: () => {
+                            triggerDesignToolExportAction({ tool: "axure", currentTarget: promptTarget, onExportSelectionToDesignTool });
+                          }
+                        }
+                      ) : null,
+                      designAdjustmentTool !== "axure" && designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                         IconActionButton,
                         {
                           title: designToolExportAction.title,
@@ -31460,16 +31482,128 @@ function createDesignTokensService(options = {}) {
   };
 }
 
+// src/axure-selection.ts
+function getAxureSelectionRoots(elements) {
+  const unique = [...new Set(elements)];
+  return unique.filter((element) => !unique.some((parent) => parent !== element && parent.contains(element))).sort(comparePaintOrder);
+}
+function createsStackingContext(element) {
+  const style = element.ownerDocument.defaultView?.getComputedStyle(element);
+  return Boolean(style && (style.zIndex !== "auto" && style.zIndex !== "" && (style.position !== "static" || /flex|grid/u.test(element.parentElement ? element.ownerDocument.defaultView?.getComputedStyle(element.parentElement).display || "" : "")) || Number(style.opacity || 1) < 1 || style.transform && style.transform !== "none" || style.filter && style.filter !== "none" || style.isolation === "isolate" || style.position === "fixed" || style.position === "sticky"));
+}
+function paintStage(element) {
+  const style = element.ownerDocument.defaultView?.getComputedStyle(element);
+  if (!style) return 1;
+  const z = createsStackingContext(element) ? Number.parseInt(style.zIndex, 10) || 0 : 0;
+  if (z < 0) return 0;
+  if (z > 0) return 5;
+  if (createsStackingContext(element) || style.position && style.position !== "static") return 4;
+  if (style.float && style.float !== "none") return 2;
+  if (style.display.startsWith("inline")) return 3;
+  return element.parentElement && !createsStackingContext(element.parentElement) ? Math.max(1, paintStage(element.parentElement)) : 1;
+}
+function assertMergeableSelection(roots) {
+  if (roots.length < 2) return;
+  function overlaps(a, b) {
+    return a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
+  }
+  for (const root of roots) {
+    if (createsStackingContext(root)) continue;
+    const descendants = Array.from(root.querySelectorAll?.("*") || []).filter((node) => {
+      const style = node.ownerDocument.defaultView?.getComputedStyle(node);
+      return createsStackingContext(node) || style?.position && style.position !== "static" || style?.float && style.float !== "none";
+    });
+    if (descendants.some((child) => roots.some((other) => other !== root && overlaps(child.getBoundingClientRect(), other.getBoundingClientRect())))) {
+      throw new Error("\u9009\u533A\u5305\u542B\u8DE8\u5BB9\u5668\u4EA4\u9519\u5C42\u53E0\uFF0C\u8BF7\u9009\u62E9\u5171\u540C\u5BB9\u5668\u6216\u5206\u522B\u5BFC\u51FA\u8FD9\u4E9B\u5143\u7D20\u3002");
+    }
+  }
+}
+function comparePaintOrder(a, b) {
+  function path(element) {
+    const contexts = [element];
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+      if (createsStackingContext(parent)) contexts.unshift(parent);
+    }
+    return contexts;
+  }
+  const aPath = path(a), bPath = path(b);
+  let index = 0;
+  while (index < aPath.length - 1 && index < bPath.length - 1 && aPath[index] === bPath[index]) index++;
+  const first = aPath[index], second = bPath[index];
+  const z = (element) => createsStackingContext(element) ? Number.parseInt(element.ownerDocument.defaultView?.getComputedStyle(element).zIndex || "0", 10) || 0 : 0;
+  return paintStage(first) - paintStage(second) || z(first) - z(second) || (first.compareDocumentPosition(second) & 4 ? -1 : 1);
+}
+function readSelectionRect(element) {
+  const { left, top, width, height } = element.getBoundingClientRect();
+  if (![left, top, width, height].every(Number.isFinite) || width <= 0 || height <= 0) {
+    throw new Error("\u9009\u4E2D\u5143\u7D20\u4E0D\u53EF\u89C1\u6216\u5C3A\u5BF8\u65E0\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u3002");
+  }
+  return { left, top, width, height };
+}
+function mergeAxureSelectionPayloads(captures) {
+  const parsed = captures.map(({ payload, rect }) => {
+    const value = payload;
+    const board2 = value?.scene?.items?.[0];
+    if (value?.scene?.items?.length !== 1 || board2?.itemType !== 2 || !Array.isArray(board2.scene?.items)) {
+      throw new Error("\u9009\u533A\u91C7\u96C6\u6570\u636E\u65E0\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u540E\u91CD\u8BD5\u3002");
+    }
+    return { value, board: board2, rect };
+  });
+  if (!parsed.length) throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u5143\u7D20\u3002");
+  const left = Math.min(...parsed.map(({ board: board2 }) => board2.rect.location.x));
+  const top = Math.min(...parsed.map(({ board: board2 }) => board2.rect.location.y));
+  const right = Math.max(...parsed.map(({ board: board2, rect }) => board2.rect.location.x + rect.width));
+  const bottom = Math.max(...parsed.map(({ board: board2, rect }) => board2.rect.location.y + rect.height));
+  const size = { width: right - left, height: bottom - top };
+  const result = structuredClone(parsed[0].value);
+  result.imageMap = {};
+  result.masters = {};
+  const board = structuredClone(parsed[0].board);
+  board.id = "selection-page";
+  board.name = `\u9009\u4E2D\u5143\u7D20\uFF08${parsed.length} \u4E2A\u6839\u8282\u70B9\uFF09`;
+  board.rect = { location: { x: 0, y: 0 }, size };
+  if (board.backgroundFill) board.backgroundFill.enabled = false;
+  if (board.backgroundShape) {
+    board.backgroundShape.id = "selection-background";
+    board.backgroundShape.rect = { location: { x: 0, y: 0 }, size: { ...size } };
+    board.backgroundShape.backgroundFills = (board.backgroundShape.backgroundFills || []).map((fill) => ({ ...fill, enabled: false }));
+  }
+  board.scene = { items: [] };
+  for (const [index, capture] of parsed.entries()) {
+    let move = function(node) {
+      node.id = `selection-${index}-${counter++}`;
+      if (node.rect?.location) {
+        node.rect.location.x += dx;
+        node.rect.location.y += dy;
+      }
+      for (const child of [...node.scene?.items || [], ...node.maskedScene?.items || []]) move(child);
+      if (node.backgroundShape) move(node.backgroundShape);
+    };
+    for (const key of ["imageMap", "masters"]) {
+      for (const [id, asset] of Object.entries(capture.value[key] || {})) {
+        if (Object.hasOwn(result[key], id) && JSON.stringify(result[key][id]) !== JSON.stringify(asset)) {
+          throw new Error("\u9009\u533A\u8D44\u6E90\u6807\u8BC6\u51B2\u7A81\uFF0C\u8BF7\u5206\u522B\u5BFC\u51FA\u6216\u91CD\u8BD5\u3002");
+        }
+        Object.defineProperty(result[key], id, { value: structuredClone(asset), enumerable: true, configurable: true, writable: true });
+      }
+    }
+    let counter = 0;
+    const dx = capture.board.rect.location.x - left, dy = capture.board.rect.location.y - top;
+    const items = structuredClone(capture.board.scene.items);
+    items.forEach(move);
+    board.scene.items.push(...items);
+  }
+  result.scene = { items: [board] };
+  return result;
+}
+
 // src/design-tool-export.ts
 var exportCoreLoader = async () => import("axhub-export-core");
 function isExportableDesignElement(element) {
-  return element instanceof HTMLElement && element.isConnected;
+  return (element instanceof HTMLElement || typeof SVGElement !== "undefined" && element instanceof SVGElement) && element.isConnected;
 }
-function getDesignToolExportBlockReason(element) {
-  if (!isExportableDesignElement(element)) {
-    return "\u5F53\u524D\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u5143\u7D20";
-  }
-  return void 0;
+function getSvgSelectionBlockReason(element) {
+  return typeof SVGElement !== "undefined" && element instanceof SVGElement && element.ownerSVGElement ? "\u6682\u4E0D\u652F\u6301\u5355\u72EC\u5BFC\u51FA SVG \u5185\u90E8\u8282\u70B9\uFF0C\u8BF7\u9009\u62E9 SVG \u5BB9\u5668\u540E\u91CD\u8BD5\u3002" : void 0;
 }
 function getSelectionExportName(element) {
   for (const value of [
@@ -31517,35 +31651,75 @@ function normalizeClipboardWriteError(error) {
   return new Error("\u526A\u8D34\u677F\u5199\u5165\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002");
 }
 async function exportSelectionToDesignTool(tool, element, options) {
-  if (!isExportableDesignElement(element)) {
-    throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u5143\u7D20\u3002");
+  const targets = Array.isArray(element) ? [...element] : [element];
+  if (!targets.length) throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u5143\u7D20\u3002");
+  if (targets.some((target) => !isExportableDesignElement(target))) {
+    throw new Error("\u9009\u4E2D\u5143\u7D20\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u540E\u518D\u5BFC\u51FA\u3002");
   }
-  const rootName = getSelectionExportName(element);
-  const { htmlToAxure, htmlToFigma, safeCopyToFigmaWithKiwi } = await exportCoreLoader();
-  const exportElement = element;
+  if (tool !== "axure" && targets.length > 1) throw new Error("\u5F53\u524D\u8BBE\u8BA1\u5DE5\u5177\u4EC5\u652F\u6301\u5355\u5143\u7D20\u5BFC\u51FA\u3002");
   if (tool === "figma" || tool === "pencil") {
-    const layers = await htmlToFigma(exportElement, {
-      rootName,
+    const { htmlToFigma, safeCopyToFigmaWithKiwi } = await exportCoreLoader();
+    const layers = await htmlToFigma(targets[0], {
+      rootName: getSelectionExportName(targets[0]),
       enableAutoLayout: true
     });
-    const result = await safeCopyToFigmaWithKiwi({
-      layers: Array.isArray(layers) ? layers : []
-    }).catch((error) => {
+    const result = await safeCopyToFigmaWithKiwi({ layers: Array.isArray(layers) ? layers : [] }).catch((error) => {
       throw normalizeClipboardWriteError(error);
     });
     if (result.skipped) {
-      if (result.reason === "clipboard_unavailable") {
-        throw new Error("\u5F53\u524D\u73AF\u5883\u4E0D\u652F\u6301\u526A\u8D34\u677F\u5199\u5165\uFF0C\u8BF7\u68C0\u67E5\u6D4F\u89C8\u5668\u6743\u9650\u540E\u91CD\u8BD5\u3002");
-      }
+      if (result.reason === "clipboard_unavailable") throw new Error("\u5F53\u524D\u73AF\u5883\u4E0D\u652F\u6301\u526A\u8D34\u677F\u5199\u5165\uFF0C\u8BF7\u68C0\u67E5\u6D4F\u89C8\u5668\u6743\u9650\u540E\u91CD\u8BD5\u3002");
       throw new Error(`\u5BFC\u51FA\u5230 ${tool} \u5931\u8D25\u3002`);
     }
     return;
   }
-  const payload = await htmlToAxure(exportElement, {
-    rootName,
-    preserveHierarchy: false,
-    preserveSvgIcons: true
+  if (targets.some((target) => target.ownerDocument !== targets[0].ownerDocument)) throw new Error("\u8BF7\u9009\u62E9\u540C\u4E00\u9875\u9762\u4E2D\u7684\u5143\u7D20\u3002");
+  const roots = getAxureSelectionRoots(targets);
+  const svgReason = roots.map(getSvgSelectionBlockReason).find(Boolean);
+  if (svgReason) throw new Error(svgReason);
+  assertMergeableSelection(roots);
+  const bounds = (target) => {
+    const { left, top, width, height } = target.getBoundingClientRect();
+    return JSON.stringify([left, top, width, height]);
+  };
+  const snapshots = roots.map((target) => {
+    const descendants = Array.from(target.querySelectorAll?.("*") || []);
+    return {
+      target,
+      rect: readSelectionRect(target),
+      text: target.textContent,
+      descendants,
+      descendantBounds: descendants.map(bounds)
+    };
   });
+  const assertUnchanged = () => {
+    for (const { target, rect, text, descendants, descendantBounds } of snapshots) {
+      const currentDescendants = Array.from(target.querySelectorAll?.("*") || []);
+      if (!target.isConnected || target.textContent !== text || JSON.stringify(readSelectionRect(target)) !== JSON.stringify(rect) || currentDescendants.length !== descendants.length || descendants.some((child, index) => child !== currentDescendants[index] || !child.isConnected || bounds(child) !== descendantBounds[index])) {
+        throw new Error("\u5BFC\u51FA\u671F\u95F4\u9009\u533A\u53D1\u751F\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u540E\u91CD\u8BD5\u3002");
+      }
+    }
+  };
+  const { htmlToAxure } = await exportCoreLoader();
+  assertUnchanged();
+  const captures = [];
+  for (const { target, rect } of snapshots) {
+    assertUnchanged();
+    const payload2 = await htmlToAxure(target, {
+      rootName: getSelectionExportName(target),
+      preserveHierarchy: true,
+      preserveSvgIcons: true,
+      useCustomSize: true,
+      targetWidth: rect.width,
+      targetHeight: rect.height
+    });
+    const captured = payload2;
+    if (!captured?.scene?.items?.some((board) => board.scene?.items?.length)) {
+      throw new Error("\u9009\u4E2D\u5143\u7D20\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u53EF\u89C1\u5185\u5BB9\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u3002");
+    }
+    captures.push({ payload: payload2, rect });
+  }
+  assertUnchanged();
+  const payload = captures.length === 1 ? captures[0].payload : mergeAxureSelectionPayloads(captures);
   if (options?.prepareAxureExport) {
     if (!await options.prepareAxureExport(payload)) {
       throw new Error("\u672A\u80FD\u6253\u5F00 Axure \u6574\u7406\u9884\u89C8\uFF0C\u8BF7\u5237\u65B0 Make \u9875\u9762\u540E\u91CD\u8BD5\u3002");
@@ -31553,6 +31727,53 @@ async function exportSelectionToDesignTool(tool, element, options) {
     return;
   }
   await copyAxurePayload(payload);
+}
+
+// src/core/editor/selection-export.ts
+function createSelectionExportActions(options) {
+  let busy = false;
+  function targets(tool, element) {
+    const target = element ?? options.state.selectedElement;
+    if (!target) return [];
+    const selection = [.../* @__PURE__ */ new Set([...options.state.selectedElements, ...options.state.selectedElement ? [options.state.selectedElement] : []])];
+    return tool === "axure" && selection.includes(target) ? selection : [target];
+  }
+  function getBlockReason(tool, element) {
+    if (busy) return "\u6B63\u5728\u91C7\u96C6\u9009\u4E2D\u5143\u7D20\uFF0C\u8BF7\u7A0D\u5019";
+    const selection = targets(tool, element);
+    if (!selection.length) return "\u5F53\u524D\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u5143\u7D20";
+    if (selection.some((target) => !target.isConnected)) return "\u9009\u4E2D\u5143\u7D20\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u540E\u518D\u5BFC\u51FA";
+    const svgReason = selection.map((target) => getSvgSelectionBlockReason(target) && !selection.some((parent) => parent !== target && parent.contains(target)) ? getSvgSelectionBlockReason(target) : void 0).find(Boolean);
+    if (svgReason) return svgReason;
+    if (selection.some(options.isLocked)) return "\u9009\u4E2D\u5143\u7D20\u6B63\u5728\u7531 AI \u66F4\u65B0";
+    return void 0;
+  }
+  return {
+    canExportSelectionToDesignTool: (tool, element) => targets(tool, element).length > 0,
+    getExportSelectionToDesignToolBlockReason: getBlockReason,
+    onExportSelectionToDesignTool: async (tool, element) => {
+      const reason = getBlockReason(tool, element);
+      if (reason) {
+        options.toast("error", reason);
+        return;
+      }
+      const snapshot = targets(tool, element);
+      const prepare = tool === "axure" ? options.prepareAxureExport : void 0;
+      busy = true;
+      try {
+        await (options.exportSelection ?? exportSelectionToDesignTool)(
+          tool,
+          tool === "axure" ? snapshot : snapshot[0],
+          prepare ? { prepareAxureExport: prepare } : void 0
+        );
+        options.toast("success", prepare ? `\u5DF2\u6253\u5F00\u9009\u4E2D ${snapshot.length} \u4E2A\u5143\u7D20\u7684 Axure \u6574\u7406\u9884\u89C8\uFF0C\u8BF7\u786E\u8BA4\u540E\u590D\u5236` : `\u5DF2\u5BFC\u51FA\u5230 ${tool}`);
+      } catch (error) {
+        options.toast("error", error instanceof Error ? error.message : String(error));
+      } finally {
+        busy = false;
+      }
+    }
+  };
 }
 
 // src/core/editor/text-session.ts
@@ -33300,36 +33521,12 @@ ${externalSection}` : promptWithSkills;
             }
             return services.summaries.getSaveRunPromptForElementBlockReason(element);
           },
-          canExportSelectionToDesignTool: (_tool, element) => {
-            const targetElement = resolvePromptTarget(element);
-            return isExportableDesignElement(targetElement);
-          },
-          onExportSelectionToDesignTool: async (tool, element) => {
-            const targetElement = resolvePromptTarget(element);
-            if (!targetElement) {
-              throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u5143\u7D20\u3002");
-            }
-            try {
-              const prepareInHost = tool === "axure" && typeof rawOptions.ui?.onPrepareAxureExport === "function";
-              await exportSelectionToDesignTool(tool, targetElement, prepareInHost ? {
-                prepareAxureExport: options.ui.onPrepareAxureExport
-              } : void 0);
-              services.feedback.toast("success", prepareInHost ? "\u5DF2\u6253\u5F00 Axure \u6574\u7406\u9884\u89C8\uFF0C\u8BF7\u786E\u8BA4\u540E\u590D\u5236" : `\u5DF2\u5BFC\u51FA\u5230 ${tool}`);
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              services.feedback.toast("error", message || `\u5BFC\u51FA\u5230 ${tool} \u5931\u8D25`);
-            }
-          },
-          getExportSelectionToDesignToolBlockReason: (_tool, element) => {
-            const targetElement = resolvePromptTarget(element);
-            if (!targetElement) {
-              return "\u5F53\u524D\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u5143\u7D20";
-            }
-            if (services.agentBridge.isElementInteractionLocked(targetElement)) {
-              return "\u5F53\u524D\u5143\u7D20\u6B63\u5728\u7531 AI \u66F4\u65B0";
-            }
-            return getDesignToolExportBlockReason(targetElement);
-          },
+          ...createSelectionExportActions({
+            state: state2,
+            isLocked: (target) => services.agentBridge.isElementInteractionLocked(target),
+            toast: (tone, message) => services.feedback.toast(tone, message),
+            prepareAxureExport: typeof rawOptions.ui?.onPrepareAxureExport === "function" ? options.ui.onPrepareAxureExport : void 0
+          }),
           canEditText: (element) => services.textSession.isEditable(element),
           getTextValue: (element) => services.textSession.getText(element),
           onTextValueChange: (element, value, previousValue) => {
