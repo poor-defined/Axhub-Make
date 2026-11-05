@@ -27,6 +27,12 @@ npx -y @axhub/make@latest
 
 ## 本地开发
 
+项目需求、交付状态和关联实施计划统一维护在[项目需求库](docs/requirements/README.md)。
+
+复制可编辑原型到 Axure 时，会先显示组件树确认窗口，再由你选择复制版本。整页导出及 React/HTML 预览中批注框的 Axure 按钮共用此流程。默认自动进行 AI 整理；关闭“复制时自动 AI 整理”后，仍可在窗口中手动整理或复制原始结构。该设置沿用项目导出偏好，使用“设置”里的对话 AI 提供方与模型；自动整理替代原始 DOM 层级。
+
+整理逻辑位于 `src/common/axureTreeOrganization.ts`，AI 服务入口位于 `src/server/managementApi.axureTreeOrganization.ts`，前端任务与状态位于 `src/index/domains/export/`。首次分析最多接受 2000 个结构节点及受限大小的摘要；已有 SVG、遮罩和分组作为整体保留。失败后可以重试整理或复制原始结构，复制失败可直接重试，不会再次调用 AI。
+
 此分支支持在元素批注时按住 Command 点击多个元素，再次 Command 点击可取消对应选择，Esc 清空整组。多选后填写的批注会应用到所选元素。
 
 修改 `vendor/axhub-commentary/src/` 后，运行 `pnpm vendor:build:commentary` 更新实际运行的包；相关回归测试使用 `pnpm exec vitest run src/vendor/axhub-commentary`。

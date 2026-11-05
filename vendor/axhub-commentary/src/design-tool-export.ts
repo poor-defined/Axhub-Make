@@ -90,6 +90,7 @@ function normalizeClipboardWriteError(error: unknown): Error {
 export async function exportSelectionToDesignTool(
   tool: WebEditorDesignAdjustmentTool,
   element: Element,
+  options?: { prepareAxureExport?: (payload: unknown) => Promise<boolean> },
 ): Promise<void> {
   if (!isExportableDesignElement(element)) {
     throw new Error('当前没有可导出的元素。');
@@ -123,5 +124,11 @@ export async function exportSelectionToDesignTool(
     preserveHierarchy: false,
     preserveSvgIcons: true,
   });
+  if (options?.prepareAxureExport) {
+    if (!await options.prepareAxureExport(payload)) {
+      throw new Error('未能打开 Axure 整理预览，请刷新 Make 页面后重试。');
+    }
+    return;
+  }
   await copyAxurePayload(payload);
 }

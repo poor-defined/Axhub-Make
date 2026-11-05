@@ -91,6 +91,7 @@ export interface WebEditorV2UiOptions {
   /** Read whether the host's ACP UI service is currently connected. */
   getAcpUiConnected?: () => boolean;
   getAssistantPanelOpen?: () => boolean;
+  onPrepareAxureExport?: (payload: unknown) => Promise<boolean>;
   onHostToolbarAction?: (
     action: CommentaryHostToolbarAction,
   ) => CommentaryHostToolbarActionResult | Promise<CommentaryHostToolbarActionResult>;
@@ -469,6 +470,7 @@ export function resolveWebEditorOptions(
       getAcpUiConnected: undefined,
       getAssistantPanelOpen: () => false,
       onHostToolbarAction: async () => false,
+      onPrepareAxureExport: async () => false,
       onEnableAnnotation: async () => false,
       getAnnotationEnabled: () => false,
       getAnnotationEnableAvailable: () => false,

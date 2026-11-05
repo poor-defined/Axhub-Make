@@ -809,7 +809,7 @@ describe('useIndexPagePreviewActions source', () => {
   it('copies editable Axure prototypes from the current preview runtime without reading source or artifact files', () => {
     const source = readPreviewActionsSource();
 
-    expect(source).toContain('const payload = await requestAxureJson(options);');
+    expect(source).toContain('const payload = await requestAxureJson(captureOptions);');
     expect(source).toContain('if (exportAvailability.axureRuntimeDisabledReason)');
     expect(source).not.toContain('resolveServerBackedAxurePayload');
     expect(source).not.toContain('apiService.fetchAxureExportCode');
@@ -2292,7 +2292,7 @@ describe('useIndexPagePreviewActions source', () => {
     expect(copyConfigSegment).toContain('const indexBundle = await fetchRuntimeExportBundle();');
     expect(copyConfigSegment).not.toContain('fetchDocs');
     expect(copyConfigSegment).not.toContain('codeAndDocs');
-    expect(source).toContain('const payload = await requestAxureJson(options);');
+    expect(source).toContain('const payload = await requestAxureJson(captureOptions);');
   });
 
   it('uses the generated full-page SVG size for copied Runtime component bounds', () => {

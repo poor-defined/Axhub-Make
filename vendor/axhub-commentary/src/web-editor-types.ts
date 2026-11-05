@@ -778,6 +778,7 @@ export interface CommentaryHostToolbarState {
 }
 
 export type CommentaryHostToolbarAction =
+  | { type: 'prepare-axure-export'; payload: unknown }
   | { type: 'wake-agent' }
   | ({
       type: 'send-to-agent';

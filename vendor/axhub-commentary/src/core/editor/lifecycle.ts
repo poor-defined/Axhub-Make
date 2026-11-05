@@ -2041,8 +2041,11 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
               throw new Error('当前没有可导出的元素。');
             }
             try {
-              await exportSelectionToDesignTool(tool, targetElement);
-              services.feedback.toast('success', `已导出到 ${tool}`);
+              const prepareInHost = tool === 'axure' && typeof rawOptions.ui?.onPrepareAxureExport === 'function';
+              await exportSelectionToDesignTool(tool, targetElement, prepareInHost ? {
+                prepareAxureExport: options.ui.onPrepareAxureExport,
+              } : undefined);
+              services.feedback.toast('success', prepareInHost ? '已打开 Axure 整理预览，请确认后复制' : `已导出到 ${tool}`);
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
               services.feedback.toast('error', message || `导出到 ${tool} 失败`);

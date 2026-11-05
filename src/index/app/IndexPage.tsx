@@ -10,6 +10,7 @@ import { useOpenCodeBridgeSync } from '../hooks/useOpenCodeBridgeSync';
 import { resolveOpenCodeCanvasAnnotationContext, resolveOpenCodeCurrentFilePath } from '../hooks/openCodeBridgeContext';
 import type { CanvasElementContextInfo } from '../components/content/canvas-embeds/AnnotationOverlay';
 import IndexPageLayout from '../components/app/IndexPageLayout';
+import AxureTreeOrganizationDialog from '../components/dialogs/AxureTreeOrganizationDialog';
 import type { SettingsDialogAIContext, SettingsDialogInitialTab } from '../components/SettingsDialog';
 import type {
     ResourceSection,
@@ -3012,6 +3013,12 @@ export default function IndexPage({
 
     return (
         <>
+            <AxureTreeOrganizationDialog
+                state={preview.axureOrganization.state}
+                onCancel={preview.axureOrganization.session.cancel}
+                onRetry={() => { void preview.axureOrganization.session.retry(); }}
+                onCopy={(version) => { void preview.axureOrganization.session.copy(version); }}
+            />
             <input
                 ref={startGuideResourceUploadInputRef}
                 type="file"

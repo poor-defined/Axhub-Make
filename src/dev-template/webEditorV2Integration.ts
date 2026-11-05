@@ -2024,6 +2024,7 @@ export const createWebEditorV2Controller = (
         ...(canDelegateHostToolbarActions
           ? {
               onHostToolbarAction: requestParentHostToolbarAction,
+              onPrepareAxureExport: (payload: unknown) => requestParentHostToolbarAction({ type: 'prepare-axure-export', payload }),
               onRequestFullExit: async () => {
                 await requestParentHostToolbarAction({ type: 'full-exit' });
               },

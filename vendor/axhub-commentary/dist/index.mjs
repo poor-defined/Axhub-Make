@@ -2129,6 +2129,7 @@ function resolveWebEditorOptions(options = {}) {
       getAcpUiConnected: void 0,
       getAssistantPanelOpen: () => false,
       onHostToolbarAction: async () => false,
+      onPrepareAxureExport: async () => false,
       onEnableAnnotation: async () => false,
       getAnnotationEnabled: () => false,
       getAnnotationEnableAvailable: () => false,
@@ -31239,7 +31240,7 @@ function normalizeClipboardWriteError(error) {
   }
   return new Error("\u526A\u8D34\u677F\u5199\u5165\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002");
 }
-async function exportSelectionToDesignTool(tool, element) {
+async function exportSelectionToDesignTool(tool, element, options) {
   if (!isExportableDesignElement(element)) {
     throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u5143\u7D20\u3002");
   }
@@ -31269,6 +31270,12 @@ async function exportSelectionToDesignTool(tool, element) {
     preserveHierarchy: false,
     preserveSvgIcons: true
   });
+  if (options?.prepareAxureExport) {
+    if (!await options.prepareAxureExport(payload)) {
+      throw new Error("\u672A\u80FD\u6253\u5F00 Axure \u6574\u7406\u9884\u89C8\uFF0C\u8BF7\u5237\u65B0 Make \u9875\u9762\u540E\u91CD\u8BD5\u3002");
+    }
+    return;
+  }
   await copyAxurePayload(payload);
 }
 
@@ -33027,8 +33034,11 @@ ${externalSection}` : promptWithSkills;
               throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u5BFC\u51FA\u7684\u5143\u7D20\u3002");
             }
             try {
-              await exportSelectionToDesignTool(tool, targetElement);
-              services.feedback.toast("success", `\u5DF2\u5BFC\u51FA\u5230 ${tool}`);
+              const prepareInHost = tool === "axure" && typeof rawOptions.ui?.onPrepareAxureExport === "function";
+              await exportSelectionToDesignTool(tool, targetElement, prepareInHost ? {
+                prepareAxureExport: options.ui.onPrepareAxureExport
+              } : void 0);
+              services.feedback.toast("success", prepareInHost ? "\u5DF2\u6253\u5F00 Axure \u6574\u7406\u9884\u89C8\uFF0C\u8BF7\u786E\u8BA4\u540E\u590D\u5236" : `\u5DF2\u5BFC\u51FA\u5230 ${tool}`);
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
               services.feedback.toast("error", message || `\u5BFC\u51FA\u5230 ${tool} \u5931\u8D25`);

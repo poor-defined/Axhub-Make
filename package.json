@@ -29,6 +29,7 @@
     "src/common/makeClientTemplate.ts",
     "src/common/documentTemplates.ts",
     "src/common/editorLaunchQuery.ts",
+    "src/common/axureTreeOrganization.ts",
     "client/vite-plugins/annotationSourceMarkdown.ts",
     "client/vite-plugins/canvasHotUpdateFilter.ts",
     "client/vite-plugins/clientPreviewPlugin.ts",

@@ -17,6 +17,8 @@ import {
     type ReviewResult,
 } from '../../services/api';
 import { downloadExportHtmlArchive } from '../../domains/export/export.api';
+import { useAxureTreeOrganization } from '../../domains/export/useAxureTreeOrganization';
+import type { AxureTreePayload } from '../../../common/axureTreeOrganization';
 import { requireProjectScope, withProjectScope } from '../../services/projectScope';
 import { resolveInjectedMakeServerOrigin } from '../../../common/makeServerOrigin';
 import { buildPrototypeAnnotationAcpPrompt, buildQuickEditAcpPrompt } from '../../utils/quickEditPrompts';
@@ -350,6 +352,8 @@ export function useIndexPagePreviewActions(params: any) {
     } = params;
 
     const userSetDimensionsRef = useRef(false);
+    const prepareSelectionAxureExportRef = useRef<((payload: unknown) => boolean) | null>(null);
+    const axureCapturePendingRef = useRef(false);
     const previousExportContentTypeRef = useRef(DEFAULT_EXPORT_IMAGE_CONFIG.contentType);
     const standalonePanelBeforeQuickEditRef = useRef<boolean>(false);
     const decisionPanelAutoOpenSeqRef = useRef(0);
@@ -2050,6 +2054,9 @@ export function useIndexPagePreviewActions(params: any) {
     ]);
 
     const runHostToolbarAction = useCallback(async (action: CommentaryHostToolbarAction) => {
+        if (action.type === 'prepare-axure-export') {
+            return prepareSelectionAxureExportRef.current?.(action.payload) ?? false;
+        }
         const requestedAction = action.type === 'toggle-dark-mode'
             ? { ...action, darkMode: typeof action.darkMode === 'boolean' ? action.darkMode : !isDarkMode }
             : action;
@@ -3115,12 +3122,13 @@ export function useIndexPagePreviewActions(params: any) {
         screenshotDefaultSize,
     ]);
 
-    const checkAxureAvailable = useCallback(async (): Promise<boolean> => {
+    const checkAxureAvailable = useCallback(async (signal?: AbortSignal): Promise<boolean> => {
         let response: Response;
         try {
             response = await fetch(`${AXURE_BRIDGE_API_BASE_URL}/available`, {
                 method: 'GET',
                 cache: 'no-store',
+                signal,
             });
         } catch (error: any) {
             throw new Error(`无法连接到 Axure Bridge（localhost:32767）：${formatThrownError(error)}`);
@@ -3141,13 +3149,14 @@ export function useIndexPagePreviewActions(params: any) {
         return true;
     }, []);
 
-    const postCopyAxvg = useCallback(async (payload: any) => {
+    const postCopyAxvg = useCallback(async (payload: any, signal?: AbortSignal) => {
         let response: Response;
         try {
             response = await fetch(`${AXURE_BRIDGE_API_BASE_URL}/copyaxvg`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
+                signal,
             });
         } catch (error: any) {
             throw new Error(`请求 Axure Bridge 失败：${formatThrownError(error)}`);
@@ -4337,6 +4346,38 @@ export function useIndexPagePreviewActions(params: any) {
         }
     }, [assistantContextV1, assistantProjectPath, messageApi, prototypeAnnotationPromptCopying, selectedItem]);
 
+    const axureOrganizationScopeKey = JSON.stringify([
+        projectId, currentRuntimeExportResource?.resourceId, currentRuntimeExportResource?.name,
+        currentRuntimeExportResource?.clientUrl, currentRuntimeExportResourceType,
+        selectedPageId, viewMode, elementIframeKey,
+        previewConfig.previewMode,
+        axureCopyOptions.aiOrganize, axureCopyOptions.preserveHierarchy, axureCopyOptions.preserveSvgIcons,
+    ]);
+    const copyPreparedAxurePayload = useCallback(async (payload: AxureTreePayload, signal: AbortSignal) => {
+        const available = await checkAxureAvailable(signal);
+        signal.throwIfAborted();
+        if (!available) throw new Error(AXURE_UNAVAILABLE_HINT);
+        await postCopyAxvg(payload, signal);
+        signal.throwIfAborted();
+        void postProjectCommunicationRecord(currentRuntimeExportResource, 'exports', {
+            operationType: 'axure.copy', status: 'success',
+        }, currentRuntimeExportResourceType).catch(() => undefined);
+        messageApi.success('已复制到 Axure');
+    }, [checkAxureAvailable, postCopyAxvg, currentRuntimeExportResource, currentRuntimeExportResourceType, messageApi]);
+    const axureOrganization = useAxureTreeOrganization({
+        projectId: String(projectId || ''), scopeKey: axureOrganizationScopeKey,
+        getPreviewIframe, getPreviewIframes, copy: copyPreparedAxurePayload,
+    });
+    useLayoutEffect(() => {
+        prepareSelectionAxureExportRef.current = (payload) => {
+            if (!payload || typeof payload !== 'object' || !Array.isArray((payload as AxureTreePayload).scene?.items)) return false;
+            if (axureCapturePendingRef.current || axureOrganization.session.getState().phase !== 'idle') return false;
+            void axureOrganization.session.start(payload as AxureTreePayload, axureCopyOptions.aiOrganize !== false);
+            return true;
+        };
+        return () => { prepareSelectionAxureExportRef.current = null; };
+    }, [axureOrganization.session, axureCopyOptions.aiOrganize]);
+
     const showCrossOriginPreviewActionHint = useCallback(() => {
         const targetIframe = getPreviewIframe();
         if (!targetIframe || getIframeOrigin(targetIframe) === window.location.origin) {
@@ -4348,6 +4389,7 @@ export function useIndexPagePreviewActions(params: any) {
     }, [getIframeOrigin, getPreviewIframe]);
 
     const handleCopyToAxure = useCallback(async (options: any) => {
+        if (axureCapturePendingRef.current || axureOrganization.session.getState().phase !== 'idle') return;
         if (!currentRuntimeExportResource) {
             messageApi.warning('请先选择一个条目');
             return;
@@ -4357,18 +4399,18 @@ export function useIndexPagePreviewActions(params: any) {
             return;
         }
         const hide = messageApi.loading('正在复制到 Axure...', 0);
+        axureCapturePendingRef.current = true;
+        const scope = axureOrganization.session.getScope();
+        const iframe = getPreviewIframe();
+        const generation = getPreviewIframeGeneration(iframe);
         try {
-            const payload = await requestAxureJson(options);
-            const available = await checkAxureAvailable();
-            if (!available) {
-                throw new Error(`Axure Bridge 可用性检查返回 false；${AXURE_UNAVAILABLE_HINT}`);
-            }
-            await postCopyAxvg(payload);
-            void postProjectCommunicationRecord(currentRuntimeExportResource, 'exports', {
-                operationType: 'axure.copy',
-                status: 'success',
-            }, currentRuntimeExportResourceType).catch(() => undefined);
-            messageApi.success('已复制到 Axure');
+            const captureOptions = options.aiOrganize ? { ...options, preserveHierarchy: false } : options;
+            const payload = await requestAxureJson(captureOptions);
+            if (scope !== axureOrganization.session.getScope() || iframe !== getPreviewIframe()
+                || generation !== getPreviewIframeGeneration(iframe)) return;
+            if (axureOrganization.session.getState().phase !== 'idle') return;
+            // Both automatic and manual modes must show the intermediate confirmation step.
+            void axureOrganization.session.start(payload, options.aiOrganize !== false);
         } catch (error: any) {
             console.error('复制到 Axure 失败:', error);
             void postProjectCommunicationRecord(currentRuntimeExportResource, 'exports', {
@@ -4379,17 +4421,19 @@ export function useIndexPagePreviewActions(params: any) {
             showCrossOriginPreviewActionHint();
             messageApi.error(buildAxureBridgeUserMessage(String(error?.message || '')));
         } finally {
+            axureCapturePendingRef.current = false;
             hide();
         }
     }, [
-        checkAxureAvailable,
         currentRuntimeExportResource,
         currentRuntimeExportResourceType,
         exportAvailability.axureRuntimeDisabledReason,
         messageApi,
-        postCopyAxvg,
         requestAxureJson,
         showCrossOriginPreviewActionHint,
+        axureOrganization.session,
+        getPreviewIframe,
+        getPreviewIframeGeneration,
     ]);
 
     const handleCopyToFigma = useCallback(async () => {
@@ -4996,11 +5040,13 @@ export function useIndexPagePreviewActions(params: any) {
                 isFullScreen: imageConfig.isFullScreen,
             },
             axureCopyOptions: {
+                aiOrganize: Boolean(axureCopyOptions.aiOrganize),
                 preserveHierarchy: axureCopyOptions.preserveHierarchy,
                 preserveSvgIcons: axureCopyOptions.preserveSvgIcons,
             },
         });
     }, [
+        axureCopyOptions.aiOrganize,
         axureCopyOptions.preserveHierarchy,
         axureCopyOptions.preserveSvgIcons,
         exportPreferencesStorageKey,
@@ -5454,6 +5500,7 @@ export function useIndexPagePreviewActions(params: any) {
         handleExport,
         handleCopyRuntimeComponent,
         handleCopyToAxure,
+        axureOrganization,
         handleCopyConfig,
         handleSelectDoc,
         handleSelectTemplate,

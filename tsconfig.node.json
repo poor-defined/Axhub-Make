@@ -17,6 +17,7 @@
     "src/common/makeClientTemplate.ts",
     "src/common/documentTemplates.ts",
     "src/common/aiArtifactClassification.ts",
+    "src/common/axureTreeOrganization.ts",
     "src/common/editorLaunchQuery.ts",
     "src/index/domains/assistant/makeVoiceCommentPersistence.ts",
     "src/index/domains/assistant/makeVoiceTools.ts",

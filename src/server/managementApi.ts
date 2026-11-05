@@ -38,6 +38,7 @@ import {
 import { handleAiArtifactHistoryApi } from './managementApi.aiArtifactHistory.ts';
 import { handleAiServiceProxyApi } from './managementApi.aiServices.ts';
 import { handleAiRunsApi } from './managementApi.aiRuns.ts';
+import { handleAxureTreeOrganizationApi } from './managementApi.axureTreeOrganization.ts';
 import { handleAcpRuntimeEventsApi } from './managementApi.acpRuntimeEvents.ts';
 import { handleAssistantWorkApi } from './assistantWorkApi.ts';
 import { getAssistantWorkRuntime } from './assistantWorkRuntime.ts';
@@ -1313,6 +1314,13 @@ export async function handleManagementApi(req: IncomingMessage, res: ServerRespo
     resolveProjectContext,
     getServerConfigStoreForRequest,
     sendDisabledCapability,
+  })) {
+    return true;
+  }
+
+  if (handleAxureTreeOrganizationApi(req, res, options, pathname, {
+    resolveProjectContext,
+    getServerConfigStoreForRequest,
   })) {
     return true;
   }

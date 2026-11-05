@@ -7,6 +7,15 @@ afterEach(() => {
 });
 
 describe('exportModalPreferences', () => {
+  it('defaults legacy exports to automatic AI while preserving an explicit opt-out', () => {
+    let stored = JSON.stringify({ version: 1, axureCopyOptions: { preserveHierarchy: true, preserveSvgIcons: true } });
+    vi.stubGlobal('window', { localStorage: { getItem: () => stored } });
+    expect(readExportModalPreferences('test').axureCopyOptions?.aiOrganize).toBe(true);
+    stored = JSON.stringify({ version: 1, axureCopyOptions: { aiOrganize: true, preserveHierarchy: false, preserveSvgIcons: true } });
+    expect(readExportModalPreferences('test').axureCopyOptions?.aiOrganize).toBe(true);
+    stored = JSON.stringify({ version: 1, axureCopyOptions: { aiOrganize: false } });
+    expect(readExportModalPreferences('test').axureCopyOptions?.aiOrganize).toBe(false);
+  });
   it('defaults legacy Axure export preferences to including image assets', () => {
     const storedValue = JSON.stringify({
       version: 1,

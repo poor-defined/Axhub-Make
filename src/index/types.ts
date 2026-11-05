@@ -130,6 +130,7 @@ export interface ImageConfig {
 }
 
 export interface AxureCopyOptions {
+    aiOrganize?: boolean;
     preserveHierarchy: boolean;
     preserveSvgIcons: boolean;
 }

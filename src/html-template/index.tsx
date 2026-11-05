@@ -20,6 +20,7 @@ import {
 } from '../common/documentCommentsPersistence';
 import { createQuickEditRequestRegistry } from '../common/quickEditRequestRegistry';
 import { normalizeMakeServerOrigin } from '../common/makeServerOrigin';
+import { requestParentAxureExport } from './axureExportBridge';
 import type {
   QuickEditSaveAction,
   QuickEditSaveCommitResult,
@@ -214,6 +215,9 @@ function ensureCommentEditor(options?: {
       toolbarMode: options?.toolbarMode || 'host',
       initialDarkMode,
       htmlFileSaveEnabled: true,
+      ...(typeof window !== 'undefined' && window.parent !== window ? {
+        onPrepareAxureExport: (payload: unknown) => requestParentAxureExport(payload, trustedParentEditorOrigin),
+      } : {}),
       onHostToolbarAction: async (action) => {
         if (action.type === 'save-html-all') {
           return ensureHtmlResourceSaveBridge().saveAllChanges();

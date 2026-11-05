@@ -301,6 +301,7 @@ export function resolveExportScreenshotViewportSize(options: {
 }
 
 export const DEFAULT_AXURE_COPY_OPTIONS: AxureCopyOptions = {
+    aiOrganize: true,
     preserveHierarchy: false,
     preserveSvgIcons: true,
 };

@@ -4210,6 +4210,15 @@ describe('createWebEditorV2Controller', () => {
     } as MessageEvent);
 
     await expect(fullExitPromise).resolves.toBeUndefined();
+    const axurePayload = { scene: { items: [{ id: 'selected-page' }] } };
+    const exportPromise = editorOptions.ui.onPrepareAxureExport(axurePayload);
+    const exportRequest = parentWindow.postMessage.mock.calls[2]?.[0] as { requestId: string; action: unknown };
+    expect(exportRequest.action).toEqual({ type: 'prepare-axure-export', payload: axurePayload });
+    const [exportListener] = Array.from(listeners.get('message') ?? []);
+    exportListener?.({ source: parentWindow, data: {
+      type: 'AXHUB_PROTOTYPE_EDITOR_HOST_TOOLBAR_ACTION_RESULT', requestId: exportRequest.requestId, handled: true,
+    } } as MessageEvent);
+    await expect(exportPromise).resolves.toBe(true);
     expect(start).toHaveBeenCalledTimes(1);
   });
 
