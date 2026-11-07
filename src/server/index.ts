@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isOpaqueReferenceStaticRequest } from './referenceStaticCors.ts';
 
 import { getOpenCodeBridgeHub, isOpenCodeBridgeUpgrade } from './opencodeBridge.ts';
 import { getCanvasBridgeHub, isCanvasBridgeUpgrade } from './canvasBridge.ts';
@@ -460,6 +461,15 @@ export async function startMakeServer(options: StartMakeServerOptions): Promise<
         axhubCanvasMcpToken,
         axhubPreviewMcpToken,
       };
+
+      // Opaque reference frames load the built runtime, never Vite's source modules.
+      if (isOpaqueReferenceStaticRequest(req)) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        if (handleAdminStatic(req, res, adminStaticOptions)) return;
+        sendJson(res, { error: '参考页运行资源缺失，请重新构建开发环境' }, { status: 404 });
+        return;
+      }
 
       // ── 1. Management API ──
       let requestRuntimeOrigin = await resolveRuntimeOriginForProxy({

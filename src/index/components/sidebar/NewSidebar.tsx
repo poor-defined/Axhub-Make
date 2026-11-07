@@ -21,7 +21,11 @@ function resolveNewSidebarProps(props: NewSidebarProps): NewSidebarLegacyProps {
     return props;
 }
 
-export default function NewSidebar(rawProps: NewSidebarProps) {
+export default function NewSidebar(rawProps: NewSidebarProps & {
+    referenceActive?: boolean;
+    onReferenceActiveChange?: (active: boolean) => void;
+    referencePanel?: React.ReactNode;
+}) {
     const {
         collapsed,
         loading,
@@ -189,9 +193,13 @@ export default function NewSidebar(rawProps: NewSidebarProps) {
     return (
         <ResponsiveSidebarShell collapsed={collapsed}>
             <ContentPanel
-                activeTab={sidebarTab}
+                activeTab={rawProps.referenceActive ? 'reference' : sidebarTab}
+                referencePanel={rawProps.referencePanel}
                 viewMode={viewMode}
-                onTabChange={handleSidebarTabChange}
+                onTabChange={(tab) => {
+                    rawProps.onReferenceActiveChange?.(tab === 'reference');
+                    if (tab !== 'reference') handleSidebarTabChange(tab);
+                }}
                 onPrototypeViewSelect={onPrototypeViewSelect}
                 onPrototypePageSelect={onPrototypePageSelect}
                 projectTitle={projectTitle}

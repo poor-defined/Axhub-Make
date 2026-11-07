@@ -4,7 +4,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PAT
 umask 077
 
 repo_dir="${0:A:h:h}"
-expected_branch='codex/axure-manual-ai-refinement'
+expected_branch='codex/reference-component-prd'
 dev_url='http://127.0.0.1:53818'
 
 finish() {
@@ -59,6 +59,9 @@ fi
 
 # 每次启动都先更新批注运行包，避免健康的开发服务仍使用旧构建。
 pnpm vendor:build:commentary || finish 1
+
+# 参考页在隔离环境中使用预构建的批注运行包，启动前同步本分支资源。
+pnpm admin:build || finish 1
 
 # 重复双击时打开当前工作区正在运行的开发服务。
 if node --input-type=module - "$dev_url/api/health" "$dev_state_dir" <<'JS'

@@ -72,6 +72,8 @@ import {
   handleStartPlaceholderPrototypeGeneration,
 } from './managementApi.prototypeUpload.ts';
 import { handleUploadAndReferenceApis } from './managementApi.references.ts';
+import { handleReferencePagesApi } from './managementApi.referencePages.ts';
+import { handleComponentDocumentationApi } from './managementApi.componentDocumentation.ts';
 import { findProjectResourceByPath, getAxureArtifactPaths, resolveSourceFileFromMetadata } from './managementApi.resourceLookup.ts';
 import { handleProjectSourceAndZipApi } from './managementApi.sourceZip.ts';
 import { handleTemplateLibraryApi } from './managementApi.templateLibrary.ts';
@@ -1317,6 +1319,9 @@ export async function handleManagementApi(req: IncomingMessage, res: ServerRespo
   })) {
     return true;
   }
+
+  if (handleReferencePagesApi(req, res, options, pathname, { resolveProjectContext, readMultipartParts })) return true;
+  if (handleComponentDocumentationApi(req, res, options, pathname, { resolveProjectContext, getServerConfigStoreForRequest })) return true;
 
   if (handleAxureTreeOrganizationApi(req, res, options, pathname, {
     resolveProjectContext,

@@ -1,5 +1,15 @@
+import type { CommentaryHostToolbarAction } from '@axhub/commentary';
+
 /** Reuse Make's authenticated host-action channel for HTML selection exports. */
 export async function requestParentAxureExport(payload: unknown, origin: string): Promise<boolean> {
+  return requestParentComponentAction('prepare-axure-export', payload, origin);
+}
+
+export async function requestParentComponentAction(type: 'prepare-axure-export' | 'document-component', payload: unknown, origin: string): Promise<boolean> {
+  return requestParentHostToolbarAction({ type, payload } as CommentaryHostToolbarAction, origin);
+}
+
+export async function requestParentHostToolbarAction(action: CommentaryHostToolbarAction, origin: string): Promise<boolean> {
   if (typeof window === 'undefined' || window.parent === window || !origin) return false;
   const requestId = `axure-export-${globalThis.crypto.randomUUID()}`;
   return new Promise((resolve) => {
@@ -18,7 +28,7 @@ export async function requestParentAxureExport(payload: unknown, origin: string)
     window.addEventListener('message', onMessage);
     window.parent.postMessage({
       type: 'AXHUB_PROTOTYPE_EDITOR_HOST_TOOLBAR_ACTION_REQUEST', requestId,
-      action: { type: 'prepare-axure-export', payload },
+      action,
     }, origin);
   });
 }

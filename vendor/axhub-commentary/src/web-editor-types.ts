@@ -777,7 +777,15 @@ export interface CommentaryHostToolbarState {
   annotationEnableTitle: string;
 }
 
+export interface CommentaryDocumentComponentCapture {
+  imageDataUrl: string;
+  note: string;
+  component: { name: string; selector?: string; text?: string };
+  source: { title: string; url: string };
+}
+
 export type CommentaryHostToolbarAction =
+  | { type: 'document-component'; payload: CommentaryDocumentComponentCapture }
   | { type: 'prepare-axure-export'; payload: unknown }
   | { type: 'wake-agent' }
   | ({

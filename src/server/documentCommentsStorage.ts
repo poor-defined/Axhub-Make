@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveReferenceFile } from './referencePages.ts';
 
 const COMMENTS_ROOT = path.join('.axhub', 'make', 'comments');
 const ASSETS_ROOT = path.join('.axhub', 'make', 'comment-assets');
@@ -40,10 +41,11 @@ export function normalizeDocumentCommentPath(value: unknown): string | null {
     return null;
   }
   const segments = raw.split('/').filter(Boolean);
+  const referencePath = /^\.axhub\/make\/references\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\/files\/.+\.html?$/iu.test(raw);
   if (
     segments.length === 0
     || segments.some((segment) => segment === '.' || segment === '..' || segment.includes('\0'))
-    || PROTECTED_ROOTS.has(segments[0].toLowerCase())
+    || (PROTECTED_ROOTS.has(segments[0].toLowerCase()) && !referencePath)
   ) {
     return null;
   }
@@ -123,6 +125,12 @@ export function resolveDocumentCommentStorage(
     return null;
   }
 
+  const reference = normalized.match(/^\.axhub\/make\/references\/([^/]+)\/files\/(.+)$/u);
+  if (reference) {
+    // Reference comments are permitted only for a real imported HTML file. Keep all
+    // other .axhub paths protected, and reuse cache root/symlink validation.
+    try { resolveReferenceFile(projectRoot, reference[1], reference[2]); } catch { return null; }
+  }
   const sourcePath = path.resolve(projectRoot, normalized);
   if (!isInside(path.resolve(projectRoot), sourcePath)) return null;
   if (fs.existsSync(sourcePath)) {

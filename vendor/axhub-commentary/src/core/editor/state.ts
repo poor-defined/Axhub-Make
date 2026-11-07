@@ -91,6 +91,7 @@ export interface WebEditorV2UiOptions {
   /** Read whether the host's ACP UI service is currently connected. */
   getAcpUiConnected?: () => boolean;
   getAssistantPanelOpen?: () => boolean;
+  onDocumentComponent?: (capture: import('../../web-editor-types').CommentaryDocumentComponentCapture) => Promise<boolean>;
   onPrepareAxureExport?: (payload: unknown) => Promise<boolean>;
   onHostToolbarAction?: (
     action: CommentaryHostToolbarAction,
@@ -165,8 +166,8 @@ export interface WebEditorV2InitOptions {
 export type CommentaryInitOptions = WebEditorV2InitOptions;
 
 export interface ResolvedWebEditorOptions {
-  ui: Required<Omit<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange'>> &
-    Pick<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange'>;
+  ui: Required<Omit<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange' | 'onDocumentComponent'>> &
+    Pick<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange' | 'onDocumentComponent'>;
   host: Required<Pick<CommentaryHostOptions, 'getResourceContext'>> &
     Pick<
       CommentaryHostOptions,

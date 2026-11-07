@@ -154,6 +154,13 @@ describe('HTML review bridge', () => {
     } as unknown as Event)).toBe(false);
   });
 
+  it('preserves narrowly scoped imported reference HTML paths', () => {
+    const documentPath = '.axhub/make/references/12345678-1234-1234-1234-123456789abc/files/pages/order.html';
+    expect(normalizeHtmlReviewDocumentPath(documentPath)).toBe(documentPath);
+    expect(normalizeHtmlReviewDocumentPath('.axhub/make/server-config.html')).toBe('');
+    expect(normalizeHtmlReviewDocumentPath('.axhub/make/references/12345678-1234-1234-1234-123456789abc/files/../order.html')).toBe('');
+  });
+
   it('normalizes Make resource ids and absolute preview paths to project-relative HTML paths', () => {
     expect(normalizeHtmlReviewDocumentPath('examples/demo.html')).toBe('src/resources/examples/demo.html');
     expect(normalizeHtmlReviewDocumentPath('src/resources/examples/demo.html')).toBe('src/resources/examples/demo.html');
@@ -418,4 +425,13 @@ describe('HTML review bridge', () => {
       comment: expect.stringContaining('恢复第二张图'),
     }));
   });
+});
+
+it('initializes HTML review when an opaque sandbox denies the localStorage getter', () => {
+  const sandboxWindow = { open: vi.fn(), setInterval: vi.fn(() => 1), clearInterval: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  Object.defineProperty(sandboxWindow, 'localStorage', { get() { throw new DOMException('Access denied', 'SecurityError'); } });
+  vi.stubGlobal('window', sandboxWindow);
+  try {
+    expect(() => createHtmlReviewBridge({documentPath:'reference.html',projectId:'project',fetchImpl:vi.fn(),openWindow:vi.fn(),documentRef:null} as any)).not.toThrow();
+  } finally { vi.unstubAllGlobals(); }
 });

@@ -157,6 +157,7 @@ export interface PropertyPanelOptions {
   /** Whether the host's ACP UI service is currently connected. */
   getAcpUiConnected?: () => boolean;
   /** Execute a host toolbar action from the inline toolbar/settings surface. */
+  onDocumentComponent?: (element: Element, note: string) => void | Promise<void>;
   onHostToolbarAction?: (
     action: CommentaryHostToolbarAction,
   ) => CommentaryHostToolbarActionResult | Promise<CommentaryHostToolbarActionResult>;

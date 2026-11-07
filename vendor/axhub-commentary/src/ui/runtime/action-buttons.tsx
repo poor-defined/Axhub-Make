@@ -92,7 +92,7 @@ export function TooltipButton(props: TooltipButtonProps): React.ReactElement {
 }
 
 export function IconActionButton(props: IconActionButtonProps): React.ReactElement {
-  const { title, icon, onClick, disabled, loading, tone = 'neutral', style, pressed } = props;
+  const { title, icon, onClick, disabled, loading, tone = 'neutral', style, pressed, label } = props;
   const [hovered, setHovered] = React.useState(false);
   const toneStyle = ICON_ACTION_TONE_STYLES[tone];
   const mobile = isMobileDevice();
@@ -112,10 +112,10 @@ export function IconActionButton(props: IconActionButtonProps): React.ReactEleme
         onMouseLeave={() => setHovered(false)}
         danger={tone === 'danger'}
         style={{
-          width: btnSize,
+          width: label ? 'auto' : btnSize,
           minWidth: btnSize,
           height: btnSize,
-          padding: 0,
+          padding: label ? '0 8px' : 0,
           fontSize: ACTION_ICON_SIZE,
           borderRadius: 999,
           display: 'inline-flex',
@@ -135,7 +135,7 @@ export function IconActionButton(props: IconActionButtonProps): React.ReactEleme
           transition: 'background-color 220ms ease, color 220ms ease, transform 220ms ease',
           ...style,
         }}
-      />
+      >{label}</Button>
     </TooltipButton>
   );
 }

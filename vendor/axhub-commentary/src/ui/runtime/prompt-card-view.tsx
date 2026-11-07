@@ -28,7 +28,7 @@ import {
   isAgentPromptActionVisible,
   triggerAgentPromptAction,
 } from '../agent-prompt-action';
-import { executePromptCardCurrentElementAction } from './prompt-card-actions';
+import { executePromptCardCurrentElementAction, executePromptCardDocumentAction } from './prompt-card-actions';
 import { resolvePromptCardCloseActionTitle } from './prompt-card-shortcut-label';
 import { CloseToolIcon, AgentSparkleIcon, IconActionButton } from './action-buttons';
 import { resolveExternalEditingStatusDescription } from './external-editing-status-hint';
@@ -388,6 +388,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       getSendCurrentElementPromptToAgentBlockReason,
       canExportSelectionToDesignTool,
       onExportSelectionToDesignTool,
+      onDocumentComponent,
       getExportSelectionToDesignToolBlockReason,
       hideExecutionControls = false,
       hideCurrentElementExecutionAction = false,
@@ -1315,6 +1316,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
           data-we-annotation-session-toolbar="true"
           style={{
             display: 'flex',
+            flexWrap: 'wrap',
             alignItems: 'center',
             gap: 8,
           }}
@@ -1326,7 +1328,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
           ) : null}
           <div
             data-we-prompt-card-tool-actions="true"
-            style={{ display: 'flex', alignItems: 'center', gap: 2 }}
+            style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}
           >
             {isAnnotationSession && showAnnotationMarkdownEditorButton ? (
               <div
@@ -1477,6 +1479,21 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                 }}
               />
             ) : null}
+            {onDocumentComponent && currentTarget && !textCommentMode ? (
+              <button
+                type="button"
+                data-we-document-component="true"
+                title={selectedElementCount !== 1 ? '请选择一个组件或容器' : '截图并将说明引入 PRD 文档'}
+                disabled={selectedElementCount !== 1}
+                style={{ border: '1px solid #d9d9d9', borderRadius: 6, background: 'transparent', color: 'inherit', padding: '4px 8px', cursor: selectedElementCount === 1 ? 'pointer' : 'not-allowed' }}
+                onClick={() => {
+                  void executePromptCardDocumentAction({currentTarget, note: draftNote,
+                    onConfirmNote: onConfirmNoteWithSelectedSkills, onDocumentComponent}).catch(() => {
+                    // Persistence and capture failures already surface through the runtime feedback.
+                  });
+                }}
+              >引入说明</button>
+            ) : null}
             {axureSelectionExportAction.visible && !textCommentMode ? (
               <IconActionButton
                 title={axureSelectionExportAction.title}
@@ -1527,6 +1544,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
               {!hideCurrentElementExecutionAction && currentElementPromptAction.visible ? (
                 <IconActionButton
                   title={promptCardSendActionTitle}
+                  label={onDocumentComponent ? 'AI 生成原型' : undefined}
                   icon={<CaretRightFilled />}
                   tone="accent"
                   loading={currentElementPromptAction.loading}

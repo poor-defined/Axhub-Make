@@ -86,9 +86,10 @@ import { buildPrototypePageSegments, findPrototypePageGroupKey } from './prototy
 import type { PrototypePageItem } from './prototypePageGroups';
 
 interface ContentPanelProps {
-    activeTab: SidebarTab;
+    activeTab: SidebarTab | 'reference';
+    referencePanel?: React.ReactNode;
     viewMode: ViewMode;
-    onTabChange: (tab: SidebarTab) => void;
+    onTabChange: (tab: SidebarTab | 'reference') => void;
     onPrototypeViewSelect: (item: ItemData, mode: ViewMode) => void | Promise<void>;
     projectTitle: string;
     activeProjectId: string | null;
@@ -1687,6 +1688,7 @@ function ProjectSetupDialog({
 
 export default function ContentPanel({
     activeTab,
+    referencePanel,
     viewMode,
     onTabChange,
     onPrototypeViewSelect,
@@ -3222,7 +3224,7 @@ export default function ContentPanel({
                     <ToggleGroup
                         type="single"
                         value={activeTab}
-                        onValueChange={(v) => v && onTabChange(v as SidebarTab)}
+                        onValueChange={(v) => v && onTabChange(v as SidebarTab | 'reference')}
                         className="w-auto justify-start p-0 gap-1"
                     >
                         <ToggleGroupItem
@@ -3243,10 +3245,13 @@ export default function ContentPanel({
                         >
                             设计
                         </ToggleGroupItem>
+                        <ToggleGroupItem value="reference" className="h-6 w-auto min-w-[36px] rounded-sm px-2 text-[11px] data-[state=off]:text-muted-foreground/60 data-[state=on]:bg-accent">
+                            参考
+                        </ToggleGroupItem>
                     </ToggleGroup>
                 </div>
 
-                <div className="flex items-center gap-1 px-2 pb-2">
+                <div className={cn('flex items-center gap-1 px-2 pb-2', activeTab === 'reference' && 'hidden')}>
                     <div className={cn('relative flex items-center transition-all duration-300', isSearchExpanded ? 'flex-1' : 'w-auto')}>
                         {isSearchExpanded ? (
                             <Input
@@ -3445,7 +3450,7 @@ export default function ContentPanel({
                     }}
                 >
                     <ScrollArea className="h-full p-2 [&_[data-radix-scroll-area-viewport]>div]:!block [&_[data-radix-scroll-area-viewport]>div]:!w-full [&_[data-radix-scroll-area-viewport]>div]:!min-w-0">
-                        {renderTreeContent()}
+                        {activeTab === 'reference' ? referencePanel : renderTreeContent()}
                     </ScrollArea>
                     {isFileDropActive && activeTab === 'document' ? (
                         <div className="absolute inset-0 z-50 flex items-center justify-center rounded-md border-2 border-dashed border-primary/50 bg-primary/5 backdrop-blur-[1px] pointer-events-none">

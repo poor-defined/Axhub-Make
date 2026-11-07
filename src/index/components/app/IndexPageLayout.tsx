@@ -9,6 +9,7 @@ import type {
 } from '../../types/index-page.types';
 
 interface IndexPageLayoutProps {
+    referenceWorkspace?: React.ComponentProps<typeof IndexPageDesktop>['referenceWorkspace'];
     sidebarProps: NewSidebarGroupedProps;
     presentationAreaProps: PresentationAreaGroupedProps;
     assistantPanelProps: React.ComponentProps<typeof IndexPageDesktop>['assistantPanel'];
@@ -26,6 +27,7 @@ export default function IndexPageLayout({
     workspaceMetricsProps,
     dialogsProps,
     mobileProps,
+    referenceWorkspace,
 }: IndexPageLayoutProps) {
     return (
         <div
@@ -41,6 +43,7 @@ export default function IndexPageLayout({
             }}
         >
             <IndexPageDesktop
+                referenceWorkspace={referenceWorkspace}
                 sidebarProps={sidebarProps}
                 presentationAreaProps={presentationAreaProps}
                 assistantPanel={assistantPanelProps}

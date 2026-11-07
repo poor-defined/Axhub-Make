@@ -29,7 +29,13 @@ npx -y @axhub/make@latest
 
 项目需求、交付状态和关联实施计划统一维护在[项目需求库](docs/requirements/README.md)。
 
-当前测试分支为 `codex/axure-manual-ai-refinement`。macOS 双击桌面“启动 Axhub Make 开发分支.command”，或在仓库运行 `./scripts/start-test-environment.command`，即可启动或打开 `http://127.0.0.1:53818`。需要 Node.js 22+、pnpm 10 和 Git；启动器校验分支、安装缺失依赖并重建批注包，使用独立的 `.local/development-home` 状态与 ACP 端口 32125。保持启动服务的终端打开，按 Control+C 停止服务。
+当前测试分支为 `codex/reference-component-prd`。macOS 双击桌面“启动 Axhub Make 开发分支.command”，或在仓库运行 `./scripts/start-test-environment.command`，即可启动或打开 `http://127.0.0.1:53818`。需要 Node.js 22+、pnpm 10 和 Git；启动器校验分支、安装缺失依赖并重建批注包及管理端资源，使用独立的 `.local/development-home` 状态与 ACP 端口 32125。保持启动服务的终端打开，按 Control+C 停止服务。
+
+REQ-011：在“设计”之后的“参考”Tab 导入当前页面链接、ZIP 或单个 HTML。ZIP 可指定入口，并在预览顶部切换 HTML 页面；链接默认只缓存当前页及静态依赖。缓存保存在项目 `.axhub/make/references/`，源页面变更后需重新导入。动态生成的外部依赖可能无法缓存，完整 Axure 发布目录建议用 ZIP 导入；“打开来源”可浏览原始页面。
+
+普通原型和参考页共用组件批注输入框。单选组件后点击“引入说明”，选择当前项目 `src/resources/` 内的 Markdown PRD，再手动生成、编辑预览并确认追加。截图是真实组件截图，未提供的业务规则标为“待确认”；重复引入仍追加文末。图片保存在 PRD 同级 `assets/component-<UUID>.png`，复制或导出 PRD 时一并携带 `assets/`。参考页的“AI 生成原型”先在宿主窗口预览修改要求，确认后交给 AI 按线框图规则修改缓存 HTML；修改后刷新参考页再截图。多状态及长内容仍由用户先要求 AI 平铺，REQ-012 的批注目录和批量暂存不在本次范围内。
+
+实现主要位于 `src/server/referencePages.ts`、`src/server/managementApi.componentDocumentation.ts`、`src/index/domains/documentation/`，批注动作位于 `vendor/axhub-commentary/src/core/editor/document-component.ts`。运行 `pnpm exec vitest run src/common/componentDocumentation.test.ts src/index/domains/documentation src/index/components/content/ReferencePageView.test.ts src/index/components/dialogs/ComponentDocumentationDialog.test.ts src/server/__tests__/reference-pages.test.ts src/server/__tests__/reference-pages-api.test.ts src/server/__tests__/reference-pages-http.test.ts src/server/__tests__/component-documentation-api.test.ts src/server/__tests__/component-documentation-http.test.ts src/html-template src/vendor/axhub-commentary` 验证本功能；`pnpm exec tsc --noEmit -p tsconfig.node.json` 检查服务端类型，`pnpm admin:build` 构建运行资源。
 
 REQ-008 的全局风格规则位于 `src/common/prototypeWireframePolicy.ts`，统一用于原型/画布生成、对话、单选/多选/追加批注及外部 AI 上下文。AI 生成和修改采用黑白灰低保真线框图，保留业务内容、可编辑元素与交互；局部修改只转换本次涉及的区域。纯文档、JSON 和 Axure 组件树整理仍保持原定输出格式。
 

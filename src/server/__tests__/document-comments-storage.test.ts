@@ -4,7 +4,9 @@ import path from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { resolvePrototypeCommentStorage } from '../documentCommentsStorage.ts';
+import { resolveDocumentCommentStorage, resolvePrototypeCommentStorage } from '../documentCommentsStorage.ts';
+
+import { importReferencePage } from '../referencePages.ts';
 
 const roots: string[] = [];
 
@@ -53,5 +55,19 @@ describe('prototype comment storage', () => {
     expect(resolvePrototypeCommentStorage(root, 'prototypes/home', {
       publishedShareId: 'share-a',
     })).toBeNull();
+  });
+});
+
+describe('imported reference document comments', () => {
+  it('allows existing cached reference HTML and rejects protected or fictitious cache paths', async () => {
+    const root = createRoot();
+    const page = await importReferencePage(root, { filename: 'page.html', data: Buffer.from('<p>component</p>') });
+    const documentPath = `.axhub/make/references/${page.id}/files/${page.entryPath}`;
+    expect(resolveDocumentCommentStorage(root, documentPath)?.documentPath).toBe(documentPath);
+    expect(resolveDocumentCommentStorage(root, '.axhub/make/config.html')).toBeNull();
+    expect(resolveDocumentCommentStorage(root, `.axhub/make/references/${page.id}/files/missing.html`)).toBeNull();
+    fs.unlinkSync(path.join(root, documentPath));
+    fs.symlinkSync('/etc/passwd', path.join(root, documentPath));
+    expect(resolveDocumentCommentStorage(root, documentPath)).toBeNull();
   });
 });

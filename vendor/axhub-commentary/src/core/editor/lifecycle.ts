@@ -15,8 +15,9 @@ import {
 } from '../transaction-manager';
 import { createPerfMonitor } from '../perf-monitor';
 import { createDesignTokensService } from '../design-tokens';
-import { locateElement } from '../locator';
+import { locateElement, generateCssSelector } from '../locator';
 import { createSelectionExportActions } from './selection-export';
+import { createDocumentComponentAction } from './document-component';
 import { clearEditorRuntimeRefs, resetEditorTransientState } from './state';
 import { getSelectedElements, getSelectionActionTargets } from './element-selection';
 import type { EditorLifecycleDeps, ExternalEditingElementTarget } from './contracts';
@@ -32,6 +33,7 @@ import {
   resolveInlineTextTarget,
 } from './text-session';
 import { captureTargetScreenshot } from './target-screenshot';
+import { captureElementScreenshot } from './screenshot';
 import { createTargetScreenshotCoordinator } from './target-screenshot-coordinator';
 import {
   buildExternalCommentsPromptSection,
@@ -2027,6 +2029,20 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
             }
             return services.summaries.getSaveRunPromptForElementBlockReason(element);
           },
+          onDocumentComponent: options.ui.onDocumentComponent ? createDocumentComponentAction({
+            getSelectedElements: () => getSelectedElements(state),
+            deliver: options.ui.onDocumentComponent,
+            getSelector: (element) => services.changes.getMetaForElement(element)?.locator.selectors[0] || generateCssSelector(element),
+            onAccepted: (element) => {
+              const currentSelection = getSelectedElements(state);
+              if (currentSelection.length === 1 && currentSelection[0] === element) services.interaction.clearSelection();
+            },
+            capture: (element, name) => captureElementScreenshot(element, name, {
+              fallbackBackgroundColor: '#ffffff',
+              isEditorUi: (node) => Boolean(state.shadowHost?.isOverlayElement(node)),
+            }),
+            toast: (tone, message) => services.feedback.toast(tone, message),
+          }) : undefined,
           ...createSelectionExportActions({
             state,
             isLocked: (target) => services.agentBridge.isElementInteractionLocked(target),

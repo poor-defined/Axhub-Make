@@ -21,7 +21,9 @@ import {
 import { createQuickEditRequestRegistry } from '../common/quickEditRequestRegistry';
 import { normalizeMakeServerOrigin } from '../common/makeServerOrigin';
 import { withPrototypeWireframePolicy } from '../common/prototypeWireframePolicy';
-import { requestParentAxureExport } from './axureExportBridge';
+import { notifyReferencePageReady } from './referencePageReady';
+import { createReferenceCommentsBridge } from './referenceCommentsBridge';
+import { requestParentAxureExport, requestParentComponentAction, requestParentHostToolbarAction } from './axureExportBridge';
 import type {
   QuickEditSaveAction,
   QuickEditSaveCommitResult,
@@ -215,9 +217,10 @@ function ensureCommentEditor(options?: {
     ui: {
       toolbarMode: options?.toolbarMode || 'host',
       initialDarkMode,
-      htmlFileSaveEnabled: true,
+      htmlFileSaveEnabled: htmlEditorContext?.referenceSandbox !== true,
       ...(typeof window !== 'undefined' && window.parent !== window ? {
         onPrepareAxureExport: (payload: unknown) => requestParentAxureExport(payload, trustedParentEditorOrigin),
+        onDocumentComponent: (payload: import('../../vendor/axhub-commentary/src/web-editor-types').CommentaryDocumentComponentCapture) => requestParentComponentAction('document-component', payload, trustedParentEditorOrigin),
       } : {}),
       onHostToolbarAction: async (action) => {
         if (action.type === 'save-html-all') {
@@ -235,7 +238,7 @@ function ensureCommentEditor(options?: {
           await ensureHtmlResourceSaveBridge().clearForcedStyles();
           return true;
         }
-        return false;
+        return requestParentHostToolbarAction(action, trustedParentEditorOrigin);
       },
       getAssistantPanelOpen: () => commentEditorAssistantPanelOpen,
       skillInstallSource: MAKE_COMMENTARY_SKILL_INSTALL_SOURCE,
@@ -248,7 +251,9 @@ function ensureCommentEditor(options?: {
         const context = buildDocumentCommentContext();
         return context ? createDocumentCommentsPersistenceScope(context, buildHtmlResourceContext()) : null;
       },
-      persistenceAdapter: createDocumentCommentsPersistenceAdapter(buildDocumentCommentContext),
+      persistenceAdapter: htmlEditorContext?.referenceSandbox === true
+        ? createReferenceCommentsBridge(() => trustedParentEditorOrigin)
+        : createDocumentCommentsPersistenceAdapter(buildDocumentCommentContext),
       commentPersistenceMode: 'adapter-only',
       getElementTools: htmlReviewBridge.getElementTools,
       onElementToolAction: htmlReviewBridge.onElementToolAction,
@@ -522,8 +527,9 @@ function installParentEditorBridge() {
       teardownParentVoiceTargetSubscriptions();
       try {
         editorBridge.setContext(data.context);
+        trustedParentEditorOrigin = requestedParentOrigin;
         await Promise.resolve(editorBridge.enable('webEditorV2', {
-          toolbarMode: 'host',
+          toolbarMode: data.options?.toolbarMode === 'inline' ? 'inline' : 'host',
           initialDarkMode: Boolean(data.options?.initialDarkMode),
           assistantPanelOpen: Boolean(data.options?.assistantPanelOpen),
         }));
@@ -534,11 +540,22 @@ function installParentEditorBridge() {
           success: true,
         });
       } catch (error) {
+        trustedParentEditorOrigin = '';
         postPrototypeEditorState({
           requestId: data.requestId,
           success: false,
           error: String(error),
         });
+      }
+      return;
+    }
+
+    if (event.data.type === 'AXHUB_REFERENCE_SELECT_COMPONENT') {
+      if (!isTrustedParentVoiceEvent(event) || htmlEditorContext?.referenceSandbox !== true) return;
+      try {
+        await editorBridge.runHostToolbarAction({type: 'toggle-selection-mode', active: true});
+      } catch (error) {
+        postPrototypeEditorState({requestId: data.requestId, success: false, error: String(error)});
       }
       return;
     }
@@ -903,6 +920,7 @@ if (typeof window !== 'undefined') {
     editors: editorBridge,
   };
   installParentEditorBridge();
+  notifyReferencePageReady();
   if (urlParams.get('mode') === 'edit') {
     editorBridge.enable('webEditorV2', { toolbarMode: 'inline' });
   }

@@ -1081,10 +1081,10 @@ describe('IndexPage source', () => {
     expect(assistantPanelPropsSource).toContain('!assistantCompactViewport');
   });
 
-  it('hides an already-open embedded assistant when the viewport becomes compact', () => {
+  it('hides a compact embedded assistant except for the reference workspace execution flow', () => {
     const source = readFileSync(resolve(__dirname, './IndexPage.tsx'), 'utf8');
 
-    expect(source).toContain('if (!assistantCompactViewport || !assistantController.assistantVisible) {');
+    expect(source).toContain('if (!assistantCompactViewport || !assistantController.assistantVisible || references.active) {');
     expect(source).toContain('assistantController.hideAssistantPanelTemporarily();');
   });
 
@@ -1126,8 +1126,8 @@ describe('IndexPage source', () => {
     expect(draftShellDefinition).not.toContain('placeholder');
     expect(autoOpenEffectSource).not.toContain('prototypeStartDraftShellActive');
     expect(restoreHiddenEffectSource).not.toContain('prototypeStartDraftShellActive');
-    expect(assistantPanelPropsSource).toContain('mounted: conversationUiEnabled && !assistantCompactViewport && assistantController.assistantPanelMounted,');
-    expect(assistantPanelPropsSource).toContain('visible: conversationUiEnabled && !assistantCompactViewport && assistantController.assistantVisible,');
+    expect(assistantPanelPropsSource).toContain('mounted: conversationUiEnabled && (!assistantCompactViewport || references.active) && assistantController.assistantPanelMounted,');
+    expect(assistantPanelPropsSource).toContain('visible: conversationUiEnabled && (!assistantCompactViewport || references.active) && assistantController.assistantVisible,');
   });
 
   it('uses stable project ids to suppress auto-open only after real project switches', () => {
@@ -1211,8 +1211,8 @@ describe('IndexPage source', () => {
     expect(presentationBuilderCall).toContain('handleToggleAssistant: handleToggleAssistantPanel,');
     expect(source).toContain("import { resolveMakeSurface, resolveMakeSurfaceCapabilities } from './makeSurface';");
     expect(source).toContain('const conversationUiEnabled = surfaceCapabilities.conversationUi;');
-    expect(assistantPanelPropsSource).toContain('mounted: conversationUiEnabled && !assistantCompactViewport && assistantController.assistantPanelMounted,');
-    expect(assistantPanelPropsSource).toContain('visible: conversationUiEnabled && !assistantCompactViewport && assistantController.assistantVisible,');
+    expect(assistantPanelPropsSource).toContain('mounted: conversationUiEnabled && (!assistantCompactViewport || references.active) && assistantController.assistantPanelMounted,');
+    expect(assistantPanelPropsSource).toContain('visible: conversationUiEnabled && (!assistantCompactViewport || references.active) && assistantController.assistantVisible,');
     expect(source).not.toContain('placeholderActive ? false : assistantController');
     expect(source).not.toContain('startPageActive ? undefined : handleOpen');
   });

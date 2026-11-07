@@ -495,6 +495,7 @@ export async function captureTargetContextScreenshot(
 export async function captureElementScreenshot(
   element: Element,
   fileNameHint: string,
+  options: { isEditorUi?: (node: unknown) => boolean; fallbackBackgroundColor?: string } = {},
 ): Promise<EditorElementScreenshot> {
   if (!(element instanceof HTMLElement || element instanceof SVGElement)) {
     throw new Error('当前元素不支持截图。');
@@ -502,7 +503,7 @@ export async function captureElementScreenshot(
 
   const htmlToImage = await import('html-to-image');
   const { width, height } = collectRenderDimensions(element);
-  const backgroundColor = resolveScreenshotBackgroundColor(element);
+  const backgroundColor = resolveScreenshotBackgroundColor(element) ?? options.fallbackBackgroundColor;
   const pixelRatio = Math.max(1, Math.min(2, window.devicePixelRatio || 2));
   const restoreImageUrls = rewriteElementImageUrlsForScreenshot(element);
   const computedStyle = window.getComputedStyle(element);
@@ -525,6 +526,7 @@ export async function captureElementScreenshot(
       cacheBust: false,
       includeQueryParams: true,
       style: captureStyle,
+      filter: (node) => !options.isEditorUi?.(node),
     });
 
     return {

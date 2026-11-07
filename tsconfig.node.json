@@ -18,6 +18,7 @@
     "src/common/documentTemplates.ts",
     "src/common/aiArtifactClassification.ts",
     "src/common/axureTreeOrganization.ts",
+    "src/common/componentDocumentation.ts",
     "src/common/prototypeWireframePolicy.ts",
     "src/common/editorLaunchQuery.ts",
     "src/index/domains/assistant/makeVoiceCommentPersistence.ts",

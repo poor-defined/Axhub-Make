@@ -2054,6 +2054,10 @@ export function useIndexPagePreviewActions(params: any) {
     ]);
 
     const runHostToolbarAction = useCallback(async (action: CommentaryHostToolbarAction) => {
+        if (action.type === 'document-component') {
+            window.dispatchEvent(new CustomEvent('axhub:document-component', { detail: action.payload }));
+            return true;
+        }
         if (action.type === 'prepare-axure-export') {
             return prepareSelectionAxureExportRef.current?.(action.payload) ?? false;
         }

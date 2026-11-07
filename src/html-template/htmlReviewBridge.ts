@@ -146,7 +146,9 @@ export function normalizeHtmlReviewDocumentPath(value: unknown): string {
   } else {
     raw = raw.replace(/^\.\//u, '');
   }
-  if (/^(?:src\/(?:resources|prototypes|themes)\/|docs\/|templates\/)/u.test(raw)) {
+  const referencePath = /^\.axhub\/make\/references\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\/files\/.+\.html?$/iu.test(raw);
+  if (raw.startsWith('.axhub/') && !referencePath) return '';
+  if (referencePath || /^(?:src\/(?:resources|prototypes|themes)\/|docs\/|templates\/)/u.test(raw)) {
     // Already project-relative.
   } else if (!raw.startsWith('/') && !/^[a-z]:\//iu.test(raw)) {
     raw = `src/resources/${raw}`;
@@ -279,7 +281,11 @@ export function createHtmlReviewBridge(deps: HtmlReviewBridgeDeps): HtmlReviewBr
     return openDrawioResourceEditor(options);
   });
   const storage = deps.storage === undefined
-    ? (typeof window !== 'undefined' ? window.localStorage : null)
+    ? (() => {
+        // Accessing the storage getter itself throws in opaque sandboxed frames.
+        try { return typeof window !== 'undefined' ? window.localStorage : null; }
+        catch { return null; }
+      })()
     : deps.storage;
   const documentRef = deps.documentRef === undefined
     ? (typeof document !== 'undefined' ? document : null)

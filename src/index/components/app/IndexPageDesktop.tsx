@@ -15,6 +15,7 @@ import {
 } from '../sidebar/responsiveSidebarState';
 
 interface IndexPageDesktopProps {
+    referenceWorkspace?: { active: boolean; onActiveChange: (active: boolean) => void; panel: React.ReactNode; view: React.ReactNode };
     sidebarProps: NewSidebarGroupedProps;
     presentationAreaProps: PresentationAreaGroupedProps;
     assistantPanel: {
@@ -46,6 +47,7 @@ export default function IndexPageDesktop({
     assistantPanel,
     responsiveSidebar,
     workspaceMetrics,
+    referenceWorkspace,
 }: IndexPageDesktopProps) {
     const workspaceRef = React.useRef<HTMLDivElement | null>(null);
     const lastResponsiveSidebarDefaultRef = React.useRef(responsiveSidebar.defaultCollapsed);
@@ -84,10 +86,10 @@ export default function IndexPageDesktop({
         <ResponsiveSidebarProvider>
             <div className="pc-layout">
                 <div ref={workspaceRef} style={{ display: 'flex', height: '100vh', minHeight: 0 }}>
-                    <NewSidebar {...sidebarProps} />
+                    <NewSidebar {...sidebarProps} referenceActive={referenceWorkspace?.active} onReferenceActiveChange={referenceWorkspace?.onActiveChange} referencePanel={referenceWorkspace?.panel} />
 
                     <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
-                        <PresentationArea {...presentationAreaProps} />
+                        {referenceWorkspace?.active ? referenceWorkspace.view : <PresentationArea {...presentationAreaProps} />}
 
                         {assistantPanel.mounted ? (
                             <AssistantPanel

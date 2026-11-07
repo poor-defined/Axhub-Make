@@ -12439,13 +12439,13 @@ async function captureTargetContextScreenshot(element, options = {}) {
     restoreImageUrls();
   }
 }
-async function captureElementScreenshot(element, fileNameHint) {
+async function captureElementScreenshot(element, fileNameHint, options = {}) {
   if (!(element instanceof HTMLElement || element instanceof SVGElement)) {
     throw new Error("\u5F53\u524D\u5143\u7D20\u4E0D\u652F\u6301\u622A\u56FE\u3002");
   }
   const htmlToImage = await import("html-to-image");
   const { width, height } = collectRenderDimensions(element);
-  const backgroundColor = resolveScreenshotBackgroundColor(element);
+  const backgroundColor = resolveScreenshotBackgroundColor(element) ?? options.fallbackBackgroundColor;
   const pixelRatio = Math.max(1, Math.min(2, window.devicePixelRatio || 2));
   const restoreImageUrls = rewriteElementImageUrlsForScreenshot(element);
   const computedStyle = window.getComputedStyle(element);
@@ -12465,7 +12465,8 @@ async function captureElementScreenshot(element, fileNameHint) {
       skipFonts: false,
       cacheBust: false,
       includeQueryParams: true,
-      style: captureStyle
+      style: captureStyle,
+      filter: (node) => !options.isEditorUi?.(node)
     });
     return {
       name: `${sanitizeFileName(fileNameHint)}.png`,
@@ -12926,6 +12927,11 @@ async function executePromptCardCurrentElementAction(options) {
   await onSendCurrentElementPromptToAgent(currentTarget);
   return true;
 }
+async function executePromptCardDocumentAction(options) {
+  if (!options.currentTarget || !options.onDocumentComponent) return;
+  await options.onConfirmNote();
+  await options.onDocumentComponent(options.currentTarget, options.note);
+}
 
 // src/ui/runtime/prompt-card-shortcut-label.ts
 function resolvePromptCardCloseActionTitle(platform) {
@@ -13068,7 +13074,7 @@ function TooltipButton(props) {
   return /* @__PURE__ */ jsx3(Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx3("span", { style: { display: "inline-flex" }, children: React4.cloneElement(children, { disabled }) }) });
 }
 function IconActionButton(props) {
-  const { title, icon, onClick, disabled, loading, tone = "neutral", style, pressed } = props;
+  const { title, icon, onClick, disabled, loading, tone = "neutral", style, pressed, label } = props;
   const [hovered, setHovered] = React4.useState(false);
   const toneStyle = ICON_ACTION_TONE_STYLES[tone];
   const mobile = isMobileDevice();
@@ -13087,10 +13093,10 @@ function IconActionButton(props) {
       onMouseLeave: () => setHovered(false),
       danger: tone === "danger",
       style: {
-        width: btnSize,
+        width: label ? "auto" : btnSize,
         minWidth: btnSize,
         height: btnSize,
-        padding: 0,
+        padding: label ? "0 8px" : 0,
         fontSize: ACTION_ICON_SIZE,
         borderRadius: 999,
         display: "inline-flex",
@@ -13103,7 +13109,8 @@ function IconActionButton(props) {
         background: disabled ? "transparent" : hovered ? toneStyle.background ?? EDITOR_CHROME.hoverSubtle : "transparent",
         transition: "background-color 220ms ease, color 220ms ease, transform 220ms ease",
         ...style
-      }
+      },
+      children: label
     }
   ) });
 }
@@ -16006,6 +16013,7 @@ var PromptCardView = React9.forwardRef(
       getSendCurrentElementPromptToAgentBlockReason,
       canExportSelectionToDesignTool,
       onExportSelectionToDesignTool,
+      onDocumentComponent,
       getExportSelectionToDesignToolBlockReason,
       hideExecutionControls = false,
       hideCurrentElementExecutionAction = false,
@@ -16799,6 +16807,7 @@ var PromptCardView = React9.forwardRef(
               "data-we-annotation-session-toolbar": "true",
               style: {
                 display: "flex",
+                flexWrap: "wrap",
                 alignItems: "center",
                 gap: 8
               },
@@ -16812,7 +16821,7 @@ var PromptCardView = React9.forwardRef(
                   "div",
                   {
                     "data-we-prompt-card-tool-actions": "true",
-                    style: { display: "flex", alignItems: "center", gap: 2 },
+                    style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 2 },
                     children: [
                       isAnnotationSession && showAnnotationMarkdownEditorButton ? /* @__PURE__ */ jsxs7(
                         "div",
@@ -16949,6 +16958,26 @@ var PromptCardView = React9.forwardRef(
                           }
                         }
                       ) : null,
+                      onDocumentComponent && currentTarget && !textCommentMode ? /* @__PURE__ */ jsx8(
+                        "button",
+                        {
+                          type: "button",
+                          "data-we-document-component": "true",
+                          title: selectedElementCount !== 1 ? "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668" : "\u622A\u56FE\u5E76\u5C06\u8BF4\u660E\u5F15\u5165 PRD \u6587\u6863",
+                          disabled: selectedElementCount !== 1,
+                          style: { border: "1px solid #d9d9d9", borderRadius: 6, background: "transparent", color: "inherit", padding: "4px 8px", cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" },
+                          onClick: () => {
+                            void executePromptCardDocumentAction({
+                              currentTarget,
+                              note: draftNote,
+                              onConfirmNote: onConfirmNoteWithSelectedSkills,
+                              onDocumentComponent
+                            }).catch(() => {
+                            });
+                          },
+                          children: "\u5F15\u5165\u8BF4\u660E"
+                        }
+                      ) : null,
                       axureSelectionExportAction.visible && !textCommentMode ? /* @__PURE__ */ jsx8(
                         IconActionButton,
                         {
@@ -17006,6 +17035,7 @@ var PromptCardView = React9.forwardRef(
                         IconActionButton,
                         {
                           title: promptCardSendActionTitle,
+                          label: onDocumentComponent ? "AI \u751F\u6210\u539F\u578B" : void 0,
                           icon: /* @__PURE__ */ jsx8(CaretRightFilled, {}),
                           tone: "accent",
                           loading: currentElementPromptAction.loading,
@@ -25360,6 +25390,7 @@ function WebEditorUiApp(props) {
         getSendCurrentElementPromptToAgentBlockReason: propertyPanelOptions?.getSendCurrentElementPromptToAgentBlockReason,
         canExportSelectionToDesignTool: propertyPanelOptions?.canExportSelectionToDesignTool,
         onExportSelectionToDesignTool: propertyPanelOptions?.onExportSelectionToDesignTool,
+        onDocumentComponent: propertyPanelOptions?.onDocumentComponent,
         getExportSelectionToDesignToolBlockReason: propertyPanelOptions?.getExportSelectionToDesignToolBlockReason,
         onHoverSelectionSuppressedChange: selectionGuards.handlePromptHoverSelectionSuppressedChange,
         onSelectionInteractionLockChange: selectionGuards.handlePromptSelectionInteractionLockChange,
@@ -31514,6 +31545,43 @@ function createSelectionExportActions(options) {
   };
 }
 
+// src/core/editor/document-component.ts
+function createDocumentComponentAction(options) {
+  let capturing = false;
+  return async (element, note) => {
+    if (capturing) return;
+    const selected = options.getSelectedElements();
+    if (selected.length !== 1 || selected[0] !== element || !element.isConnected) {
+      options.toast("warning", "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668\u540E\u5F15\u5165\u8BF4\u660E\u3002");
+      return;
+    }
+    capturing = true;
+    try {
+      const screenshot = await (options.capture ?? captureElementScreenshot)(element, "component");
+      if (!element.isConnected) throw new Error("\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u540E\u622A\u56FE\u3002");
+      const name = element.getAttribute("aria-label") || element.getAttribute("data-label") || element.getAttribute("title") || element.tagName.toLowerCase();
+      const selector = options.getSelector?.(element);
+      const source = options.getSource?.() ?? { title: document.title, url: window.location.href };
+      const handled = await options.deliver({
+        imageDataUrl: screenshot.data,
+        note,
+        component: {
+          name: name.slice(0, 160),
+          text: (element.textContent || "").trim().slice(0, 12e3),
+          ...selector ? { selector } : {}
+        },
+        source: { ...source, title: source.title.trim() || "\u5F53\u524D\u9875\u9762" }
+      });
+      if (!handled) throw new Error("\u672A\u80FD\u6253\u5F00\u5F15\u5165\u8BF4\u660E\uFF0C\u8BF7\u8FD4\u56DE\u9879\u76EE\u9875\u9762\u91CD\u8BD5\u3002");
+      options.onAccepted?.(element);
+    } catch (error) {
+      options.toast("error", error instanceof Error ? error.message : "\u7EC4\u4EF6\u622A\u56FE\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u3002");
+    } finally {
+      capturing = false;
+    }
+  };
+}
+
 // src/core/editor/text-session.ts
 function normalizeTextForEditorInput(value) {
   return normalizeEditableText(value);
@@ -33259,6 +33327,20 @@ ${externalSection}` : promptWithSkills;
             }
             return services.summaries.getSaveRunPromptForElementBlockReason(element);
           },
+          onDocumentComponent: options.ui.onDocumentComponent ? createDocumentComponentAction({
+            getSelectedElements: () => getSelectedElements(state2),
+            deliver: options.ui.onDocumentComponent,
+            getSelector: (element) => services.changes.getMetaForElement(element)?.locator.selectors[0] || generateCssSelector(element),
+            onAccepted: (element) => {
+              const currentSelection = getSelectedElements(state2);
+              if (currentSelection.length === 1 && currentSelection[0] === element) services.interaction.clearSelection();
+            },
+            capture: (element, name) => captureElementScreenshot(element, name, {
+              fallbackBackgroundColor: "#ffffff",
+              isEditorUi: (node) => Boolean(state2.shadowHost?.isOverlayElement(node))
+            }),
+            toast: (tone, message) => services.feedback.toast(tone, message)
+          }) : void 0,
           ...createSelectionExportActions({
             state: state2,
             isLocked: (target) => services.agentBridge.isElementInteractionLocked(target),

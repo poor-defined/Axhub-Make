@@ -11,6 +11,12 @@ import { resolveOpenCodeCanvasAnnotationContext, resolveOpenCodeCurrentFilePath 
 import type { CanvasElementContextInfo } from '../components/content/canvas-embeds/AnnotationOverlay';
 import IndexPageLayout from '../components/app/IndexPageLayout';
 import AxureTreeOrganizationDialog from '../components/dialogs/AxureTreeOrganizationDialog';
+import ComponentDocumentationDialog from '../components/dialogs/ComponentDocumentationDialog';
+import ReferencePagesPanel from '../components/content/ReferencePagesPanel';
+import ReferencePageView from '../components/content/ReferencePageView';
+import { useComponentDocumentation } from '../domains/documentation/useComponentDocumentation';
+import { useReferenceWorkspace } from '../domains/documentation/useReferenceWorkspace';
+import { withPrototypeWireframePolicy } from '../../common/prototypeWireframePolicy';
 import type { SettingsDialogAIContext, SettingsDialogInitialTab } from '../components/SettingsDialog';
 import type {
     ResourceSection,
@@ -273,6 +279,8 @@ export default function IndexPage({
     const surfaceCapabilities = useMemo(() => resolveMakeSurfaceCapabilities(makeSurface), [makeSurface]);
     const conversationUiEnabled = surfaceCapabilities.conversationUi;
     const workspace = useWorkspaceNavigationController({ messageApi });
+    const documentation = useComponentDocumentation(workspace.activeProjectId);
+    const references = useReferenceWorkspace(workspace.activeProjectId);
     const bridge = useAxhubBridge();
     const notificationPlayerRef = useRef<NotificationPlayer | null>(null);
     if (!notificationPlayerRef.current) {
@@ -819,7 +827,7 @@ export default function IndexPage({
     }, []);
 
     useEffect(() => {
-        if (!assistantCompactViewport || !assistantController.assistantVisible) {
+        if (!assistantCompactViewport || !assistantController.assistantVisible || references.active) {
             return;
         }
         assistantController.hideAssistantPanelTemporarily();
@@ -827,6 +835,7 @@ export default function IndexPage({
         assistantCompactViewport,
         assistantController.assistantVisible,
         assistantController.hideAssistantPanelTemporarily,
+        references.active,
     ]);
 
     useEffect(() => {
@@ -2852,8 +2861,8 @@ export default function IndexPage({
     };
 
     const assistantPanelProps = {
-        mounted: conversationUiEnabled && !assistantCompactViewport && assistantController.assistantPanelMounted,
-        visible: conversationUiEnabled && !assistantCompactViewport && assistantController.assistantVisible,
+        mounted: conversationUiEnabled && (!assistantCompactViewport || references.active) && assistantController.assistantPanelMounted,
+        visible: conversationUiEnabled && (!assistantCompactViewport || references.active) && assistantController.assistantVisible,
         width: assistantController.assistantPanelWidth,
         minWidth: assistantController.assistantPanelMinWidth,
         maxWidth: assistantController.assistantPanelMaxWidth,
@@ -3013,6 +3022,16 @@ export default function IndexPage({
 
     return (
         <>
+            <ComponentDocumentationDialog
+                state={documentation.state}
+                documents={documentation.documents}
+                documentsError={documentation.documentsError}
+                onSelectDocument={documentation.session.selectDocument}
+                onEdit={documentation.session.edit}
+                onGenerate={(instruction) => { void documentation.session.generate(instruction); }}
+                onAppend={() => { void documentation.session.append(); }}
+                onClose={documentation.session.close}
+            />
             <AxureTreeOrganizationDialog
                 state={preview.axureOrganization.state}
                 onCancel={preview.axureOrganization.session.cancel}
@@ -3033,6 +3052,31 @@ export default function IndexPage({
                 }}
             />
             <IndexPageLayout
+                referenceWorkspace={{
+                    active: references.active,
+                    onActiveChange: references.setActive,
+                    panel: <ReferencePagesPanel
+                        key={workspace.activeProjectId || ''}
+                        projectId={workspace.activeProjectId || ''}
+                        pages={references.pages}
+                        selectedId={references.selected?.id}
+                        loading={references.loading}
+                        error={references.error}
+                        onSelect={references.setSelected}
+                        onImported={references.imported}
+                        onRefresh={references.refresh}
+                    />,
+                    view: <ReferencePageView
+                        key={workspace.activeProjectId || ''}
+                        projectId={workspace.activeProjectId || ''}
+                        page={references.selected}
+                        onDocumentComponent={documentation.open}
+                        onGeneratePrototype={(prompt, targetPath) => handleExecutePromptAction(
+                            withPrototypeWireframePolicy(`请修改当前项目中的参考 HTML 文件 ${targetPath}。保留资源相对路径。\n\n${prompt}`),
+                            { scene: 'reference-annotation', targetPath, autoSend: true },
+                        )}
+                    />,
+                }}
                 sidebarProps={sidebarProps}
                 presentationAreaProps={presentationAreaProps}
                 assistantPanelProps={assistantPanelProps}

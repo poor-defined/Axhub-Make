@@ -249,6 +249,7 @@ export interface PromptCardViewProps
     tool: WebEditorDesignAdjustmentTool,
     element: Element | null,
   ) => boolean;
+  onDocumentComponent?: (element: Element, note: string) => void | Promise<void>;
   onExportSelectionToDesignTool?: (
     tool: WebEditorDesignAdjustmentTool,
     element: Element,
@@ -286,6 +287,7 @@ export type AgentPromptRoute = 'frontend' | 'agent-run';
 export type IconActionTone = 'neutral' | 'accent' | 'danger' | 'dark';
 
 export interface IconActionButtonProps {
+  label?: string;
   pressed?: boolean;
   title: string;
   icon: React.ReactNode;

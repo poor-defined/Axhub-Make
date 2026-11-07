@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { executePromptCardCurrentElementAction } from '../../../vendor/axhub-commentary/src/ui/runtime/prompt-card-actions';
+import { executePromptCardCurrentElementAction, executePromptCardDocumentAction } from '../../../vendor/axhub-commentary/src/ui/runtime/prompt-card-actions';
 import { getAgentPromptBubbleActionState } from '../../../vendor/axhub-commentary/src/ui/agent-prompt-action';
 
 function createDeferred<T = void>() {
@@ -78,4 +78,16 @@ describe('prompt card current element action', () => {
 
     expect(onDismissSelection).not.toHaveBeenCalled();
   });
+});
+
+
+it('persists the component note before handing off documentation so clearing selection does not lose the draft', async () => {
+ const order:string[]=[]; const target={} as Element;
+ const onConfirmNote=vi.fn(async()=>{order.push('save')});
+ const onDocumentComponent=vi.fn(async()=>{order.push('capture')});
+ await executePromptCardDocumentAction({currentTarget:target,note:'草稿说明',onConfirmNote,onDocumentComponent});
+ expect(order).toEqual(['save','capture']);expect(onDocumentComponent).toHaveBeenCalledWith(target,'草稿说明');
+ onConfirmNote.mockRejectedValueOnce(new Error('保存失败'));
+ await expect(executePromptCardDocumentAction({currentTarget:target,note:'草稿说明',onConfirmNote,onDocumentComponent})).rejects.toThrow('保存失败');
+ expect(onDocumentComponent).toHaveBeenCalledTimes(1);
 });
