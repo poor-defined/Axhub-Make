@@ -1,5 +1,6 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { useEffect, useState } from 'react';
-import { Loader2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ResourceWriteCapabilities } from '../../services/projectResources';
 import { Button } from '@/components/ui/button';
@@ -169,10 +170,7 @@ export default function CreateThemeDialog({
 
                 <div className="flex-1 overflow-y-auto px-5 py-4.5">
                     {themeLibrary.loading ? (
-                        <div className="flex min-h-[220px] items-center justify-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            正在读取在线设计系统库
-                        </div>
+                        <PageSkeleton variant="cards" label="正在读取在线设计系统库" />
                     ) : themeLibrary.error ? (
                         <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                             {themeLibrary.error}

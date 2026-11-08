@@ -1,0 +1,35 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, expect, it } from 'vitest';
+import { listConfiguredPrdDocuments, resolveConfiguredPrdDocument, resolveConfiguredPrdAsset } from '../configuredPrd.ts';
+const roots: string[] = [];
+const temp = () => { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'configured-prd-')); roots.push(root); return root; };
+afterEach(() => roots.splice(0).forEach(root => fs.rmSync(root, { recursive: true, force: true })));
+it('lists the configured directory Markdown as default PRD resources and resolves relative images', () => {
+  const project = temp(), docs = temp();
+  fs.mkdirSync(path.join(project, '.axhub/make'), { recursive: true });
+  fs.writeFileSync(path.join(project, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { prdDocumentPath: docs } }));
+  fs.writeFileSync(path.join(docs, '需求.md'), '# CFD PRD');
+  fs.writeFileSync(path.join(docs, 'image.png'), 'image');
+  const resources = listConfiguredPrdDocuments(project);
+  expect(resources).toHaveLength(1);
+  expect(resources[0]).toMatchObject({ title: 'CFD PRD', configuredPrd: true });
+  expect(resolveConfiguredPrdDocument(project, resources[0].id)?.path).toBe(path.join(fs.realpathSync(docs), '需求.md'));
+  expect(resolveConfiguredPrdAsset(project, resources[0].id, 'image.png')).toBe(path.join(fs.realpathSync(docs), 'image.png'));
+  expect(resolveConfiguredPrdAsset(project, resources[0].id, '../secret.png')).toBeNull();
+  expect(resolveConfiguredPrdDocument(project, 'configured-prd/../secret.md')).toBeNull();
+});
+it('a configured file exposes only that Markdown, and clearing the path removes access', () => {
+  const project = temp(), docs = temp();
+  fs.mkdirSync(path.join(project, '.axhub/make'), { recursive: true });
+  const configFile = path.join(project, '.axhub/make/axhub.config.json');
+  fs.writeFileSync(path.join(docs, 'PRD.md'), '# Main');
+  fs.writeFileSync(path.join(docs, 'private.md'), 'private');
+  fs.writeFileSync(configFile, JSON.stringify({ projectInfo: { prdDocumentPath: path.join(docs, 'PRD.md') } }));
+  expect(listConfiguredPrdDocuments(project)).toHaveLength(1);
+  expect(resolveConfiguredPrdDocument(project, 'configured-prd/private.md')).toBeNull();
+  fs.writeFileSync(configFile, '{}');
+  expect(listConfiguredPrdDocuments(project)).toEqual([]);
+  expect(resolveConfiguredPrdDocument(project, 'configured-prd/PRD.md')).toBeNull();
+});

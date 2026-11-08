@@ -2054,6 +2054,9 @@ export function useIndexPagePreviewActions(params: any) {
     ]);
 
     const runHostToolbarAction = useCallback(async (action: CommentaryHostToolbarAction) => {
+        if (action.type === 'generate-component-states') {
+            return window.dispatchEvent(new CustomEvent('axhub:generate-component-states', { detail: action.payload, cancelable: true }));
+        }
         if (action.type === 'document-component') {
             window.dispatchEvent(new CustomEvent('axhub:document-component', { detail: action.payload }));
             return true;

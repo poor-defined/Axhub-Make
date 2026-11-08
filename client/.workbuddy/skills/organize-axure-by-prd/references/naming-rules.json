@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "prefix": { "source": "document-basename-first-ascii-token", "fallback": "prd", "hashLength": 6 },
+  "features": {
+    "F01": { "label": "Header及导航", "suffix": "header" },
+    "F02": { "label": "首屏", "suffix": "hero" },
+    "F03": { "label": "活动入口", "suffix": "banner" },
+    "F04": { "label": "交易品种列表", "suffix": "markets" },
+    "F05": { "label": "优势介绍", "suffix": "benefits" },
+    "F06": { "label": "功能简介", "suffix": "features" },
+    "F07": { "label": "首次交易指引", "suffix": "tutorial" },
+    "F08": { "label": "FAQ", "suffix": "faq" },
+    "F09": { "label": "下载", "suffix": "download" },
+    "F10": { "label": "Footer", "suffix": "footer" },
+    "F11": { "label": "多语言与双端适配", "suffix": "multilingual" }
+  },
+  "sections": {
+    "overview": { "headingPattern": "Overview|总览|需求总结", "suffix": "overview" },
+    "login": {
+      "headingPattern": "登录", "suffix": "login",
+      "states": [
+        { "labelPattern": "未登录", "suffix": "logged-out" },
+        { "labelPattern": "登录成功|已登录", "suffix": "logged-in" }
+      ]
+    },
+    "fallback": { "suffix": "section", "hashLength": 6 }
+  },
+  "sequence": { "first": 1, "width": 2, "omitFirst": true },
+  "copy": { "suffix": "copy", "first": 1, "width": 2 },
+  "component": { "suffix": "part" },
+  "identity": { "markerFormat": "[prd:{marker}]", "attachmentFormat": "{marker}{extension}", "preserveExistingUniqueMarker": true }
+}

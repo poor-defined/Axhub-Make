@@ -10,6 +10,10 @@ export interface ReferencePage {
   htmlFiles: string[];
   createdAt: string;
   sourceUrl?: string;
+  sourceDirectory?: string;
+  sourceFingerprint?: string;
+  sourceModifiedAt?: string;
+  updatedAt?: string;
   warnings: string[];
 }
 export interface ReferenceImportInput {
@@ -368,23 +372,23 @@ export async function importReferencePage(
       }
     }
   }
-  const root = cacheRoot(projectRoot);
-  fs.mkdirSync(root, { recursive: true });
-  const id = randomUUID();
-  const destination = path.join(root, id);
-  const staging = path.join(root, `.import-${id}`);
-  const page: ReferencePage = {
-    id,
-    title:
-      input.title?.trim() ||
-      htmlTitle(files.get(entryPath)!.toString('utf8')) ||
-      path.basename(entryPath),
+  return persistReferencePage(projectRoot, files, {
+    id: randomUUID(),
+    title: input.title?.trim() || htmlTitle(files.get(entryPath)!.toString('utf8')) || path.basename(entryPath),
     entryPath,
     htmlFiles: [...files.keys()].filter((name) => /\.html?$/iu.test(name)),
     createdAt: new Date().toISOString(),
     warnings: [...new Set(warnings)],
     ...(input.url ? { sourceUrl: input.url } : {}),
-  };
+  });
+}
+
+function persistReferencePage(projectRoot: string, files: Map<string, Buffer>, page: ReferencePage): ReferencePage {
+  const root = cacheRoot(projectRoot);
+  fs.mkdirSync(root, { recursive: true });
+  const destination = path.join(root, page.id);
+  const staging = path.join(root, `.import-${randomUUID()}`);
+  const backup = path.join(root, `.backup-${randomUUID()}`);
   try {
     fs.mkdirSync(path.join(staging, 'files'), { recursive: true });
     for (const [name, data] of files) {
@@ -393,10 +397,149 @@ export async function importReferencePage(
       fs.writeFileSync(target, data);
     }
     fs.writeFileSync(path.join(staging, 'manifest.json'), JSON.stringify(page, null, 2));
-    fs.renameSync(staging, destination);
+    if (fs.existsSync(destination)) fs.renameSync(destination, backup);
+    try { fs.renameSync(staging, destination); }
+    catch (error) {
+      if (fs.existsSync(backup)) fs.renameSync(backup, destination);
+      throw error;
+    }
+    fs.rmSync(backup, { recursive: true, force: true });
   } catch (error) {
     fs.rmSync(staging, { recursive: true, force: true });
     throw error;
   }
   return page;
+}
+
+export interface LocalReferenceStatus {
+  directory?: string;
+  suppressed?: boolean;
+  error?: string;
+}
+
+function localImportState(projectRoot: string): { suppressedDirectories: string[] } {
+  const file = path.join(cacheRoot(projectRoot), '.local-import-state.json');
+  if (!fs.existsSync(file)) return { suppressedDirectories: [] };
+  if (fs.lstatSync(file).isSymbolicLink()) throw new Error('参考同步配置不允许符号链接');
+  const state = JSON.parse(fs.readFileSync(file, 'utf8'));
+  return { suppressedDirectories: Array.isArray(state.suppressedDirectories) ? state.suppressedDirectories.filter((item: unknown) => typeof item === 'string') : [] };
+}
+
+function writeLocalImportState(projectRoot: string, state: { suppressedDirectories: string[] }): void {
+  const root = cacheRoot(projectRoot);
+  fs.mkdirSync(root, { recursive: true });
+  const temporary = path.join(root, `.local-state-${randomUUID()}`);
+  fs.writeFileSync(temporary, JSON.stringify(state));
+  fs.renameSync(temporary, path.join(root, '.local-import-state.json'));
+}
+
+export function deleteReferencePage(projectRoot: string, id: string): void {
+  if (!/^[a-zA-Z0-9-]+$/u.test(id)) throw new Error('无效参考页面 ID');
+  const directory = path.join(cacheRoot(projectRoot), id);
+  if (fs.lstatSync(directory).isSymbolicLink()) throw new Error('参考缓存目录不允许符号链接');
+  const page = listReferencePages(projectRoot).find(item => item.id === id);
+  if (!page) throw new Error('参考页面不存在');
+  if (page.sourceDirectory) {
+    const configFile = path.join(projectRoot, '.axhub/make/axhub.config.json');
+    if (fs.existsSync(configFile)) {
+      const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+      const configured = config.projectInfo?.axurePublishDirectory;
+      if (typeof configured === 'string' && configured.trim()) {
+        let configuredDirectory = path.resolve(configured.trim());
+        try { configuredDirectory = fs.realpathSync(configuredDirectory); } catch { /* The publisher may have moved the directory. */ }
+        if (configuredDirectory === page.sourceDirectory) {
+          config.projectInfo.axurePublishDirectory = null;
+          const temporary = `${configFile}.tmp-${randomUUID()}`;
+          try {
+            fs.writeFileSync(temporary, JSON.stringify(config, null, 2));
+            fs.renameSync(temporary, configFile);
+          } finally { fs.rmSync(temporary, { force: true }); }
+        }
+      }
+    }
+  }
+  fs.rmSync(directory, { recursive: true });
+}
+
+/** Snapshot only; never modify the publisher's files. Failed scans retain the last good cache. */
+export function syncLocalReferencePages(projectRoot: string, options: { restore?: boolean; force?: boolean } = {}): LocalReferenceStatus {
+  let directory: string | undefined;
+  try {
+    const configFile = path.join(projectRoot, '.axhub/make/axhub.config.json');
+    if (!fs.existsSync(configFile)) return {};
+    const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    const configured = config.projectInfo?.axurePublishDirectory;
+    if (typeof configured !== 'string' || !configured.trim()) return {};
+    directory = configured.trim();
+    if (!path.isAbsolute(directory)) throw new Error('本地发布目录须为绝对路径');
+    directory = fs.realpathSync(directory);
+    if (!fs.statSync(directory).isDirectory()) throw new Error('本地发布路径不是目录');
+    const state = localImportState(projectRoot);
+    if (options.restore) {
+      state.suppressedDirectories = state.suppressedDirectories.filter(item => item !== directory);
+      writeLocalImportState(projectRoot, state);
+    } else if (state.suppressedDirectories.includes(directory)) return { directory, suppressed: true };
+    const files = new Map<string, Buffer>();
+    const hash = createHash('sha256');
+    let total = 0;
+    let latestModifiedMs = 0;
+    function collect(relative: string): void {
+      for (const entry of fs.readdirSync(path.join(directory!, relative), { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+        if (entry.name.startsWith('.') || ['node_modules', '__MACOSX'].includes(entry.name)) continue;
+        const name = safePath(path.posix.join(relative, entry.name));
+        const absolute = path.join(directory!, name);
+        if (entry.isSymbolicLink()) throw new Error(`本地发布目录不允许符号链接：${name}`);
+        if (entry.isDirectory()) collect(name);
+        else if (entry.isFile()) {
+          const stat = fs.statSync(absolute);
+          const size = stat.size;
+          latestModifiedMs = Math.max(latestModifiedMs, stat.mtimeMs);
+          if (files.size >= MAX_FILES || size > MAX_FILE_BYTES || total + size > MAX_TOTAL_BYTES) throw new Error('本地发布资源超过限制（1500 个文件 / 单文件 20MB / 总计 100MB）');
+          const content = fs.readFileSync(absolute);
+          total += content.length;
+          if (total > MAX_TOTAL_BYTES || content.length > MAX_FILE_BYTES) throw new Error('本地发布资源超过大小限制');
+          hash.update(name).update('\0').update(content).update('\0');
+          files.set(name, content);
+        }
+      }
+    }
+    collect('');
+    const html = [...files.keys()].filter(name => /\.html?$/iu.test(name) && !/^(resources|plugins|files)\//iu.test(name));
+    const contentPages = html.filter(name => !/(^|\/)(index|start|start_c_1|start_with_pages|chm_start)\.html?$/iu.test(name));
+    // Axure leaves old exports on disk. Prefer the current document's URL literals,
+    // including obfuscated variable declarations, without executing exported scripts.
+    const documentScript = files.get('data/document.js')?.toString('utf8') || '';
+    const publishedPages = [...documentScript.matchAll(/(['"])([^'"\r\n\\]+\.html?)\1/giu)]
+      .flatMap(match => {
+        try {
+          const name = decodeURIComponent(match[2]);
+          return contentPages.includes(name) ? [name] : [];
+        } catch { return []; }
+      });
+    const htmlFiles = publishedPages.length ? [...new Set(publishedPages)]
+      : contentPages.length ? contentPages : html.filter(name => /(^|\/)index\.html?$/iu.test(name));
+    if (!htmlFiles.length) throw new Error('本地发布目录中未找到可预览的 HTML 页面');
+    const fingerprint = hash.digest('hex');
+    const sourceModifiedAt = new Date(latestModifiedMs).toISOString();
+    const previous = listReferencePages(projectRoot).find(page => page.sourceDirectory === directory);
+    if (!options.force && previous?.sourceFingerprint === fingerprint
+      && previous.sourceModifiedAt === sourceModifiedAt
+      && previous.htmlFiles.join('\0') === htmlFiles.join('\0')
+      && htmlFiles.includes(previous.entryPath)) return { directory, suppressed: false };
+    const entryPath = previous && htmlFiles.includes(previous.entryPath) ? previous.entryPath : htmlFiles[0];
+    persistReferencePage(projectRoot, files, {
+      id: previous?.id || randomUUID(),
+      title: path.basename(directory),
+      entryPath, htmlFiles,
+      createdAt: previous?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sourceDirectory: directory,
+      sourceFingerprint: fingerprint,
+      sourceModifiedAt,
+      warnings: [],
+    });
+    return { directory, suppressed: false };
+  } catch (error) {
+    return { directory, error: `本地发布导入失败：${error instanceof Error ? error.message : String(error)}` };
+  }
 }

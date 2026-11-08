@@ -1,5 +1,7 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React from 'react';
-import { Plus, FileCode2, Loader2 } from 'lucide-react';
+import dayjs from 'dayjs';
+import { Plus, FileCode2, Loader2, Trash2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,6 +14,7 @@ import {
 import {
   referenceRequest,
   type ReferencePage,
+  type LocalReferenceStatus,
 } from '../../domains/documentation/referencePagesClient';
 interface Props {
   projectId: string;
@@ -19,8 +22,10 @@ interface Props {
   selectedId?: string;
   loading: boolean;
   error?: string;
+  localSource?: LocalReferenceStatus;
   onSelect: (page: ReferencePage) => void;
   onImported: (page: ReferencePage) => void;
+  onDeleted: (id: string) => void;
   onRefresh: () => void;
 }
 export default function ReferencePagesPanel({
@@ -29,8 +34,10 @@ export default function ReferencePagesPanel({
   selectedId,
   loading,
   error,
+  localSource,
   onSelect,
   onImported,
+  onDeleted,
   onRefresh,
 }: Props) {
   const [open, setOpen] = React.useState(false),
@@ -41,11 +48,38 @@ export default function ReferencePagesPanel({
     [busy, setBusy] = React.useState(false),
     [importError, setImportError] = React.useState('');
   const controller = React.useRef<AbortController>();
+  const [pendingDelete, setPendingDelete] = React.useState<ReferencePage | null>(null);
+  const [actionError, setActionError] = React.useState('');
   React.useEffect(() => {
     setBusy(false);
     setOpen(false);
+    setPendingDelete(null);
+    setActionError('');
     return () => controller.current?.abort();
   }, [projectId]);
+  const runAction = async (action: 'delete' | 'restore') => {
+    if (!projectId || busy || (action === 'delete' && !pendingDelete)) return;
+    const abort = new AbortController();
+    controller.current = abort;
+    setBusy(true);
+    setActionError('');
+    try {
+      await referenceRequest(
+        `/api/reference-pages/${action === 'delete' ? encodeURIComponent(pendingDelete!.id) : 'sync-local'}?projectId=${encodeURIComponent(projectId)}`,
+        { method: action === 'delete' ? 'DELETE' : 'POST', signal: abort.signal },
+      );
+      if (abort.signal.aborted) return;
+      if (action === 'delete') {
+        onDeleted(pendingDelete!.id);
+        setPendingDelete(null);
+      }
+      onRefresh();
+    } catch (error) {
+      if (!abort.signal.aborted) setActionError(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (!abort.signal.aborted) setBusy(false);
+    }
+  };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!projectId || busy || (!file && !url.trim())) return;
@@ -84,7 +118,7 @@ export default function ReferencePagesPanel({
         <Button
           size="sm"
           variant="outline"
-          disabled={!projectId}
+          disabled={!projectId || busy}
           onClick={() => {
             setImportError('');
             setOpen(true);
@@ -94,8 +128,21 @@ export default function ReferencePagesPanel({
           导入
         </Button>
       </div>
+      {localSource?.directory && (
+        <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-[11px] leading-5 text-muted-foreground">
+          <p>{localSource.suppressed ? '本地发布自动导入已暂停' : '本地发布 · 每 5 秒检查更新'}</p>
+          <p className="break-all">{localSource.directory}</p>
+          {localSource.error && <p role="alert" className="text-destructive">{localSource.error}</p>}
+          {(localSource.suppressed || localSource.error) && (
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => void runAction('restore')}>
+              <RefreshCw className="mr-1 h-3 w-3" />重新导入
+            </Button>
+          )}
+        </div>
+      )}
+      {actionError && !pendingDelete && <p role="alert" className="text-xs text-destructive">{actionError}</p>}
       {loading ? (
-        <p className="text-xs text-muted-foreground">加载中…</p>
+        <PageSkeleton variant="list" label="正在加载参考页列表" />
       ) : error ? (
         <div role="alert" className="space-y-2 text-xs text-destructive">
           {error}
@@ -110,9 +157,12 @@ export default function ReferencePagesPanel({
         </p>
       ) : (
         pages.map((page) => (
-          <button
+          <div
             key={page.id}
-            className={`flex w-full items-start gap-2 rounded-md p-2 text-left text-sm hover:bg-muted ${selectedId === page.id ? 'bg-accent font-medium' : ''}`}
+            className={`group flex w-full items-start rounded-md text-sm hover:bg-muted ${selectedId === page.id ? 'bg-accent font-medium' : ''}`}
+          >
+          <button
+            className="flex min-w-0 flex-1 items-start gap-2 p-2 text-left"
             onClick={() => onSelect(page)}
           >
             <FileCode2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -120,11 +170,62 @@ export default function ReferencePagesPanel({
               {page.title}
               <span className="mt-1 block text-[11px] font-normal text-muted-foreground">
                 {page.htmlFiles.length} 个页面
+                {page.sourceDirectory ? ` · 本地发布${page.sourceModifiedAt && dayjs(page.sourceModifiedAt).isValid() ? `（${dayjs(page.sourceModifiedAt).format('YYYY-MM-DD HH:mm:ss')}）` : ''}` : ''}
               </span>
             </span>
           </button>
+          {page.sourceDirectory && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="mt-1 h-7 w-7 shrink-0 text-muted-foreground"
+              aria-label={`刷新本地发布：${page.title}`}
+              title="重新读取本地发布目录"
+              disabled={busy}
+              onClick={() => void runAction('restore')}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            className="mt-1 mr-1 h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+            aria-label={`删除参考页：${page.title}`}
+            title="删除参考页"
+            disabled={busy}
+            onClick={() => { setActionError(''); setPendingDelete(page); }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+          </div>
         ))
       )}
+      <Dialog open={Boolean(pendingDelete)} onOpenChange={value => { if (!value && !busy) setPendingDelete(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除参考页</DialogTitle>
+            <DialogDescription>
+              {pendingDelete?.sourceDirectory
+                ? `删除“${pendingDelete.title}”将清除项目设置中的本地发布目录路径，并移除该参考的缓存；保留本地发布文件。再次使用需在项目设置中重新配置路径。`
+                : `删除“${pendingDelete?.title}”将删除本地缓存，原始文件保持不变。`}
+            </DialogDescription>
+          </DialogHeader>
+          {pendingDelete && (
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <p>{pendingDelete.sourceDirectory ? '本地发布目录（保留）：' : '缓存位置（将删除）：'}</p>
+              <p className="break-all select-text">{pendingDelete.sourceDirectory || pendingDelete.cacheDirectory || `.axhub/make/references/${pendingDelete.id}`}</p>
+            </div>
+          )}
+          {actionError && <p role="alert" className="text-sm text-destructive">{actionError}</p>}
+          <DialogFooter>
+            <Button variant="ghost" disabled={busy} onClick={() => setPendingDelete(null)}>取消</Button>
+            <Button variant="destructive" disabled={busy} onClick={() => void runAction('delete')}>
+              {busy ? '删除中…' : '确认删除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={open}
         onOpenChange={(value) => {

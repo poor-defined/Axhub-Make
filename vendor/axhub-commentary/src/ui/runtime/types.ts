@@ -250,6 +250,7 @@ export interface PromptCardViewProps
     element: Element | null,
   ) => boolean;
   onDocumentComponent?: (element: Element, note: string) => void | Promise<void>;
+  onGenerateComponentStates?: (element: Element, note: string) => void | Promise<void>;
   onExportSelectionToDesignTool?: (
     tool: WebEditorDesignAdjustmentTool,
     element: Element,

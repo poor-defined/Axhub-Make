@@ -4,9 +4,15 @@ import {
   normalizeProjectRuntimeStatusPayload,
   normalizeProjectsPayload,
   normalizeProjectResourcesPayload,
+  normalizeProjectDocResource,
 } from './projectResources';
 
 describe('project resource frontend adapter', () => {
+  it('opens configured PRD documents through the project-scoped document preview endpoint', () => {
+    const item = normalizeProjectDocResource({ id: 'configured-prd/PRD.md', path: '/external/PRD.md', configuredPrd: true }, 'p');
+    expect(item?.specUrl).toBe('/api/projects/p/document-content?path=configured-prd%2FPRD.md');
+    expect(item?.previewUrl).toContain('/spec-template.html?url=');
+  });
   it('preserves explicit empty project names so the UI can show its untitled label', () => {
     const projectList = normalizeProjectsPayload({
       activeProjectId: 'make-project',

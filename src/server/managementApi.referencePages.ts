@@ -6,6 +6,8 @@ import {
   importReferencePage,
   listReferencePages,
   resolveReferenceFile,
+  deleteReferencePage,
+  syncLocalReferencePages,
   type ReferencePage,
 } from './referencePages.ts';
 import type { ManagementApiOptions } from './managementApi.ts';
@@ -30,9 +32,10 @@ interface Handlers {
   ) => Context | null;
   readMultipartParts: (req: IncomingMessage) => Promise<MultipartPart[]>;
 }
-export function referencePageWithUrl(page: ReferencePage, projectId: string) {
+export function referencePageWithUrl(page: ReferencePage, projectId: string, projectRoot: string) {
   return {
     ...page,
+    cacheDirectory: path.join(projectRoot, '.axhub', 'make', 'references', page.id),
     previewUrl: `/api/projects/${encodeURIComponent(projectId)}/reference-pages/${encodeURIComponent(page.id)}/files/${page.entryPath.split('/').map(encodeURIComponent).join('/')}`,
   };
 }
@@ -74,7 +77,9 @@ export function handleReferencePagesApi(
     /^\/api\/projects\/([^/]+)\/reference-pages\/([^/]+)\/files\/(.+)$/u,
   );
   const queryFileRoute = pathname.match(/^\/api\/reference-pages\/([^/]+)\/files\/(.+)$/u);
-  if (pathname !== '/api/reference-pages' && !fileRoute && !queryFileRoute) return false;
+  const deleteRoute = pathname.match(/^\/api\/reference-pages\/([a-zA-Z0-9-]+)$/u);
+  const syncRoute = pathname === '/api/reference-pages/sync-local';
+  if (pathname !== '/api/reference-pages' && !fileRoute && !queryFileRoute && !deleteRoute) return false;
   if (fileRoute) {
     // The existing project resolver uses the projectId query parameter. Preserve path scope
     // for every relative script/image request without depending on browser cookies.
@@ -120,11 +125,18 @@ export function handleReferencePagesApi(
         sendJson(res, { error: '参考资源不存在' }, { status: 404 });
       return;
     }
-    if (req.method === 'GET') {
+    if (req.method === 'DELETE' && deleteRoute && !syncRoute) {
+      deleteReferencePage(context.project.root, deleteRoute[1]);
+      sendJson(res, { success: true });
+      return;
+    }
+    if ((req.method === 'GET' && pathname === '/api/reference-pages') || (req.method === 'POST' && syncRoute)) {
+      const localSource = syncLocalReferencePages(context.project.root, { restore: syncRoute, force: syncRoute });
       sendJson(res, {
         pages: listReferencePages(context.project.root).map((page) =>
-          referencePageWithUrl(page, context.project.id),
+          referencePageWithUrl(page, context.project.id, context.project.root),
         ),
+        localSource,
       });
       return;
     }
@@ -156,7 +168,7 @@ export function handleReferencePagesApi(
         };
       }
       const page = await importReferencePage(context.project.root, input);
-      sendJson(res, { page: referencePageWithUrl(page, context.project.id) });
+      sendJson(res, { page: referencePageWithUrl(page, context.project.id, context.project.root) });
       return;
     }
     sendJson(res, { error: 'Method not allowed' }, { status: 405 });

@@ -68,11 +68,14 @@ import { handleDocumentCommentsApi } from './managementApi.documentComments.ts';
 import { handlePrototypeSpecApi } from './managementApi.prototypeSpec.ts';
 import {
   handleCreatePlaceholderPrototype,
+  handleCreateComponentStatesPrototype,
   handlePrototypeUploadApi,
   handleStartPlaceholderPrototypeGeneration,
 } from './managementApi.prototypeUpload.ts';
 import { handleUploadAndReferenceApis } from './managementApi.references.ts';
 import { handleReferencePagesApi } from './managementApi.referencePages.ts';
+import { handlePrdImagesApi } from './managementApi.prdImages.ts';
+import { handlePrdScreenshotsApi } from './managementApi.prdScreenshots.ts';
 import { handleComponentDocumentationApi } from './managementApi.componentDocumentation.ts';
 import { findProjectResourceByPath, getAxureArtifactPaths, resolveSourceFileFromMetadata } from './managementApi.resourceLookup.ts';
 import { handleProjectSourceAndZipApi } from './managementApi.sourceZip.ts';
@@ -1321,6 +1324,8 @@ export async function handleManagementApi(req: IncomingMessage, res: ServerRespo
   }
 
   if (handleReferencePagesApi(req, res, options, pathname, { resolveProjectContext, readMultipartParts })) return true;
+  if (handlePrdImagesApi(req, res, options, pathname, { resolveProjectContext })) return true;
+  if (handlePrdScreenshotsApi(req, res, options, pathname, { resolveProjectContext })) return true;
   if (handleComponentDocumentationApi(req, res, options, pathname, { resolveProjectContext, getServerConfigStoreForRequest })) return true;
 
   if (handleAxureTreeOrganizationApi(req, res, options, pathname, {
@@ -1548,6 +1553,10 @@ export async function handleManagementApi(req: IncomingMessage, res: ServerRespo
     stringValue,
     readJsonFile,
   })) return true;
+  if (pathname === '/api/prototypes/create-component-states' && req.method === 'POST') {
+    void handleCreateComponentStatesPrototype(req, res, options, requestContext, getPrototypeCreateDir(requestContext));
+    return true;
+  }
   if (pathname === '/api/prototypes/create-placeholder' && req.method === 'POST') {
     void handleCreatePlaceholderPrototype(req, res, options, requestContext, {
       getDeclaredResourceWriteDir: ((context, type) => (

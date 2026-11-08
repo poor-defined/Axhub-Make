@@ -50,6 +50,8 @@ export interface PrototypeGenerationSettings {
 }
 
 export interface PrototypeGenerationPromptOptions {
+  /** Actual project-relative directory declared by the resource creation API. */
+  prototypeDirectory?: string;
   taskId?: string;
   prompt: string;
   canvasFilePath?: string;
@@ -119,6 +121,7 @@ function formatPrototypeDirectoryFromTargetPath(targetPath: string | undefined):
 }
 
 export function buildPrototypeGenerationPrompt({
+  prototypeDirectory,
   prompt,
   targetPath,
   currentPrototype,
@@ -132,9 +135,9 @@ export function buildPrototypeGenerationPrompt({
   const theme = settings?.theme?.name
     ? `${settings.theme.name}${settings.theme.displayName && settings.theme.displayName !== settings.theme.name ? ` (${settings.theme.displayName})` : ''}`
     : '';
-  const targetPrototypeDirectory = currentPrototype?.name
+  const targetPrototypeDirectory = prototypeDirectory || (currentPrototype?.name
     ? `src/prototypes/${currentPrototype.name}/`
-    : formatPrototypeDirectoryFromTargetPath(targetPath);
+    : formatPrototypeDirectoryFromTargetPath(targetPath));
   const explicitScopeLines = [
     requestedCount == null ? '' : `- 数量：${requestedCount}（当前 prototype 下页面/方案数）`,
     theme ? `- 设计系统：${theme}` : '',
@@ -306,13 +309,14 @@ export async function runAcpPrototypeAgent(options: RunAcpPrototypeAgentOptions)
       contextBundle: options.contextBundle,
       onEvent: options.onEvent,
     });
-    if (result.sessionId) {
-      options.onEvent?.({ stage: 'running', sessionId: result.sessionId });
+    const sessionId = typeof result.sessionId === 'string' ? result.sessionId : undefined;
+    if (sessionId) {
+      options.onEvent?.({ stage: 'running', sessionId });
     }
-    options.onEvent?.({ stage: 'completed', sessionId: result.sessionId });
+    options.onEvent?.({ stage: 'completed', sessionId });
     return {
       status: 'done',
-      ...(result.sessionId ? { sessionId: result.sessionId } : {}),
+      ...(sessionId ? { sessionId } : {}),
       ...(typeof result.runId === 'string' ? { runId: result.runId } : {}),
     };
   } catch (error: any) {

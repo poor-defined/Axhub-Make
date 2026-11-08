@@ -92,6 +92,7 @@ export interface WebEditorV2UiOptions {
   getAcpUiConnected?: () => boolean;
   getAssistantPanelOpen?: () => boolean;
   onDocumentComponent?: (capture: import('../../web-editor-types').CommentaryDocumentComponentCapture) => Promise<boolean>;
+  onGenerateComponentStates?: (request: import('../../web-editor-types').CommentaryComponentStatesRequest) => Promise<boolean>;
   onPrepareAxureExport?: (payload: unknown) => Promise<boolean>;
   onHostToolbarAction?: (
     action: CommentaryHostToolbarAction,
@@ -166,8 +167,8 @@ export interface WebEditorV2InitOptions {
 export type CommentaryInitOptions = WebEditorV2InitOptions;
 
 export interface ResolvedWebEditorOptions {
-  ui: Required<Omit<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange' | 'onDocumentComponent'>> &
-    Pick<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange' | 'onDocumentComponent'>;
+  ui: Required<Omit<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange' | 'onDocumentComponent' | 'onGenerateComponentStates'>> &
+    Pick<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange' | 'onDocumentComponent' | 'onGenerateComponentStates'>;
   host: Required<Pick<CommentaryHostOptions, 'getResourceContext'>> &
     Pick<
       CommentaryHostOptions,

@@ -783,8 +783,15 @@ export interface CommentaryDocumentComponentCapture {
   component: { name: string; selector?: string; text?: string };
   source: { title: string; url: string };
 }
+export interface CommentaryComponentStatesRequest {
+  capture: CommentaryDocumentComponentCapture;
+  title: string;
+  layout: 'overview' | 'interactive';
+  sourceHtml: string;
+}
 
 export type CommentaryHostToolbarAction =
+  | { type: 'generate-component-states'; payload: CommentaryComponentStatesRequest }
   | { type: 'document-component'; payload: CommentaryDocumentComponentCapture }
   | { type: 'prepare-axure-export'; payload: unknown }
   | { type: 'wake-agent' }

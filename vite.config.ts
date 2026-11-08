@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { expandLoadingSkeletonShells } from './src/common/loadingSkeleton';
 
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -104,7 +105,7 @@ function copyHtmlTemplatePlugin(name: string, sourceRelativePath: string, output
         return;
       }
       fs.mkdirSync(path.dirname(destPath), { recursive: true });
-      fs.copyFileSync(srcPath, destPath);
+      fs.writeFileSync(destPath, expandLoadingSkeletonShells(fs.readFileSync(srcPath, 'utf8')));
       console.log(`✓ ${outputFileName} copied to make-server dist/admin`);
     },
   };
@@ -284,6 +285,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    { name: 'page-skeleton-shells', transformIndexHtml: { order: 'pre', handler: expandLoadingSkeletonShells } },
     portReleaseBeforeListenPlugin(),
     adminRootDevEntryRedirectPlugin(),
     excalidrawDevCjsInteropPlugin(),

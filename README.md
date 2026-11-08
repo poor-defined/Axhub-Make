@@ -29,11 +29,17 @@ npx -y @axhub/make@latest
 
 项目需求、交付状态和关联实施计划统一维护在[项目需求库](docs/requirements/README.md)。
 
-当前测试分支为 `codex/reference-component-prd`。macOS 双击桌面“启动 Axhub Make 开发分支.command”，或在仓库运行 `./scripts/start-test-environment.command`，即可启动或打开 `http://127.0.0.1:53818`。需要 Node.js 22+、pnpm 10 和 Git；启动器校验分支、安装缺失依赖并重建批注包及管理端资源，使用独立的 `.local/development-home` 状态与 ACP 端口 32125。保持启动服务的终端打开，按 Control+C 停止服务。
+macOS 双击桌面“启动 Axhub Make 开发分支.command”，或在仓库运行 `./scripts/start-test-environment.command`，即可启动或打开 `http://127.0.0.1:53818`。需要 Node.js 22+ 和 pnpm 10。桌面入口始终调用仓库脚本，使用当前检出的分支，更新代码无需修改命令。首次启动同步依赖并构建批注和管理端；之后按文件内容校验缓存，仅依赖声明变化时重新安装，仅代码、配置或构建资源变化时重新构建。删除或改动构建产物也会触发修复，构建失败不会记录为成功。缓存保存在 `.local/development-launcher-cache.json`，删除即可强制重新准备。
 
-REQ-011：在“设计”之后的“参考”Tab 导入当前页面链接、ZIP 或单个 HTML。ZIP 可指定入口，并在预览顶部切换 HTML 页面；链接默认只缓存当前页及静态依赖。缓存保存在项目 `.axhub/make/references/`，源页面变更后需重新导入。动态生成的外部依赖可能无法缓存，完整 Axure 发布目录建议用 ZIP 导入；“打开来源”可浏览原始页面。
+启动器复用健康的开发服务，归档进程已退出的旧记录，并自动检查和启动当前选中项目的 Make 客户端。开发版使用独立的 `.local/development-home` 状态与 ACP 端口 32125；端口被其他服务占用时给出错误，不会结束未知进程。重复双击不会并发构建。保持启动服务的终端打开，按 Control+C 停止管理服务。启动器回归测试：`node --test scripts/development-launcher.test.mjs`。
+
+REQ-011：在“设计”之后的“参考”Tab 导入当前页面链接、ZIP 或单个 HTML。ZIP 可指定入口，并在预览顶部切换 HTML 页面；链接默认只缓存当前页及静态依赖。缓存保存在项目 `.axhub/make/references/`，手动导入的源页面变更后需重新导入。动态生成的外部依赖可能无法缓存，完整 Axure 发布目录建议用 ZIP 导入；“打开来源”可浏览原始页面。
 
 普通原型和参考页共用组件批注输入框。单选组件后点击“引入说明”，选择当前项目 `src/resources/` 内的 Markdown PRD，再手动生成、编辑预览并确认追加。截图是真实组件截图，未提供的业务规则标为“待确认”；重复引入仍追加文末。图片保存在 PRD 同级 `assets/component-<UUID>.png`，复制或导出 PRD 时一并携带 `assets/`。参考页的“AI 生成原型”先在宿主窗口预览修改要求，确认后交给 AI 按线框图规则修改缓存 HTML；修改后刷新参考页再截图。多状态及长内容仍由用户先要求 AI 平铺，REQ-012 的批注目录和批量暂存不在本次范围内。
+
+单选组件后可勾选“生成到新原型”，填写所需状态（例如 Header 的未登录、已登录、菜单展开），点击“生成组件状态”。宿主窗口展示真实组件截图，可调整新原型名称、状态要求，选择“同页平铺”或“交互切换”；只有点击“确认生成”才创建独立原型并调用已配置的批注 AI。新页面展示原始状态、其他状态及触发条件、变化说明，未知业务规则标为待确认，来源页不进入本次修改执行路径。生成任务可后台运行，完成后打开新原型继续批注；失败重试复用目标，创建响应中断时也使用同一任务标识恢复。来源截图、元信息和确认的主规格保存在新原型中。状态容器遵循共享命名表的 component 作用域，避免复制原 PRD 截图身份。选区改变时勾选项重置，仅支持一个组件或容器。定向回归：`pnpm exec vitest run src/common/componentStates.test.ts src/index/domains/prototype-generation/componentStatesSession.test.ts src/index/domains/prototype-generation/useComponentStates.test.ts src/index/components/dialogs/ComponentStatesDialog.test.ts src/server/__tests__/component-states-api.test.ts`。
+
+页面加载统一使用 Skeleton：预览、文档、列表、表格、画布、模板卡片和配置表单使用对应布局，支持暗色、窄屏及 `prefers-reduced-motion`。共用布局和样式维护在 `src/common/loadingSkeleton.ts`，React 通过 `PageSkeleton`／`PreviewIframe` 使用，独立管理模板在开发／构建时展开首屏标记，便携客户端模板内置无外部依赖的首屏骨架。iframe 始终保留真实 DOM 引用及加载回调，导航加载期间不允许操作尚未显示的内容；成功或错误后撤下遮罩。旧“正在等待生成”页由预览 bootstrap 临时装饰，仅接受整页唯一且可见的精确旧占位，生成内容出现或根节点移除后自动撤下，不修改项目原型源文件。按钮操作、上传进度、错误和空状态保持独立反馈。基础回归：`pnpm exec vitest run src/common/loadingSkeleton.test.ts src/components/ui/preview-iframe.test.ts`。
 
 实现主要位于 `src/server/referencePages.ts`、`src/server/managementApi.componentDocumentation.ts`、`src/index/domains/documentation/`，批注动作位于 `vendor/axhub-commentary/src/core/editor/document-component.ts`。运行 `pnpm exec vitest run src/common/componentDocumentation.test.ts src/index/domains/documentation src/index/components/content/ReferencePageView.test.ts src/index/components/dialogs/ComponentDocumentationDialog.test.ts src/server/__tests__/reference-pages.test.ts src/server/__tests__/reference-pages-api.test.ts src/server/__tests__/reference-pages-http.test.ts src/server/__tests__/component-documentation-api.test.ts src/server/__tests__/component-documentation-http.test.ts src/html-template src/vendor/axhub-commentary` 验证本功能；`pnpm exec tsc --noEmit -p tsconfig.node.json` 检查服务端类型，`pnpm admin:build` 构建运行资源。
 
@@ -206,3 +212,23 @@ Make 内置新手教程、100+ 设计规范和 10+ 行业原型。原型完成�
 ## 贡献与安全
 
 参阅 [贡献指南](CONTRIBUTING.md) 和 [安全报告说明](SECURITY.md)。本项目使用 [Apache License 2.0](LICENSE)。
+
+在“项目设置 → 项目信息”可保存“Axure 本地发布目录”和“PRD 文档路径”（目录或具体 Markdown 文件）。两个字段均可留空，保存在当前项目 `.axhub/make/axhub.config.json` 的 `projectInfo.axurePublishDirectory` 与 `projectInfo.prdDocumentPath`，不会同步到其他项目。配置 Axure 本地发布目录后，进入项目会自动导入；“参考”Tab 打开且网页可见时每 5 秒检查内容变化，更新同一条记录并刷新预览。PRD 路径目前仅保存关联配置，自动截图和替换附件尚未启用。
+
+每条参考页提供删除按钮，确认后删除该项目的导入缓存，保留原始发布文件。删除本地发布记录会清空项目设置中对应的本地发布路径，保留原始发布文件；需在项目设置中重新配置路径才能恢复。记录右侧的刷新按钮会立即重新读取当前配置的目录、替换缓存并重新加载预览。“本地发布”后括号显示源目录内已纳入导入的文件最新修改时间（本机时区），而非缓存生成时间；内容相同的重新发布也会更新时间。手动导入记录的删除确认框会显示将删除的本地缓存绝对路径。目录不可读、资源超限或含符号链接时显示错误并保留上一次成功缓存；本地目录遵循单文件 20MB、总量 100MB、1500 个文件的限制。Axure 页面优先按 `data/document.js` 中的页面 URL 识别，避免显示遗留页面和播放器辅助页；未识别到时回退扫描 HTML。
+
+“文档”标签页会优先加入项目设置的 PRD 文档路径：配置为 Markdown 文件时展示该文件，配置为目录时递归列出其中的 Markdown。未选中文档或文件夹时默认打开第一份配置的 PRD，已有选择保持不变。直接读取原文件及配置目录内的图片附件，不复制到项目；清空配置后不再提供该外部路径的访问。
+
+Axure 组件树“整理要求”支持输入 `/` 搜索技能，选择“PRD 功能拆解与命名”后会加入 `$organize-axure-by-prd`；也可按 Enter 选择、Esc 关闭。选择后仍需点击 AI 整理按钮。服务端读取项目设置的 PRD 路径，优先提供用户端需求章节；未选择技能时保持原有整理方式。PRD 未配置、不可读或超出范围限制时提示调整配置，不猜测需求。技能维护于 `client/.workbuddy/skills/organize-axure-by-prd/SKILL.md`，按功能编号分组，名称使用类型前缀与 `[prd:稳定业务标识]`，保留原节点内部 ID。原实例标记丢失、副本标记重复等结果会被拒绝；已有容器内部未出现在摘要中的节点不作已检查承诺。
+
+Axure 组件树整理使用 10 分钟总时限（含 AI 服务准备与模式检查）。超时信息包含所在阶段和等待时间，并与客户端取消区分；原始结构与上一版有效结果保留。运行日志只记录阶段、耗时和错误代码，不记录 PRD 内容。
+
+保存新增或更改后的 PRD 路径时，会弹出“批量规范 PRD 图片名称”预览；已配置路径可在“项目信息”点击“整理图片名称”。按固定模板的 F01–F11 功能编号、总览及登录态建议附件名称，并更新图片引用和说明。预览与“暂不修改”不写入 PRD；只有“确认批量修改”才执行。执行前核对文档和图片摘要，拒绝过期清单及名称冲突，备份原文件到项目 `.axhub/make/prd-image-renames/<批次>/`；失败时回滚，完成后刷新页面。作用范围仅配置的 PRD，其他文档对同一附件的引用不自动修改。
+
+命名规则的唯一来源是 `client/.workbuddy/skills/organize-axure-by-prd/references/naming-rules.json`，包含 PRD 文件名前缀策略、功能后缀、总览／登录态、截图序号和复制组件后缀。服务端用同一算法生成完整附件命名清单，注入 AI 整理上下文（包含已经规范、无需再次改名的附件）；AI 新建标记须与清单一致，错误前缀、自由翻译的后缀及功能编号错配会被拒绝。规范附件的序号在新增图片、调整文档顺序或跨附件目录时保持稳定；同一标记对应多个独立附件会报错。截图继续以附件基础名称查找完全相同的 `[prd:标识]`，不做模糊匹配。已有唯一历史标记保留，其附件需显式对齐；不会自动改动已发布标记。修改 JSON 后重新整理及预览改名，旧命名表生成的 AI 结果、改名确认和截图确认会失效。
+
+命名联动回归可运行 `pnpm exec vitest run src/server/__tests__/prd-naming-rules.test.ts src/server/__tests__/axure-organization-skills.test.ts src/server/__tests__/prd-image-renames.test.ts src/server/__tests__/prd-screenshots.test.ts`，覆盖改表后 AI／改名／截图一致、旧确认失效、稳定序号及副本与截图序号的区别。
+
+Markdown 文档菜单提供“从本地参考发布更新截图”。文档需在项目设置的 PRD 路径范围内，附件基础名称对应原型的 `[prd:标识]`（例如 `cfd-f02-hero.png`）。先扫描当前发布，选择对应页面，生成预览，再明确确认替换；未匹配、同页面标记重复、隐藏区域和加载失败项目保留原图。第一版支持 PNG 附件，固定视窗 1920×1080，按标记的可见内容范围裁切；分组自身为零尺寸时计算可见后代的联合范围。多状态需在发布内容中展开到目标状态，重复器行需独立业务定位，不会自动猜测。
+
+截图使用独立 Chromium/Chrome 进程及临时配置，不复用日常浏览器。自动查找本机 Playwright Chromium 缓存、Chrome 或 Edge；也可设置 `AXHUB_SCREENSHOT_BROWSER` 为浏览器可执行文件路径。截图仅加载本地发布资源，单张不超过 20MB、每批不超过 100MB，最多 50 项、每批约三分钟总预算；截图预览有效期 30 分钟。确认时重新检查 PRD、附件和发布内容摘要，变化后须重新生成。原图备份位于项目 `.axhub/make/prd-screenshot-jobs/<任务>/backup/`，写入失败会恢复原图，Markdown 引用和文件名不变。此入口为手动确认更新，尚未启用发布后自动覆盖 PRD 图片。

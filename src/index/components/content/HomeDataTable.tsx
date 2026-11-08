@@ -1,5 +1,6 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download, Edit3, Loader2, RefreshCw, Save, Trash2, Upload, X } from 'lucide-react';
+import { Download, Edit3, RefreshCw, Save, Trash2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -308,10 +309,7 @@ export default function HomeDataTable({ projectId, fileName, tableName }: HomeDa
 
             <div className="min-h-0 flex-1 rounded-md border bg-card">
                 {loading ? (
-                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        加载中...
-                    </div>
+                    <PageSkeleton variant="table" label="正在加载数据表格" />
                 ) : records.length === 0 ? (
                     <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                         暂无数据，请导入 CSV

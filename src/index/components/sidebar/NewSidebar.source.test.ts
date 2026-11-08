@@ -7,6 +7,12 @@ function readNewSidebarSource() {
 }
 
 describe('NewSidebar chrome styles source', () => {
+  it('defaults document navigation to configured PRD without replacing an existing selection', () => {
+    const source = readNewSidebarSource();
+    expect(source).toContain("if (sidebarTab !== 'document' || selectedDoc || selectedResourceFolder) return;");
+    expect(source).toContain("docsItems.find(item => item.name.startsWith('configured-prd/'))");
+    expect(source).toContain('if (defaultPrd) onSelectDoc(defaultPrd);');
+  });
   it('delegates fixed and compact chrome to the responsive sidebar shell', () => {
     const source = readNewSidebarSource();
 

@@ -17,6 +17,8 @@ interface ConfigResponse {
     projectId?: string | null;
     projectInfo?: {
         name?: string | null;
+        axurePublishDirectory?: string | null;
+        prdDocumentPath?: string | null;
     };
     projectDefaults?: {
         defaultTheme?: string | null;

@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import {
   forwardRef,
   useEffect,
@@ -367,10 +368,7 @@ export const VoiceAssistantSettingsSection = forwardRef<
 
   if (loading && !draft) {
     return (
-      <div className="flex items-center gap-2 border-b border-border py-4 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        正在读取 AI 服务配置...
-      </div>
+      <PageSkeleton variant="form" label="正在读取 AI 服务配置" />
     );
   }
 

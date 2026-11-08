@@ -28,7 +28,8 @@ import {
   isAgentPromptActionVisible,
   triggerAgentPromptAction,
 } from '../agent-prompt-action';
-import { executePromptCardCurrentElementAction, executePromptCardDocumentAction } from './prompt-card-actions';
+import { executePromptCardCurrentElementAction, executePromptCardDocumentAction, resolveComponentPrototypeDestination, resolvePromptSubmitShortcut } from './prompt-card-actions';
+import { ComponentPromptFooter } from './component-prompt-footer';
 import { resolvePromptCardCloseActionTitle } from './prompt-card-shortcut-label';
 import { CloseToolIcon, AgentSparkleIcon, IconActionButton } from './action-buttons';
 import { resolveExternalEditingStatusDescription } from './external-editing-status-hint';
@@ -389,6 +390,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       canExportSelectionToDesignTool,
       onExportSelectionToDesignTool,
       onDocumentComponent,
+      onGenerateComponentStates,
       getExportSelectionToDesignToolBlockReason,
       hideExecutionControls = false,
       hideCurrentElementExecutionAction = false,
@@ -437,6 +439,8 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
     } = props;
     const documentSourceMarkdownEditor = options.annotationMarkdownEditorKind === 'document-source';
     const isAnnotationSession = interactionProfile === 'annotation';
+    const textCommentMode = interactionProfile === 'text-comment';
+    const componentComposer = Boolean(onDocumentComponent && !isAnnotationSession && !externalAnnotationMode && !textCommentMode);
 
     const rootRef = React.useRef<HTMLDivElement | null>(null);
     const textComposerRef = React.useRef<HTMLDivElement | null>(null);
@@ -448,6 +452,15 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
     const [refreshKey, setRefreshKey] = React.useState(0);
     const [selectedSkills, setSelectedSkills] = React.useState<PromptCardSkill[]>([]);
     const [promptDismissed, setPromptDismissed] = React.useState(false);
+    const [newPrototypeRequested, setGenerateNewPrototype] = React.useState(false);
+    // A hidden destination must never carry over into PRD or review editing.
+    const generateNewPrototype = resolveComponentPrototypeDestination({
+      requested: newPrototypeRequested,
+      generatorAvailable: Boolean(onGenerateComponentStates),
+      interactionProfile,
+      externalAnnotationMode,
+    });
+    React.useEffect(() => setGenerateNewPrototype(false), [currentTarget, selectedElementCount, isAnnotationSession, externalAnnotationMode, textCommentMode, onGenerateComponentStates]);
     const [externalCommentsToolOpen, setExternalCommentsToolOpen] = React.useState(true);
     const [hoveredExternalCommentId, setHoveredExternalCommentId] = React.useState<string | null>(null);
     const [annotationEditorOpen, setAnnotationEditorOpen] = React.useState(
@@ -691,7 +704,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       // On mobile, use full viewport width minus padding
       const mobileWidth = isMobileDevice()
         ? Math.max(200, window.innerWidth - 16)
-        : (promptCardSize?.width ?? PROMPT_CARD_WIDTH);
+        : (promptCardSize?.width ?? (componentComposer ? 360 : PROMPT_CARD_WIDTH));
 
       return computePromptCardPosition({
         anchorRect,
@@ -710,6 +723,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
     }, [
       anchorRect,
       currentTarget,
+      componentComposer,
       promptCardSize,
       propertyPanelEnabled,
       pinnedToTopRight,
@@ -974,7 +988,6 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       tool: 'axure', currentTarget, uiMode, toolMinimized, selectedElementCount,
       onExportSelectionToDesignTool, canExportSelectionToDesignTool, getExportSelectionToDesignToolBlockReason,
     });
-    const textCommentMode = interactionProfile === 'text-comment';
     const {
       currentTask: currentAgentTask,
       currentTaskRunning,
@@ -1002,10 +1015,11 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       [currentTarget, currentTaskTerminal, onDismissSelection],
     );
     const handlePromptCardClose = React.useCallback(() => {
+      if (generateNewPrototype) { setPromptDismissed(true); onDismissSelection?.(); return; }
       if (dismissTerminalTaskAndSelection()) return;
 
       void saveAndDismissPromptCard().catch(() => undefined);
-    }, [dismissTerminalTaskAndSelection, saveAndDismissPromptCard]);
+    }, [dismissTerminalTaskAndSelection, saveAndDismissPromptCard, generateNewPrototype, onDismissSelection]);
     const currentTaskSessionHref =
       currentAgentTask?.sessionUrl ??
       (currentAgentTask?.sessionId ? `/session/${currentAgentTask.sessionId}` : '');
@@ -1098,7 +1112,10 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
     ]);
 
     const handleConfirmSendCurrentElementPrompt = React.useCallback(async () => {
-      const ready = await wakeAgentForCurrentElementAction();
+      if (sendingCurrentElementPrompt || (generateNewPrototype && selectedElementCount !== 1)) return;
+      if (componentComposer && (hideCurrentElementExecutionAction || (!generateNewPrototype && (!currentElementPromptAction.visible || currentElementPromptAction.disabled)))) return;
+      if (generateNewPrototype && !draftNote.trim()) return;
+      const ready = generateNewPrototype || await wakeAgentForCurrentElementAction();
       if (!ready) return;
 
       setSendingCurrentElementPrompt(true);
@@ -1108,6 +1125,9 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
           onConfirmText,
           onConfirmNote: onConfirmNoteWithSelectedSkills,
           onSendCurrentElementPromptToAgent,
+          generateNewPrototype,
+          note: [draftNote, ...selectedSkills.map(skill => skill.prompt)].filter(Boolean).join('\n\n'),
+          onGenerateComponentStates,
         });
         if (sent) {
           clearSelectedSkills();
@@ -1119,30 +1139,39 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       }
     }, [
       clearSelectedSkills,
+      componentComposer,
+      hideCurrentElementExecutionAction,
+      currentElementPromptAction.visible,
+      currentElementPromptAction.disabled,
       currentTarget,
       onConfirmNoteWithSelectedSkills,
       onConfirmText,
       onSendCurrentElementPromptToAgent,
       selectedSkills,
+      generateNewPrototype, draftNote, onGenerateComponentStates, selectedElementCount, sendingCurrentElementPrompt,
       wakeAgentForCurrentElementAction,
     ]);
 
     const handlePromptKeyDown = React.useCallback(
       (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if ((event.nativeEvent as KeyboardEvent).isComposing) return;
-        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        const isComposing = (event.nativeEvent as KeyboardEvent).isComposing;
+        if (isComposing) return;
+        const submit = resolvePromptSubmitShortcut({ key: event.key, metaKey: event.metaKey, ctrlKey: event.ctrlKey, isComposing, componentComposer, generateNewPrototype });
+        if (submit) {
           event.preventDefault();
           event.stopPropagation();
+          if (submit === 'send') { void handleConfirmSendCurrentElementPrompt(); return; }
           void saveAndCloseNoteComposer();
           return;
         }
         if (event.key !== 'Escape') return;
         event.preventDefault();
         event.stopPropagation();
+        if (generateNewPrototype) { handlePromptCardClose(); return; }
         if (dismissTerminalTaskAndSelection()) return;
         void saveAndCloseNoteComposer();
       },
-      [dismissTerminalTaskAndSelection, saveAndCloseNoteComposer],
+      [dismissTerminalTaskAndSelection, saveAndCloseNoteComposer, componentComposer, generateNewPrototype, handleConfirmSendCurrentElementPrompt, handlePromptCardClose],
     );
 
     if (
@@ -1224,13 +1253,25 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       : `添加到 AI 对话${agentSelectionShortcutHint}`;
     const showContextAppendExecutionControls = !hideExecutionControls;
     const showPromptCardExecutionActions = !isAnnotationSession || !annotationMarkdownEditorOpen;
+    const componentName = selectedElementCount > 1 ? `已选 ${selectedElementCount} 个元素` : currentTarget.getAttribute('aria-label') || currentTarget.getAttribute('data-label') || currentTarget.id || currentTarget.tagName.toLowerCase();
+    const appendContextAction = showContextAppendExecutionControls && agentAvailable ? (
+      <IconActionButton title={agentSelectionActionTitle} icon={<AgentSparkleIcon />} tone="dark" disabled={!currentTarget} onClick={() => {
+        triggerAgentPromptAction({ currentTarget: promptTarget, onAppendElementToAgentContext: options.onAppendElementToAgentContext });
+      }} />
+    ) : null;
+    const clearEditsAction = !hideClearEditsAction && canClearCurrentElementEdits ? (
+      <IconActionButton title="清空批注" icon={<ClearOutlined />} tone="dark" disabled={!currentTarget || sendingCurrentElementPrompt} onClick={() => {
+        clearSelectedSkills();
+        void onClearCurrentElementEdits();
+      }} />
+    ) : null;
     const notePlaceholder = resolvePromptCardNotePlaceholder(
       isAnnotationSession,
       externalAnnotationMode,
     );
-    const promptCardCloseActionTitle = resolvePromptCardCloseActionTitle(
-      globalThis.navigator?.platform,
-    );
+    const promptCardCloseActionTitle = componentComposer
+      ? generateNewPrototype ? '关闭（Esc）' : '关闭并保存（Esc）'
+      : resolvePromptCardCloseActionTitle(globalThis.navigator?.platform);
     const annotationDeleteAction = !documentSourceMarkdownEditor ? (
       <Popconfirm
         title="删除标注"
@@ -1261,7 +1302,8 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
         data-we-selection-lock-root="true"
         style={{
           ...promptCardStyle,
-          width: isAnnotationSession ? ANNOTATION_EDITOR_PROMPT_CARD_WIDTH : promptCardStyle.width,
+          width: componentComposer ? 360 : isAnnotationSession ? ANNOTATION_EDITOR_PROMPT_CARD_WIDTH : promptCardStyle.width,
+          ...(componentComposer ? { padding: 0, gap: 0, borderRadius: 16, background: EDITOR_CHROME.surfaceElevated } : {}),
           left: promptPosition.left,
           top: promptPosition.top,
           visibility: promptVisible ? 'visible' : 'hidden',
@@ -1310,25 +1352,44 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
               border-color: ${EDITOR_CHROME.accent} !important;
               box-shadow: 0 0 0 3px ${EDITOR_CHROME.accentSoft};
             }
+            [data-we-component-composer="true"]:focus-within {
+              border-color: ${EDITOR_CHROME.accent} !important;
+              box-shadow: 0 0 0 3px ${EDITOR_CHROME.accentSoft};
+            }
+            [data-we-component-prompt-footer="true"] button:focus-visible,
+            [data-we-component-prompt-footer="true"] input:focus-visible {
+              outline: 2px solid ${EDITOR_CHROME.accent};
+              outline-offset: 3px;
+            }
+            [data-we-component-prompt-submit="true"]:not(:disabled):hover {
+              background: ${EDITOR_CHROME.accentHover} !important;
+            }
           `}
         </style>
         <div
           data-we-annotation-session-toolbar="true"
           style={{
             display: 'flex',
-            flexWrap: 'wrap',
+            flexWrap: componentComposer ? 'nowrap' : 'wrap',
             alignItems: 'center',
             gap: 8,
+            ...(componentComposer ? { padding: '10px 12px', borderBottom: `1px solid ${EDITOR_CHROME.border}`, flexShrink: 0, gap: 4 } : {}),
           }}
         >
-          {selectedElementCount > 1 ? (
+          {componentComposer ? (
+            <div style={{ flex: '1 1 80px', minWidth: 0, marginRight: 4 }}>
+              <div style={{ color: EDITOR_CHROME.textMuted, fontSize: 10, lineHeight: '15px' }}>组件批注</div>
+              <div title={componentName} style={{ color: EDITOR_CHROME.textPrimary, fontSize: 12, lineHeight: '18px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{componentName}</div>
+            </div>
+          ) : null}
+          {!componentComposer && selectedElementCount > 1 ? (
             <span data-we-selection-count="true" style={{ fontSize: 12, color: EDITOR_CHROME.textMuted }}>
               已选 {selectedElementCount} 个元素
             </span>
           ) : null}
           <div
             data-we-prompt-card-tool-actions="true"
-            style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}
+            style={{ display: 'flex', flexWrap: componentComposer ? 'nowrap' : 'wrap', alignItems: 'center', gap: 2, ...(componentComposer ? { flexShrink: 0 } : {}) }}
           >
             {isAnnotationSession && showAnnotationMarkdownEditorButton ? (
               <div
@@ -1474,6 +1535,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                   const nextBubbleStyleEditorOpen = !bubbleStyleEditorOpen;
                   onBubbleStyleEditorOpenChange(nextBubbleStyleEditorOpen);
                   if (nextBubbleStyleEditorOpen) {
+                    setGenerateNewPrototype(false);
                     setAnnotationEditorOpen(false);
                   }
                 }}
@@ -1485,7 +1547,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                 data-we-document-component="true"
                 title={selectedElementCount !== 1 ? '请选择一个组件或容器' : '截图并将说明引入 PRD 文档'}
                 disabled={selectedElementCount !== 1}
-                style={{ border: '1px solid #d9d9d9', borderRadius: 6, background: 'transparent', color: 'inherit', padding: '4px 8px', cursor: selectedElementCount === 1 ? 'pointer' : 'not-allowed' }}
+                style={{ border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 6, background: 'transparent', color: EDITOR_CHROME.textSecondary, padding: '4px 8px', fontFamily: 'inherit', fontSize: 12, whiteSpace: 'nowrap', cursor: selectedElementCount === 1 ? 'pointer' : 'not-allowed' }}
                 onClick={() => {
                   void executePromptCardDocumentAction({currentTarget, note: draftNote,
                     onConfirmNote: onConfirmNoteWithSelectedSkills, onDocumentComponent}).catch(() => {
@@ -1521,51 +1583,27 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
               />
             ) : null}
           </div>
-          <div style={{ flex: 1 }} />
-          {showPromptCardExecutionActions ? (
+          {!componentComposer ? <div style={{ flex: 1 }} /> : null}
+          {showPromptCardExecutionActions && !componentComposer ? (
             <div
               data-we-prompt-card-execution-actions="true"
               style={{ display: 'flex', alignItems: 'center', gap: 2 }}
             >
-              {showContextAppendExecutionControls && agentAvailable ? (
+              {appendContextAction}
+              {!hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype) ? (
                 <IconActionButton
-                  title={agentSelectionActionTitle}
-                  icon={<AgentSparkleIcon />}
-                  tone="dark"
-                  disabled={!currentTarget}
-                  onClick={() => {
-                    triggerAgentPromptAction({
-                      currentTarget: promptTarget,
-                      onAppendElementToAgentContext: options.onAppendElementToAgentContext,
-                    });
-                  }}
-                />
-              ) : null}
-              {!hideCurrentElementExecutionAction && currentElementPromptAction.visible ? (
-                <IconActionButton
-                  title={promptCardSendActionTitle}
-                  label={onDocumentComponent ? 'AI 生成原型' : undefined}
+                  title={generateNewPrototype ? '生成所选组件的状态说明原型' : promptCardSendActionTitle}
+                  label={generateNewPrototype ? '生成组件状态' : onDocumentComponent ? 'AI 生成原型' : undefined}
                   icon={<CaretRightFilled />}
                   tone="accent"
-                  loading={currentElementPromptAction.loading}
-                  disabled={currentElementPromptAction.disabled}
+                  loading={generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading}
+                  disabled={generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled}
                   onClick={() => {
                     void handleConfirmSendCurrentElementPrompt();
                   }}
                 />
               ) : null}
-              {!hideClearEditsAction && canClearCurrentElementEdits ? (
-                <IconActionButton
-                  title="清空批注"
-                  icon={<ClearOutlined />}
-                  tone="dark"
-                  disabled={!currentTarget}
-                  onClick={() => {
-                    clearSelectedSkills();
-                    void onClearCurrentElementEdits();
-                  }}
-                />
-              ) : null}
+              {clearEditsAction}
             </div>
           ) : null}
           <div
@@ -1576,6 +1614,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
               paddingLeft: 8,
               marginLeft: 2,
               borderLeft: `1px solid ${EDITOR_CHROME.border}`,
+              flexShrink: 0,
             }}
           >
             {!isMobileDevice() && onPinnedToTopRightChange ? (
@@ -1604,6 +1643,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
             minHeight: 0,
             overflowX: 'hidden',
             overflowY: 'auto',
+            ...(componentComposer ? { padding: '12px 12px 10px' } : {}),
           }}
         >
           {!isAnnotationSession && !externalAnnotationMode && externalCommentsToolOpen && externalCommentGroups.length > 0 ? (
@@ -1625,6 +1665,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                 }}
               >
                 <div
+                  data-we-component-composer={componentComposer ? 'true' : undefined}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -2009,6 +2050,15 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                       ))}
                     </div>
                   ) : null}
+                  {!componentComposer && onGenerateComponentStates && !isAnnotationSession && !externalAnnotationMode && !textCommentMode ? (
+                    <div data-we-component-states-option="true" style={{ padding: '7px 10px 2px', fontSize: 12, color: EDITOR_CHROME.textSecondary }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: selectedElementCount === 1 ? 'pointer' : 'not-allowed' }}>
+                        <input type="checkbox" aria-label="生成到新原型" checked={generateNewPrototype} disabled={selectedElementCount !== 1 || sendingCurrentElementPrompt} style={{ accentColor: EDITOR_CHROME.accent }} onChange={event => setGenerateNewPrototype(event.target.checked)} />
+                        生成到新原型
+                      </label>
+                      {generateNewPrototype ? <div style={{ paddingTop: 5, fontSize: 11, lineHeight: 1.6 }}>填写状态要求，生成后可逐个查看、比较和批注。</div> : null}
+                    </div>
+                  ) : null}
                   <Input.TextArea
                     className="we-runtime-prompt-card__textarea"
                     value={draftNote}
@@ -2016,16 +2066,16 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                     readOnly={inlineTextEditing}
                     tabIndex={inlineTextEditing ? -1 : 0}
                     allowClear
-                    autoSize={{ minRows: 1, maxRows: 4 }}
-                    placeholder={notePlaceholder}
+                    autoSize={{ minRows: componentComposer ? 3 : 1, maxRows: componentComposer ? 6 : 4 }}
+                    placeholder={generateNewPrototype ? '例如：未登录、已登录、语言菜单展开；说明各状态的变化' : notePlaceholder}
                     variant="borderless"
                     styles={{
                       textarea: {
                         color: EDITOR_CHROME.textPrimary,
                         background: 'transparent',
-                        minHeight: 32,
-                        padding: '6px 10px',
-                        fontSize: 12.5,
+                        minHeight: componentComposer ? 76 : 32,
+                        padding: componentComposer ? '10px 12px' : '6px 10px',
+                        fontSize: componentComposer ? 13 : 12.5,
                         lineHeight: 1.55,
                         caretColor: EDITOR_CHROME.textPrimary,
                       },
@@ -2046,7 +2096,9 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                     onPasteCapture={onNotePasteCapture}
                     onKeyDown={handlePromptKeyDown}
                     onBlur={(event) => {
+                      if (generateNewPrototype) return;
                       const nextTarget = event.relatedTarget;
+                      if (componentComposer && nextTarget instanceof Node && rootRef.current?.contains(nextTarget)) return;
                       if (
                         nextTarget instanceof Node &&
                         noteComposerRef.current?.contains(nextTarget)
@@ -2277,6 +2329,21 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
           ) : null}
         </div>
       </div>
+        {componentComposer && showPromptCardExecutionActions ? (
+          <ComponentPromptFooter
+            newPrototypeAvailable={Boolean(onGenerateComponentStates) && showNoteComposer}
+            newPrototype={generateNewPrototype}
+            onNewPrototypeChange={setGenerateNewPrototype}
+            selectedElementCount={selectedElementCount}
+            actionVisible={!hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype)}
+            disabled={generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled}
+            loading={generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading}
+            actionTitle={generateNewPrototype ? '生成所选组件的状态说明原型' : promptCardSendActionTitle}
+            onSend={() => { void handleConfirmSendCurrentElementPrompt(); }}
+            shortcut={/Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '') ? '⌘ Enter' : 'Ctrl Enter'}
+            leadingActions={<>{appendContextAction}{clearEditsAction}</>}
+          />
+        ) : null}
       </div>
     );
 

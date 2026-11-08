@@ -1,7 +1,30 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { executePromptCardCurrentElementAction, executePromptCardDocumentAction } from '../../../vendor/axhub-commentary/src/ui/runtime/prompt-card-actions';
+import { executePromptCardCurrentElementAction, executePromptCardDocumentAction, resolveComponentPrototypeDestination, resolvePromptSubmitShortcut } from '../../../vendor/axhub-commentary/src/ui/runtime/prompt-card-actions';
 import { getAgentPromptBubbleActionState } from '../../../vendor/axhub-commentary/src/ui/agent-prompt-action';
+it('submits component requests with Cmd/Ctrl+Enter while preserving annotation saves and IME input', () => {
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', metaKey: true, componentComposer: true })).toBe('send');
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', ctrlKey: true, generateNewPrototype: true })).toBe('send');
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', ctrlKey: true })).toBe('save');
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', metaKey: true, componentComposer: true, isComposing: true })).toBe(null);
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', componentComposer: true })).toBe(null);
+});
+it('ignores a previously selected prototype destination immediately when the same selection enters another editing mode', () => {
+  const previousSelection = { requested: true, generatorAvailable: true };
+  expect(resolveComponentPrototypeDestination(previousSelection)).toBe(true);
+  for (const mode of [{ interactionProfile: 'annotation' }, { interactionProfile: 'text-comment' }, { externalAnnotationMode: true }, { generatorAvailable: false }]) {
+    const generateNewPrototype = resolveComponentPrototypeDestination({ ...previousSelection, ...mode });
+    expect(generateNewPrototype).toBe(false);
+    expect(resolvePromptSubmitShortcut({ key: 'Enter', ctrlKey: true, generateNewPrototype })).toBe('save');
+  }
+});
+it('routes new-prototype generation without saving text or executing changes on the source page', async () => {
+  const edit = vi.fn(), save = vi.fn(), send = vi.fn(), generate = vi.fn();
+  const target = {} as Element;
+  expect(await executePromptCardCurrentElementAction({ currentTarget: target, onConfirmText: edit, onConfirmNote: save, onSendCurrentElementPromptToAgent: send, generateNewPrototype: true, note: '登录状态', onGenerateComponentStates: generate })).toBe(true);
+  expect(generate).toHaveBeenCalledWith(target, '登录状态');
+  expect(edit).not.toHaveBeenCalled(); expect(save).not.toHaveBeenCalled(); expect(send).not.toHaveBeenCalled();
+});
 
 function createDeferred<T = void>() {
   let resolve!: (value: T | PromiseLike<T>) => void;

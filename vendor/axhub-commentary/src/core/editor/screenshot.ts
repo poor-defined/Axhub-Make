@@ -509,6 +509,9 @@ export async function captureElementScreenshot(
   const computedStyle = window.getComputedStyle(element);
   const captureStyle: Partial<CSSStyleDeclaration> = {
     boxSizing: computedStyle.boxSizing || 'border-box',
+    // Render the cloned root at the canvas origin. Page margins/fixed offsets
+    // otherwise move the whole component outside its own screenshot bounds.
+    margin: '0', position: 'relative', left: '0', top: '0', right: 'auto', bottom: 'auto',
   };
 
   try {

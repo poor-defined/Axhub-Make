@@ -2027,6 +2027,7 @@ export const createWebEditorV2Controller = (
               onHostToolbarAction: requestParentHostToolbarAction,
               onPrepareAxureExport: (payload: unknown) => requestParentHostToolbarAction({ type: 'prepare-axure-export', payload }),
               onDocumentComponent: (payload: import('../../vendor/axhub-commentary/src/web-editor-types').CommentaryDocumentComponentCapture) => requestParentHostToolbarAction({ type: 'document-component', payload }),
+              onGenerateComponentStates: (payload: import('../../vendor/axhub-commentary/src/web-editor-types').CommentaryComponentStatesRequest) => requestParentHostToolbarAction({ type: 'generate-component-states', payload }),
               onRequestFullExit: async () => {
                 await requestParentHostToolbarAction({ type: 'full-exit' });
               },

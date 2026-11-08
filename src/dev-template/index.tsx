@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { installLegacyGenerationSkeleton } from '../common/legacyGenerationSkeleton';
 import * as ReactDOMClient from 'react-dom/client';
 import * as ReactDOM from 'react-dom';
 import { App as AntApp } from 'antd';
@@ -38,6 +39,7 @@ import type {
   QuickEditSavePreflight,
 } from '../common/quickEditSave';
 
+let stopLegacyGenerationSkeleton: (() => void) | null = null;
 let editorModeManager: ReturnType<typeof createEditorModeManager> | null = null;
 const devTemplateDialogController = createAppDialogController();
 let prototypeEditorHostToolbarUnsubscribe: (() => void) | null = null;
@@ -129,6 +131,9 @@ export function renderComponent(Component: any, props?: any) {
     console.error('[Dev Template] 找不到 #root 元素');
     return;
   }
+
+  stopLegacyGenerationSkeleton?.();
+  stopLegacyGenerationSkeleton = installLegacyGenerationSkeleton(rootElement);
 
   const defaultProps = {
     container: rootElement,
@@ -425,6 +430,10 @@ if (typeof window !== 'undefined') {
 
   const rootElement = document.getElementById('root');
   let rootSizeOverride: ScreenshotViewportSize | null = null;
+  // Client routes render with their own createRoot(), without renderComponent().
+  if (rootElement) {
+    stopLegacyGenerationSkeleton = installLegacyGenerationSkeleton(rootElement);
+  }
   const applyRootSize = (nextWidth?: number, nextHeight?: number) => {
     if (!rootElement) return;
     if (!rootSizeOverride) {

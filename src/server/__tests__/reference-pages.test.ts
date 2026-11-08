@@ -7,6 +7,8 @@ import {
   importReferencePage,
   listReferencePages,
   resolveReferenceFile,
+  deleteReferencePage,
+  syncLocalReferencePages,
 } from '../referencePages.ts';
 const roots: string[] = [];
 const root = () => {
@@ -18,6 +20,117 @@ afterEach(() =>
   roots.splice(0).forEach((value) => fs.rmSync(value, { recursive: true, force: true })),
 );
 describe('reference page cache', () => {
+  it('reports the latest publication file modification time, including unchanged files republished later', () => {
+    const project = root(), publish = root();
+    fs.mkdirSync(path.join(project, '.axhub/make'), { recursive: true });
+    fs.writeFileSync(path.join(project, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { axurePublishDirectory: publish } }));
+    fs.writeFileSync(path.join(publish, 'index.html'), 'original');
+    fs.writeFileSync(path.join(publish, 'style.css'), 'body{}');
+    const earlier = new Date('2026-11-08T01:00:00Z'), later = new Date('2026-11-08T02:00:00Z');
+    fs.utimesSync(path.join(publish, 'index.html'), earlier, earlier);
+    fs.utimesSync(path.join(publish, 'style.css'), later, later);
+    syncLocalReferencePages(project);
+    const page = listReferencePages(project)[0];
+    expect(page.sourceModifiedAt).toBe(later.toISOString());
+    const republished = new Date('2026-11-08T03:00:00Z');
+    fs.utimesSync(path.join(publish, 'index.html'), republished, republished);
+    syncLocalReferencePages(project);
+    expect(listReferencePages(project)[0]).toMatchObject({ id: page.id, sourceFingerprint: page.sourceFingerprint, sourceModifiedAt: republished.toISOString() });
+  });
+  it('automatically imports local published content pages and updates the same cache on republish', () => {
+    const project = root(), publish = root();
+    fs.mkdirSync(path.join(project, '.axhub/make'), { recursive: true });
+    fs.writeFileSync(path.join(project, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { axurePublishDirectory: publish } }));
+    fs.mkdirSync(path.join(publish, 'resources'), { recursive: true });
+    fs.writeFileSync(path.join(publish, 'index.html'), '<iframe></iframe>');
+    fs.writeFileSync(path.join(publish, 'start.html'), 'shell');
+    fs.writeFileSync(path.join(publish, 'start_with_pages.html'), 'shell');
+    fs.writeFileSync(path.join(publish, 'old_page.html'), 'left over from an older export');
+    fs.mkdirSync(path.join(publish, 'data'), { recursive: true });
+    fs.writeFileSync(path.join(publish, 'data/document.js'), 'var pageUrl="首页.html";');
+    fs.writeFileSync(path.join(publish, 'resources/helper.html'), 'helper');
+    fs.writeFileSync(path.join(publish, '首页.html'), '<title>首页</title>version 1');
+    expect(syncLocalReferencePages(project).error).toBeUndefined();
+    const page = listReferencePages(project)[0];
+    expect(page.entryPath).toBe('首页.html');
+    expect(page.htmlFiles).toEqual(['首页.html']);
+    expect(page.sourceDirectory).toBe(fs.realpathSync(publish));
+    syncLocalReferencePages(project);
+    expect(listReferencePages(project)).toEqual([page]);
+    // An older importer may have cached player shells and stale exported pages.
+    fs.writeFileSync(path.join(project, '.axhub/make/references', page.id, 'manifest.json'), JSON.stringify({ ...page, htmlFiles: ['index.html', 'old_page.html'] }));
+    syncLocalReferencePages(project);
+    expect(listReferencePages(project)[0].htmlFiles).toEqual(['首页.html']);
+    fs.writeFileSync(path.join(publish, '首页.html'), 'version 2');
+    syncLocalReferencePages(project);
+    expect(listReferencePages(project)).toHaveLength(1);
+    expect(listReferencePages(project)[0].id).toBe(page.id);
+    expect(listReferencePages(project)[0].sourceFingerprint).not.toBe(page.sourceFingerprint);
+    expect(fs.readFileSync(resolveReferenceFile(project, page.id, page.entryPath), 'utf8')).toContain('version 2');
+  });
+  it('deletes local references and clears only the configured publication path while keeping original files', () => {
+    const project = root(), publish = root();
+    fs.mkdirSync(path.join(project, '.axhub/make'), { recursive: true });
+    fs.writeFileSync(path.join(project, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { axurePublishDirectory: publish } }));
+    fs.writeFileSync(path.join(publish, 'index.html'), 'original');
+    syncLocalReferencePages(project);
+    const page = listReferencePages(project)[0];
+    deleteReferencePage(project, page.id);
+    expect(listReferencePages(project)).toEqual([]);
+    const configFile = path.join(project, '.axhub/make/axhub.config.json');
+    expect(JSON.parse(fs.readFileSync(configFile, 'utf8')).projectInfo.axurePublishDirectory).toBeNull();
+    expect(syncLocalReferencePages(project).directory).toBeUndefined();
+    expect(fs.readFileSync(path.join(publish, 'index.html'), 'utf8')).toBe('original');
+    fs.writeFileSync(configFile, JSON.stringify({ projectInfo: { axurePublishDirectory: publish } }));
+    syncLocalReferencePages(project);
+    expect(listReferencePages(project)).toHaveLength(1);
+    expect(() => deleteReferencePage(project, '../escape')).toThrow();
+  });
+  it('forces a fresh snapshot even when the publication fingerprint is unchanged', () => {
+    const project = root(), publish = root();
+    fs.mkdirSync(path.join(project, '.axhub/make'), { recursive: true });
+    fs.writeFileSync(path.join(project, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { axurePublishDirectory: publish } }));
+    fs.writeFileSync(path.join(publish, 'index.html'), 'original');
+    syncLocalReferencePages(project);
+    const page = listReferencePages(project)[0];
+    const cacheFile = resolveReferenceFile(project, page.id, page.entryPath);
+    fs.writeFileSync(cacheFile, 'cached edit');
+    syncLocalReferencePages(project, { force: true });
+    expect(fs.readFileSync(cacheFile, 'utf8')).toBe('original');
+    expect(listReferencePages(project)[0].id).toBe(page.id);
+  });
+  it('keeps other project settings and never clears a newer publication path when deleting an older reference', () => {
+    const project = root(), publish = root(), newer = root();
+    fs.mkdirSync(path.join(project, '.axhub/make'), { recursive: true });
+    const configFile = path.join(project, '.axhub/make/axhub.config.json');
+    const config = { server: { host: 'localhost' }, projectInfo: { axurePublishDirectory: publish, prdDocumentPath: '/docs/PRD.md' } };
+    fs.writeFileSync(configFile, JSON.stringify(config));
+    fs.writeFileSync(path.join(publish, 'index.html'), 'original');
+    syncLocalReferencePages(project);
+    deleteReferencePage(project, listReferencePages(project)[0].id);
+    expect(JSON.parse(fs.readFileSync(configFile, 'utf8'))).toEqual({ ...config, projectInfo: { ...config.projectInfo, axurePublishDirectory: null } });
+    fs.writeFileSync(configFile, JSON.stringify(config));
+    syncLocalReferencePages(project);
+    const old = listReferencePages(project)[0];
+    config.projectInfo.axurePublishDirectory = newer;
+    fs.writeFileSync(configFile, JSON.stringify(config));
+    deleteReferencePage(project, old.id);
+    expect(JSON.parse(fs.readFileSync(configFile, 'utf8'))).toEqual(config);
+  });
+  it('retains the last good cache and reports inaccessible or unsafe publication folders', () => {
+    const project = root(), publish = root();
+    fs.mkdirSync(path.join(project, '.axhub/make'), { recursive: true });
+    fs.writeFileSync(path.join(project, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { axurePublishDirectory: publish } }));
+    fs.writeFileSync(path.join(publish, 'index.html'), 'good');
+    syncLocalReferencePages(project);
+    const previous = listReferencePages(project);
+    fs.symlinkSync('/etc/passwd', path.join(publish, 'secret'));
+    expect(syncLocalReferencePages(project).error).toMatch(/符号链接/);
+    expect(listReferencePages(project)).toEqual(previous);
+    fs.rmSync(publish, { recursive: true });
+    expect(syncLocalReferencePages(project).error).toBeTruthy();
+    expect(listReferencePages(project)).toEqual(previous);
+  });
   it('imports standalone HTML, reports missing assets and persists project listing', async () => {
     const projectRoot = root();
     const page = await importReferencePage(projectRoot, {

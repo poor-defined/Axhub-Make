@@ -112,6 +112,12 @@ export default function NewSidebar(rawProps: NewSidebarProps & {
         externalOpenMenu,
     } = resolveNewSidebarProps(rawProps);
 
+    React.useEffect(() => {
+        if (sidebarTab !== 'document' || selectedDoc || selectedResourceFolder) return;
+        const defaultPrd = docsItems.find(item => item.name.startsWith('configured-prd/'));
+        if (defaultPrd) onSelectDoc(defaultPrd);
+    }, [sidebarTab, selectedDoc, selectedResourceFolder, docsItems, onSelectDoc]);
+
     const handleSidebarTabChange = (tab: SidebarTab) => {
         if (tab === sidebarTab) {
             return;

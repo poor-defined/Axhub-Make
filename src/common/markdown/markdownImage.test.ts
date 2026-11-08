@@ -20,6 +20,15 @@ describe('parseAxhubImageWidth', () => {
 });
 
 describe('resolveMarkdownImageSrc', () => {
+  it('decodes URL-encoded Chinese folders and spaces before transporting the filesystem asset path', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://axhub.local', pathname: '/' } });
+    const result = resolveMarkdownImageSrc(
+      '%E5%9B%BE%E7%89%87%E5%92%8C%E9%99%84%E4%BB%B6/image%204.png?v=1#preview',
+      '/api/projects/p/document-content?path=configured-prd%2FPRD.md',
+    );
+    const url = new URL(result, 'http://axhub.local');
+    expect(url.searchParams.get('asset')).toBe('图片和附件/image 4.png');
+  });
   it('routes project document images through the document asset endpoint', () => {
     vi.stubGlobal('window', { location: { origin: 'http://axhub.local', pathname: '/' } });
 

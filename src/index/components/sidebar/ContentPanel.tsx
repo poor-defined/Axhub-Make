@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
@@ -83,6 +84,7 @@ import { makeClientTemplateMirrorDownloadUrl, makeClientTemplatePrimaryDownloadU
 import { formatProjectRootDisplayPath } from './projectSwitcherPathDisplay';
 import { copyToClipboard } from '../../utils/clipboard';
 import { buildPrototypePageSegments, findPrototypePageGroupKey } from './prototypePageGroups';
+import PrdScreenshotDialog from '../dialogs/PrdScreenshotDialog';
 import type { PrototypePageItem } from './prototypePageGroups';
 
 interface ContentPanelProps {
@@ -1765,6 +1767,8 @@ export default function ContentPanel({
     const openInTargetPath = openInTargetProjectRoot;
 
     const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [prdScreenshotDocument, setPrdScreenshotDocument] = useState<{ documentId: string; projectId: string } | null>(null);
+    useEffect(() => { setPrdScreenshotDocument(null); }, [activeProjectId]);
     const [tempTitle, setTempTitle] = useState(projectTitle);
     const titleInputRef = useRef<HTMLInputElement>(null);
     const [projectSwitcherMenuOpen, setProjectSwitcherMenuOpen] = useState(false);
@@ -2494,7 +2498,7 @@ export default function ContentPanel({
                     <DropdownMenuContent
                         side="right"
                         align="start"
-                        className="w-48 text-sm"
+                        className={isDocItem ? 'w-64 text-sm' : 'w-48 text-sm'}
                         onPointerDown={stopRowActivation}
                         onClick={stopRowActivation}
                         onKeyDown={stopRowActivation}
@@ -2522,6 +2526,12 @@ export default function ContentPanel({
                     <DropdownMenuItem onClick={() => void handleOpenResourceInSystem(node?.path || item.name)}>
                         <FolderOpen className="mr-2 h-4 w-4" />
                         打开所在目录
+                    </DropdownMenuItem>
+                ) : null}
+                {isDocItem && /\.md$/iu.test(item.filePath || item.name) ? (
+                    <DropdownMenuItem onSelect={() => setPrdScreenshotDocument({ documentId: item.filePath || item.resourceId || item.name, projectId: item.projectId || activeProjectId || '' })}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        从本地参考发布更新截图
                     </DropdownMenuItem>
                 ) : null}
                 {isThemeItem && onSetDefaultTheme ? (
@@ -2668,7 +2678,7 @@ export default function ContentPanel({
 
     const renderPrototypePageRows = (item: ItemData, depth: number) => {
         const pages = getPrototypePageMatches(item);
-        if (dataTab !== 'prototypes' || pages.length === 0) {
+        if (dataTab !== 'prototypes' || pages.length <= 1) {
             return null;
         }
         const segments = item.name === selectedPrototypeId
@@ -2933,7 +2943,7 @@ export default function ContentPanel({
 
     const renderTreeContent = () => {
         if (loading) {
-            return <div className="py-8 text-center text-[12px] text-muted-foreground">加载中...</div>;
+            return <PageSkeleton variant="list" label="正在加载项目资源" />;
         }
         if (displayTree.length === 0) {
             if (dataTab === 'themes' && !searchText.trim()) {
@@ -3467,6 +3477,10 @@ export default function ContentPanel({
                     ) : null}
                 </div>
         </div>
+        {prdScreenshotDocument && <PrdScreenshotDialog projectId={prdScreenshotDocument.projectId} documentId={prdScreenshotDocument.documentId} onClose={(changed) => {
+            setPrdScreenshotDocument(null);
+            if (changed) window.location.reload();
+        }} />}
         <ProjectSetupDialog
             open={projectSetupOpen}
             initialMode={projectSetupInitialMode}

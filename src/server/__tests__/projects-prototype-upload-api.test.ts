@@ -581,7 +581,7 @@ describe('make-server project prototype upload APIs', () => {
       expect(indexSource).toContain('export default function Placeholder()');
       expect(indexSource).toContain('className="placeholder-empty-page"');
       expect(indexSource).toContain('<main className="placeholder-empty-page" aria-label={displayName}>');
-      expect(indexSource).toContain('<span>正在等待生成</span>');
+      expect(indexSource).toContain('ax-page-skeleton');
       expect(indexSource).not.toContain('打开左侧默认引导页继续创建');
       expect(indexSource).not.toContain('未命名原型占位页');
       expect(indexSource).not.toContain('<p>');
@@ -700,7 +700,7 @@ describe('make-server project prototype upload APIs', () => {
       const styleSource = fs.readFileSync(stylePath, 'utf8');
       expect(indexSource).toContain('正在等待生成');
       expect(indexSource).not.toContain('@axhub-placeholder prototype-empty');
-      expect(styleSource).toContain('place-items: center');
+      expect(styleSource).toContain('display: block');
 
       let metadata = readMetadata(projectRoot);
       let prototype = metadata.resources.prototypes.find((item: any) => item.id === 'untitled');

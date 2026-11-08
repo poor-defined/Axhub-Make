@@ -1,4 +1,5 @@
 import React from 'react';
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import NewSidebar from '../sidebar/NewSidebar';
 import { ResponsiveSidebarProvider } from '../sidebar/ResponsiveSidebarController';
 import PresentationArea from '../content/PresentationArea';
@@ -51,6 +52,11 @@ export default function IndexPageDesktop({
 }: IndexPageDesktopProps) {
     const workspaceRef = React.useRef<HTMLDivElement | null>(null);
     const lastResponsiveSidebarDefaultRef = React.useRef(responsiveSidebar.defaultCollapsed);
+    const initialWorkspaceLoading = sidebarProps.state.loading && ![
+        presentationAreaProps.state.selectedItem, presentationAreaProps.state.selectedDoc,
+        presentationAreaProps.state.selectedTheme, presentationAreaProps.state.selectedCanvas,
+        presentationAreaProps.state.selectedTemplate, presentationAreaProps.state.selectedDataTable,
+    ].some(Boolean);
 
     React.useEffect(() => {
         const workspace = workspaceRef.current;
@@ -89,7 +95,7 @@ export default function IndexPageDesktop({
                     <NewSidebar {...sidebarProps} referenceActive={referenceWorkspace?.active} onReferenceActiveChange={referenceWorkspace?.onActiveChange} referencePanel={referenceWorkspace?.panel} />
 
                     <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
-                        {referenceWorkspace?.active ? referenceWorkspace.view : <PresentationArea {...presentationAreaProps} />}
+                        {referenceWorkspace?.active ? referenceWorkspace.view : initialWorkspaceLoading ? <div className="min-w-0 flex-1 bg-background"><PageSkeleton label="正在加载项目" /></div> : <PresentationArea {...presentationAreaProps} />}
 
                         {assistantPanel.mounted ? (
                             <AssistantPanel

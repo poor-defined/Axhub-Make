@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
@@ -3810,9 +3811,7 @@ export default function ExcalidrawCanvas({
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-[12px]">
-                加载中...
-            </div>
+            <PageSkeleton variant="canvas" label="正在加载画布" />
         );
     }
 

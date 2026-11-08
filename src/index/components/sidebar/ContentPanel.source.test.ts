@@ -7,6 +7,12 @@ function readContentPanelSource() {
 }
 
 describe('ContentPanel make client project setup source', () => {
+  it('offers local-publication screenshot updates in Markdown document menus', () => {
+    const source = readContentPanelSource();
+    expect(source).toContain('从本地参考发布更新截图');
+    expect(source).toContain('<PrdScreenshotDialog projectId=');
+    expect(source).toContain('setPrdScreenshotDocument({ documentId: item.filePath || item.resourceId || item.name');
+  });
   it('uses one concise design-creation sentence for the empty design tree', () => {
     const source = readContentPanelSource();
 

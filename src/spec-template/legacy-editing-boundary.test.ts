@@ -53,7 +53,8 @@ describe('spec-template quick editing regression boundary', () => {
     expect(imageSource).toContain("parsedUrl.pathname.match(/^\\/api\\/projects\\/([^/]+)\\/document-content$/iu)");
     expect(imageSource).toContain('/api/projects/${encodeURIComponent(projectId)}/document-asset');
     expect(imageSource).toContain("path=${encodeURIComponent(filePath)}");
-    expect(imageSource).toContain("asset=${encodeURIComponent(assetPath)}");
+    expect(imageSource).toContain('decodeMarkdownAssetPath(assetPath)');
+    expect(imageSource).toContain("asset=${encodeURIComponent(fileAssetPath)}");
   });
 
   it('passes the active document image resolver into edit mode', () => {

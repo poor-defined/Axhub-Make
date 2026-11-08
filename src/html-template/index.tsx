@@ -221,6 +221,7 @@ function ensureCommentEditor(options?: {
       ...(typeof window !== 'undefined' && window.parent !== window ? {
         onPrepareAxureExport: (payload: unknown) => requestParentAxureExport(payload, trustedParentEditorOrigin),
         onDocumentComponent: (payload: import('../../vendor/axhub-commentary/src/web-editor-types').CommentaryDocumentComponentCapture) => requestParentComponentAction('document-component', payload, trustedParentEditorOrigin),
+        onGenerateComponentStates: (payload: import('../../vendor/axhub-commentary/src/web-editor-types').CommentaryComponentStatesRequest) => requestParentComponentAction('generate-component-states', payload, trustedParentEditorOrigin),
       } : {}),
       onHostToolbarAction: async (action) => {
         if (action.type === 'save-html-all') {

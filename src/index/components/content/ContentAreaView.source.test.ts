@@ -1106,7 +1106,7 @@ describe('ContentAreaView review zoom source', () => {
     expect(documentPreviewSegment).toContain('isJsonDocumentResource(selectedMarkdownItem)');
     expect(documentPreviewSegment).toContain('<JsonDocumentPreview');
     expect(documentPreviewSegment.indexOf('<JsonDocumentPreview'))
-      .toBeLessThan(documentPreviewSegment.indexOf('<iframe'));
+      .toBeLessThan(documentPreviewSegment.indexOf('<PreviewIframe'));
   });
 
   it('passes ACP selector and project resource context into start guide composers', () => {
@@ -1317,7 +1317,7 @@ describe('ContentAreaView review zoom source', () => {
     expect(source).not.toContain('reviewPageZoomEnabled?: boolean;');
     expect(source).not.toContain('const desktopReviewZoomLayout = useMemo');
     expect(source).not.toContain('reviewPageZoomEnabled && viewMode === \'demo\'');
-    expect(desktopBranch).toContain('<iframe');
+    expect(desktopBranch).toContain('<PreviewIframe');
     expect(desktopBranch).toContain('ref={previewIframeRef}');
     expect(desktopBranch).toContain('src={primaryIframeUrl}');
     expect(desktopBranch).not.toContain('desktopReviewZoomLayout.enabled');

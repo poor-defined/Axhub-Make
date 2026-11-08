@@ -1432,6 +1432,7 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
           canExportSelectionToDesignTool={propertyPanelOptions?.canExportSelectionToDesignTool}
           onExportSelectionToDesignTool={propertyPanelOptions?.onExportSelectionToDesignTool}
           onDocumentComponent={propertyPanelOptions?.onDocumentComponent}
+          onGenerateComponentStates={propertyPanelOptions?.onGenerateComponentStates}
           getExportSelectionToDesignToolBlockReason={
             propertyPanelOptions?.getExportSelectionToDesignToolBlockReason
           }

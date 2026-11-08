@@ -44,6 +44,41 @@ async function call(
   return promise as Promise<any>;
 }
 describe('reference pages API', () => {
+  it('deletes a cached reference with project scope and leaves the other references available', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'references-api-'));
+    roots.push(root);
+    const input = { filename: 'demo.html', html: '<title>Demo</title>' };
+    const first = JSON.parse((await call(root, 'POST', '/api/reference-pages?projectId=p', input)).text).page;
+    const second = JSON.parse((await call(root, 'POST', '/api/reference-pages?projectId=p', input)).text).page;
+    expect((await call(root, 'DELETE', `/api/reference-pages/${first.id}?projectId=p`, {}, false)).status).toBe(400);
+    expect((await call(root, 'DELETE', `/api/reference-pages/${first.id}?projectId=p`)).status).toBe(200);
+    const listing = JSON.parse((await call(root, 'GET', '/api/reference-pages?projectId=p')).text);
+    expect(listing.pages.map((page: any) => page.id)).toEqual([second.id]);
+    expect((await call(root, 'GET', first.previewUrl)).status).toBe(404);
+  });
+  it('imports local publication, refreshes it, and clears the configured path on deletion', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'references-api-'));
+    const publish = fs.mkdtempSync(path.join(os.tmpdir(), 'references-publish-'));
+    roots.push(root, publish);
+    fs.mkdirSync(path.join(root, '.axhub/make'), { recursive: true });
+    fs.writeFileSync(path.join(root, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { axurePublishDirectory: publish } }));
+    fs.writeFileSync(path.join(publish, 'home.html'), '<title>Home</title>');
+    const listing = JSON.parse((await call(root, 'GET', '/api/reference-pages?projectId=p')).text);
+    expect(listing.pages).toHaveLength(1);
+    expect(listing.localSource.directory).toBe(fs.realpathSync(publish));
+    expect(listing.pages[0].cacheDirectory).toBe(path.join(root, '.axhub/make/references', listing.pages[0].id));
+    fs.writeFileSync(path.join(publish, 'home.html'), '<title>Updated</title>');
+    const refreshed = JSON.parse((await call(root, 'POST', '/api/reference-pages/sync-local?projectId=p')).text);
+    expect(refreshed.pages[0].id).toBe(listing.pages[0].id);
+    expect(refreshed.pages[0].sourceFingerprint).not.toBe(listing.pages[0].sourceFingerprint);
+    await call(root, 'DELETE', `/api/reference-pages/${listing.pages[0].id}?projectId=p`);
+    const deleted = JSON.parse((await call(root, 'GET', '/api/reference-pages?projectId=p')).text);
+    expect(deleted.pages).toEqual([]);
+    expect(deleted.localSource.directory).toBeUndefined();
+    const restored = await call(root, 'POST', '/api/reference-pages/sync-local?projectId=p');
+    expect(restored.status).toBe(200);
+    expect(JSON.parse(restored.text).pages).toHaveLength(0);
+  });
   it('lists and imports HTML with project-scoped preview URL and injected annotation bootstrap', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'references-api-'));
     roots.push(root);

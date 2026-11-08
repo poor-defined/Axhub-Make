@@ -8,6 +8,8 @@ import { normalizeAcpChatProvider, runAcpChatCommand } from './acpChatRunner.ts'
 import { resolveAssistantRuntime } from './assistantRuntime.ts';
 import { getRequestUrl, sendJson } from './http.ts';
 import type { ManagementApiOptions } from './managementApi.ts';
+import { buildAxureOrganizationSkillContext, validateAxurePrdNamingCatalog, type AxureOrganizationSkillContext } from './axureOrganizationSkills.ts';
+import { validateAxurePrdMarkers } from '../common/axurePrdMarkers.ts';
 
 interface Handlers {
   resolveProjectContext: (req: IncomingMessage, res: ServerResponse, options: ManagementApiOptions,
@@ -90,10 +92,22 @@ export function handleAxureTreeOrganizationApi(
   req: IncomingMessage, res: ServerResponse, options: ManagementApiOptions, pathname: string, handlers: Handlers,
 ): boolean {
   if (pathname !== '/api/axure/organize' || req.method !== 'POST') return false;
+  const startedAt = Date.now();
+  const timeoutMs = 10 * 60 * 1000;
+  let timedOut = false;
+  let phase = '读取输入';
+  const recordPhase = (next: string) => {
+    phase = next;
+    const line = `[axure-organization] ${JSON.stringify({ phase, elapsedMs: Date.now() - startedAt })}`;
+    if (options.diagnosticLog) options.diagnosticLog.write(line); else console.info(line);
+  };
   const controller = new AbortController();
   const onClose = () => { if (!res.writableEnded) controller.abort(); };
   res.on('close', onClose);
-  const timer = setTimeout(() => controller.abort(new Error('AI 整理超时，请重试或复制原始结构')), 120_000);
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort(new Error('AI 整理超过 10 分钟总时限'));
+  }, timeoutMs);
   timer.unref?.();
   let inputValidated = false;
   let workspacePath: string | undefined;
@@ -110,7 +124,13 @@ export function handleAxureTreeOrganizationApi(
     const summary = validateAxureTreeSummary(body.summary);
     const conversation = validateAxureOrganizationContext(body.context, summary);
     inputValidated = true;
+    recordPhase('读取 PRD 与技能');
+    let skillContext: AxureOrganizationSkillContext;
+    try { skillContext = buildAxureOrganizationSkillContext(context.project.root, conversation.instructions); }
+    catch (error) { throw new OrganizationError(error instanceof Error ? error.message : '无法读取 PRD 技能资料', 400); }
+    const systemInstructions = [ORGANIZATION_INSTRUCTIONS, skillContext.system].filter(Boolean).join('\n\n');
     const config = handlers.getServerConfigStoreForRequest(options).getConfig({ activeProjectRoot: context.project.root });
+    recordPhase('准备 AI 服务');
     const runtime = await resolveAssistantRuntime({
       projectPath: context.project.root, assistantConfig: config?.assistant,
       autoStart: true, makeOrigin: getRequestUrl(req).origin,
@@ -122,9 +142,11 @@ export function handleAxureTreeOrganizationApi(
     if (!['codex', 'claude', 'opencode'].includes(provider)) throw new OrganizationError('当前 AI 不支持组件树分析模式', 503);
     // Analyze only the supplied snapshot; do not expose project files to this task.
     workspacePath = await mkdtemp(path.join(os.tmpdir(), 'axhub-axure-analysis-'));
+    recordPhase('检查分析模式');
     await requireAnalysisMode(runtime.apiBaseUrl, provider, workspacePath, modeId, controller.signal);
     controller.signal.throwIfAborted();
     activeRun = { apiBaseUrl: runtime.apiBaseUrl, provider, workspacePath, threadId: `axure-tree-${randomUUID()}` };
+    recordPhase('AI 整理');
     const result = await runAcpChatCommand({
       acpApiBaseUrl: runtime.apiBaseUrl,
       provider, threadId: activeRun.threadId,
@@ -132,24 +154,34 @@ export function handleAxureTreeOrganizationApi(
       workspacePath,
       scene: 'axure-tree-organization', permissionMode: 'plan', modeId,
       mcpServers: [], builtinTools: [], tools: {},
-      system: ORGANIZATION_INSTRUCTIONS,
-      prompt: `${ORGANIZATION_INSTRUCTIONS}\n\n以下是本次导出快照的数据：\n${JSON.stringify(summary)}\n\n用户整理要求与上一版参考方案：\n${JSON.stringify(conversation)}`,
+      system: systemInstructions,
+      prompt: `${systemInstructions}\n\n${skillContext.data}\n\n以下是本次导出快照的数据：\n${JSON.stringify(summary)}\n\n用户整理要求与上一版参考方案：\n${JSON.stringify(conversation)}`,
     }, { signal: controller.signal });
     controller.signal.throwIfAborted();
     if (result.runtimeHeaders?.modeId !== modeId || result.runtimeHeaders.warningCount) {
       throw new OrganizationError('AI 未确认所要求的分析模式，请检查服务后重试', 502);
     }
     if (result.toolOutputs.length || result.errors.length) throw new OrganizationError('AI 整理任务未按约定完成，请重试', 502);
+    recordPhase('校验结果');
     const plan = parseAxureTreePlan(result.output);
     validateAxureTreePlanForSummary(summary, plan);
+    validateAxurePrdMarkers(summary, plan);
+    validateAxurePrdNamingCatalog(summary, plan, skillContext.namingCatalog);
+    recordPhase('完成');
     sendJson(res, { plan });
   })().catch((error: unknown) => {
     if (res.writableEnded || res.destroyed) return;
-    const status = controller.signal.aborted ? 504
+    const status = timedOut ? 504 : controller.signal.aborted ? 499
       : error instanceof OrganizationError ? error.statusCode : inputValidated ? 502 : 400;
-    const message = controller.signal.aborted ? 'AI 整理已取消或超时，请重试或复制原始结构'
+    const elapsedMs = Date.now() - startedAt;
+    const message = timedOut ? `AI 整理超过 10 分钟总时限（阶段：${phase}，已等待 ${Math.round(elapsedMs / 1000)} 秒）。请重试，或缩小选区分批整理；原始结构和上一版结果已保留。`
+      : controller.signal.aborted ? '本次 AI 整理已取消：客户端连接已关闭。原始结构和上一版结果已保留。'
       : error instanceof Error ? error.message.slice(0, 500) : 'AI 整理失败';
-    sendJson(res, { error: message, code: 'AXURE_ORGANIZATION_FAILED' }, { status });
+    const code = timedOut ? 'AXURE_ORGANIZATION_TIMEOUT' : controller.signal.aborted ? 'AXURE_ORGANIZATION_CANCELLED' : 'AXURE_ORGANIZATION_FAILED';
+    const diagnostic = { code, phase, elapsedMs, timeoutMs };
+    const line = `[axure-organization] ${JSON.stringify(diagnostic)}`;
+    if (options.diagnosticLog) options.diagnosticLog.write(line); else console.warn(line);
+    sendJson(res, { error: message, ...diagnostic }, { status });
   }).finally(async () => {
     clearTimeout(timer);
     res.off('close', onClose);

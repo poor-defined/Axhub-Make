@@ -1,8 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CommentaryDocumentComponentCapture } from '../../../vendor/axhub-commentary/src/web-editor-types';
-import { createDocumentComponentAction } from '../../../vendor/axhub-commentary/src/core/editor/document-component';
+import { createDocumentComponentAction, createComponentStatesAction } from '../../../vendor/axhub-commentary/src/core/editor/document-component';
 
 describe('component documentation action', () => {
+  it('captures a new-state request from exactly one live element without running the source-page edit action', async () => {
+    const deliver = vi.fn(async () => true);
+    const action = createComponentStatesAction({ getSelectedElements: () => [element], deliver, toast: vi.fn(),
+      getSource: () => ({ title: '来源', url: 'https://example.test/' }),
+      capture: vi.fn(async () => ({ data: 'data:image/png;base64,cGlj', name: 'component.png', width: 100, height: 50 })),
+    });
+    await action(element, '生成登录和未登录状态');
+    expect(deliver).toHaveBeenCalledWith(expect.objectContaining({ title: '资产面板 状态说明', capture: expect.objectContaining({ note: '生成登录和未登录状态' }) }));
+  });
   it('captures pages without a document title using a nonempty source label', async () => {
     const deliver = vi.fn<(capture: CommentaryDocumentComponentCapture) => Promise<boolean>>(async () => true);
     const action = createDocumentComponentAction({

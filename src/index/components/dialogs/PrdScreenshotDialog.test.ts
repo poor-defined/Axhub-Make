@@ -1,0 +1,20 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { afterEach, expect, it, vi } from 'vitest';
+import PrdScreenshotDialog from './PrdScreenshotDialog';
+vi.mock('@/components/ui/dialog', () => ({ Dialog: ({ open, children }: any) => open ? React.createElement('div', {}, children) : null, DialogContent: 'div', DialogHeader: 'div', DialogTitle: 'h2', DialogDescription: 'p', DialogFooter: 'div' }));
+afterEach(() => vi.unstubAllGlobals());
+it('requires screenshot preview and explicit confirmation before replacing attachments', async () => {
+  const fetcher = vi.fn(async (url: string) => Response.json(url.includes('/capture') ? { jobId: 'j', items: [{ asset: 'hero.png', marker: 'hero', page: 'home.html', previewUrl: '/shot.png' }] } : url.includes('/apply') ? { updated: 1, backupDirectory: '/backup' } : { digest: 'd', document: 'configured-prd/PRD.md', viewport: { width: 1920, height: 1080 }, items: [{ asset: 'hero.png', marker: 'hero', pages: ['home.html'] }] }));
+  vi.stubGlobal('fetch', fetcher); let view!: ReactTestRenderer;
+  await act(async () => { view = create(React.createElement(PrdScreenshotDialog, { documentId: 'configured-prd/PRD.md', projectId: 'p', onClose: vi.fn() })); });
+  const button = (label: string) => view.root.findAllByType('button').find(b => b.children.includes(label))!;
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  await act(async () => button('生成截图预览').props.onClick());
+  expect(fetcher.mock.calls.some(([url]) => url.includes('/apply'))).toBe(false);
+  expect(view.root.findByType('img').props.src).toBe('/shot.png');
+  await act(async () => button('确认替换成功截图').props.onClick());
+  expect(fetcher).toHaveBeenLastCalledWith('/api/prd-screenshots/apply?projectId=p', expect.objectContaining({ method: 'POST', body: JSON.stringify({ jobId: 'j' }) }));
+  expect(JSON.stringify(view.toJSON())).toContain('/backup');
+  await act(async () => view.unmount());
+});

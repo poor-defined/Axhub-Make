@@ -5,7 +5,7 @@ export async function requestParentAxureExport(payload: unknown, origin: string)
   return requestParentComponentAction('prepare-axure-export', payload, origin);
 }
 
-export async function requestParentComponentAction(type: 'prepare-axure-export' | 'document-component', payload: unknown, origin: string): Promise<boolean> {
+export async function requestParentComponentAction(type: 'prepare-axure-export' | 'document-component' | 'generate-component-states', payload: unknown, origin: string): Promise<boolean> {
   return requestParentHostToolbarAction({ type, payload } as CommentaryHostToolbarAction, origin);
 }
 

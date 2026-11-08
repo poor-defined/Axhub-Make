@@ -15,6 +15,8 @@ import ComponentDocumentationDialog from '../components/dialogs/ComponentDocumen
 import ReferencePagesPanel from '../components/content/ReferencePagesPanel';
 import ReferencePageView from '../components/content/ReferencePageView';
 import { useComponentDocumentation } from '../domains/documentation/useComponentDocumentation';
+import { useComponentStates } from '../domains/prototype-generation/useComponentStates';
+import ComponentStatesDialog from '../components/dialogs/ComponentStatesDialog';
 import { useReferenceWorkspace } from '../domains/documentation/useReferenceWorkspace';
 import { withPrototypeWireframePolicy } from '../../common/prototypeWireframePolicy';
 import type { SettingsDialogAIContext, SettingsDialogInitialTab } from '../components/SettingsDialog';
@@ -3007,6 +3009,20 @@ export default function IndexPage({
         currentVersionItem: resources.currentVersionItem,
     };
 
+    const componentStates = useComponentStates(workspace.activeProjectId, {
+        promptClient: preferences.annotationPromptClient,
+        model: preferences.annotationModel,
+        onDone: async () => { await workspace.loadData(); },
+        onOpen: (created) => {
+            references.setActive(false);
+            prototypeSpec.close();
+            const refreshed = workspace.data.prototypes.find(item => item.name === created.name);
+            setSelectedItem(refreshed || { name: created.name, displayName: created.displayName, jsUrl: '', specUrl: '', filePath: created.filePath, clientUrl: created.clientUrl, previewUrl: created.clientUrl });
+            setSelectedPrototypePageId(null);
+            setSidebarTab('prototype'); setActiveTab('prototypes'); setViewMode('demo');
+        },
+    });
+
     const mobileProps = {
         loading: workspace.loading,
         items: workspace.data.prototypes,
@@ -3022,6 +3038,9 @@ export default function IndexPage({
 
     return (
         <>
+            <ComponentStatesDialog state={componentStates.state} onEdit={componentStates.session.edit}
+                onGenerate={() => { void componentStates.session.generate(); }} onClose={componentStates.session.close}
+                onOpenPrototype={componentStates.openPrototype} />
             <ComponentDocumentationDialog
                 state={documentation.state}
                 documents={documentation.documents}
@@ -3062,11 +3081,14 @@ export default function IndexPage({
                         selectedId={references.selected?.id}
                         loading={references.loading}
                         error={references.error}
+                        localSource={references.localSource}
                         onSelect={references.setSelected}
                         onImported={references.imported}
+                        onDeleted={references.deleted}
                         onRefresh={references.refresh}
                     />,
                     view: <ReferencePageView
+                        loading={references.loading}
                         key={workspace.activeProjectId || ''}
                         projectId={workspace.activeProjectId || ''}
                         page={references.selected}

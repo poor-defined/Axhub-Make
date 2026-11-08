@@ -12,6 +12,22 @@ vi.mock('@/components/ui/dialog', () => ({
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('Axure tree preview controls', () => {
+  it('selects the PRD skill with slash search and submits an explicit skill token', async () => {
+    const onOrganize = vi.fn();
+    let view!: ReactTestRenderer;
+    await act(async () => { view = create(React.createElement(AxureTreeOrganizationDialog, {
+      state: { phase: 'captured', original: { scene: { items: [] } } },
+      onOrganize, onCancel: vi.fn(), onRetry: vi.fn(), onCopy: vi.fn(),
+    })); });
+    await act(async () => view.root.findByType('textarea').props.onChange({ target: { value: '/PRD' } }));
+    const option = view.root.findByProps({ role: 'option' });
+    expect(JSON.stringify(option.children)).toContain('PRD 功能拆解与命名');
+    await act(async () => option.props.onClick());
+    expect(view.root.findByType('textarea').props.value).toContain('$organize-axure-by-prd');
+    await act(async () => view.root.findByType('form').props.onSubmit({ preventDefault() {} }));
+    expect(onOrganize).toHaveBeenCalledWith('$organize-axure-by-prd');
+    await act(async () => view.unmount());
+  });
   it('allows explicit original copy during analysis and organized copy only after a validated preview', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
     const payload = { scene: { items: [{ id: 'page', name: '订单页', itemType: 2,

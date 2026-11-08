@@ -22,6 +22,7 @@ import { handleMakeClientProjectApi } from './managementApi.makeClient.ts';
 import type { ManagementApiOptions } from './managementApi.ts';
 import { PROTOTYPE_PLACEHOLDER_GUIDE } from './prototypePlaceholderGuide.ts';
 import { scanResourceFiles, type ResourceFileOpenMode } from './resourceFiles.ts';
+import { CONFIGURED_PRD_PREFIX, listConfiguredPrdDocuments, resolveConfiguredPrdDocument, resolveConfiguredPrdAsset } from './configuredPrd.ts';
 
 type ProjectMetadataStore = ReturnType<typeof createProjectMetadataStore>;
 type EffectiveProjectCapabilities = ProjectMetadata['capabilities'] & { lanAccessAllowed: boolean };
@@ -459,7 +460,7 @@ function scanFilesystemDocResources(projectRoot: string): FilesystemDocResource[
 function createProjectResourcesPayload(metadata: ProjectMetadata, projectRoot: string) {
   return {
     prototypes: metadata.resources.prototypes,
-    docs: scanFilesystemDocResources(projectRoot),
+    docs: [...listConfiguredPrdDocuments(projectRoot), ...scanFilesystemDocResources(projectRoot)],
     themes: metadata.resources.themes,
   };
 }
@@ -656,6 +657,7 @@ function resolveProjectDocumentContentFile(projectRoot: string, requestedPath: s
   path: string;
   projectRelativePath: string;
 } | null {
+  if (requestedPath.startsWith(CONFIGURED_PRD_PREFIX)) return resolveConfiguredPrdDocument(projectRoot, requestedPath);
   const projectRelativePath = normalizeProjectDocumentRequestPath(requestedPath);
   if (!projectRelativePath) {
     return null;
@@ -762,6 +764,7 @@ function resolveProjectDocumentPlaceholderAssetFile(
 }
 
 function resolveProjectDocumentAssetFile(projectRoot: string, requestedDocPath: string, requestedAssetPath: string): string | null {
+  if (requestedDocPath.startsWith(CONFIGURED_PRD_PREFIX)) return resolveConfiguredPrdAsset(projectRoot, requestedDocPath, requestedAssetPath);
   const doc = resolveProjectDocumentContentFile(projectRoot, requestedDocPath);
   const assetPath = normalizeProjectDocumentAssetPath(requestedAssetPath);
   if (!doc || !assetPath) {

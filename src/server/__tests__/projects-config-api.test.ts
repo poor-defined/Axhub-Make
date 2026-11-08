@@ -91,6 +91,44 @@ async function startImageApiProbeServer(responseBody: unknown = {
 }
 
 describe('make-server project config APIs', () => {
+  it('persists Axure and PRD paths per project, reloads them, and allows clearing them', async () => {
+    const projectRoot = createTempRoot();
+    const otherRoot = createTempRoot();
+    writeProjectMetadata(projectRoot, { project: { id: 'path-client', name: 'Paths' } });
+    writeProjectMetadata(otherRoot, { project: { id: 'other-path-client', name: 'Other' } });
+    const registryHome = createTempRoot('axhub-path-config-home-');
+    const server = await startRegisteredConfigTestServer(projectRoot, registryHome, 'path-client');
+    const paths = {
+      axurePublishDirectory: '/Users/example/CFD Landing Page/Axure-export',
+      prdDocumentPath: '/Users/example/工作/CFD PRD/CFD PRD.md',
+    };
+    const configUrl = scopeProjectApiUrl(projectRoot, `${server.origin}/api/config`);
+    try {
+      await registerProject(server.origin, otherRoot, 'other-path-client', 'Other');
+      const saved = await fetch(configUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectInfo: paths }),
+      });
+      expect(saved.status).toBe(200);
+      const config = await fetch(configUrl).then(response => response.json());
+      expect(config.projectInfo).toMatchObject(paths);
+      const disk = JSON.parse(fs.readFileSync(path.join(projectRoot, '.axhub/make/axhub.config.json'), 'utf8'));
+      expect(disk.projectInfo).toMatchObject(paths);
+      const other = await fetch(scopeProjectApiUrl(otherRoot, `${server.origin}/api/config`)).then(response => response.json());
+      expect(other.projectInfo.axurePublishDirectory).toBeUndefined();
+      expect(other.projectInfo.prdDocumentPath).toBeUndefined();
+      const cleared = await fetch(configUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectInfo: { axurePublishDirectory: null, prdDocumentPath: null } }),
+      });
+      expect(cleared.status).toBe(200);
+      const reloaded = await fetch(configUrl).then(response => response.json());
+      expect(reloaded.projectInfo).toMatchObject({ axurePublishDirectory: null, prdDocumentPath: null });
+    } finally {
+      await server.close();
+    }
+  });
+
   it('exposes config handling from its domain module', () => {
     expect(handleConfigApi).toBeTypeOf('function');
   });

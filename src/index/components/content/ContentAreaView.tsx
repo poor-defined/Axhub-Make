@@ -1,3 +1,5 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
+import { PreviewIframe } from '@/components/ui/preview-iframe';
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ChevronDown, CircleHelp, Copy, ExternalLink, FileIcon, Globe, ImageIcon, LayoutDashboard, Monitor, Network, PencilRuler, Play, Rocket, SlidersHorizontal, Smartphone, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
@@ -2087,11 +2089,11 @@ function StartGuide({
                         <div className="flex items-center gap-2">
                             <h2 className="text-sm font-semibold text-slate-900">原型案例</h2>
                             {templateCasesLoading ? (
-                                <span className="text-[12px] text-slate-500">加载中...</span>
+                                <span className="inline-block h-3 w-16 motion-safe:animate-pulse rounded bg-slate-100" role="status" aria-label="正在加载模板" />
                             ) : null}
                         </div>
                     </div>
-                    {templateCases.length > 0 ? (
+                    {templateCasesLoading && templateCases.length === 0 ? <PageSkeleton variant="cards" label="正在加载原型案例" /> : templateCases.length > 0 ? (
                         <>
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                 {visibleTemplateCases.map(renderTemplateCaseCard)}
@@ -2117,7 +2119,7 @@ function StartGuide({
                         <div className="flex items-center gap-2">
                             <h2 className="text-sm font-semibold text-slate-900">主题模板</h2>
                             {activeThemeCatalog.loading ? (
-                                <span className="text-[12px] text-slate-500">加载中...</span>
+                                <span className="inline-block h-3 w-16 motion-safe:animate-pulse rounded bg-slate-100" role="status" aria-label="正在加载模板" />
                             ) : null}
                             {activeThemeCatalog.stale ? (
                                 <span className="text-[12px] text-amber-600">正在使用已缓存目录</span>
@@ -2128,7 +2130,7 @@ function StartGuide({
                             <button type="button" className={cn('rounded px-3 py-1 text-[12px] transition', themePlatform === 'mobile' ? 'bg-white font-medium text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800')} aria-pressed={themePlatform === 'mobile'} onClick={() => handleThemePlatformChange('mobile')}>{formatThemePlatformLabel('移动端', themeCatalogs.mobile, activeProjectId)}</button>
                         </div>
                     </div>
-                    {activeThemeCatalog.items.length > 0 ? (
+                    {activeThemeCatalog.loading && activeThemeCatalog.items.length === 0 ? <PageSkeleton variant="cards" label="正在加载主题模板" /> : activeThemeCatalog.items.length > 0 ? (
                         <>
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                 {visibleThemeCases.map(renderThemeCaseCard)}
@@ -2708,7 +2710,7 @@ export default function ContentArea({
         title: string,
         onLoad?: () => void,
     ) => (
-        <iframe
+        <PreviewIframe
             ref={iframeRef}
             key={key}
             src={src}
@@ -2907,10 +2909,11 @@ export default function ContentArea({
 
         return (
             <div className="h-full min-h-0 bg-background">
-                <iframe
+                <PreviewIframe
                     ref={previewIframeRef}
                     key={`${elementIframeKey}-${selectedMarkdownItem.name}`}
                     src={markdownIframeUrl}
+                    skeletonVariant="document"
                     onLoad={handleRawPreviewIframeLoad}
                     className="w-full h-full border-none block bg-background"
                     title={selectedMarkdownItem.displayName}
@@ -2977,7 +2980,7 @@ export default function ContentArea({
                         startServerError={startServerError}
                     />
                 ) : (
-                    <iframe
+                    <PreviewIframe
                         ref={previewIframeRef}
                         key={elementIframeKey}
                         src={themePreviewUrl}
@@ -3028,7 +3031,7 @@ export default function ContentArea({
         return (
             <div className="h-full min-h-0 relative bg-background">
                 <CanvasErrorBoundary resetKey={currentCanvasItem.name}>
-                    <React.Suspense fallback={<div className="flex items-center justify-center h-full text-muted-foreground text-[12px]">加载中...</div>}>
+                    <React.Suspense fallback={<PageSkeleton variant="canvas" label="正在加载画布" />}>
                         <ExcalidrawCanvas
                             canvasName={currentCanvasItem.name}
                             canvasFilePath={currentCanvasFilePath}
@@ -3219,7 +3222,7 @@ export default function ContentArea({
                             </div>
                         </div>
                     ) : previewLayout.single.kind === 'desktop' ? (
-                        <iframe
+                        <PreviewIframe
                             ref={previewIframeRef}
                             key={elementIframeKey}
                             src={primaryIframeUrl}

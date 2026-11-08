@@ -1,3 +1,5 @@
+import { PreviewIframe } from '@/components/ui/preview-iframe';
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +19,7 @@ import {
 interface Props {
   projectId: string;
   page: ReferencePage | null;
+  loading?: boolean;
   onDocumentComponent: (capture: ComponentDocumentationCapture) => void;
   onGeneratePrototype: (prompt: string, targetPath: string) => Promise<boolean>;
 }
@@ -30,6 +33,7 @@ interface PendingGeneration {
 export default function ReferencePageView({
   projectId,
   page,
+  loading = false,
   onDocumentComponent,
   onGeneratePrototype,
 }: Props) {
@@ -50,8 +54,12 @@ export default function ReferencePageView({
     setReady(false);
     setError('');
   }, [page?.id, projectId]);
+  React.useEffect(() => {
+    if (page && !page.htmlFiles.includes(entry)) setEntry(page.entryPath);
+  }, [page?.sourceFingerprint, page?.entryPath, entry]);
   const target = page ? referenceDocumentPath(page, entry) : '';
-  const scope = `${projectId}:${page?.id || ''}:${entry}`;
+  const revision = page?.updatedAt || page?.sourceFingerprint || '';
+  const scope = `${projectId}:${page?.id || ''}:${entry}:${revision}`;
   const currentScope = React.useRef(scope);
   currentScope.current = scope;
   const closeGeneration = React.useCallback(() => {
@@ -219,6 +227,16 @@ export default function ReferencePageView({
         respond(true);
         return;
       }
+      if (data.action?.type === 'generate-component-states') {
+        const payload = data.action.payload;
+        // Opening the host review is safe; only a host-owned confirmation starts AI.
+        const handled = window.dispatchEvent(new CustomEvent('axhub:generate-component-states', { cancelable: true, detail: {
+          ...payload,
+          capture: { ...payload?.capture, source: { title: `${page.title}（${entry}）`, url: page.sourceUrl || new URL(referencePreviewUrl(page, entry), window.location.origin).href } },
+        } }));
+        respond(handled);
+        return;
+      }
       if (data.action?.type === 'send-to-agent') {
         const prompt = data.action.promptText;
         if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 60000) {
@@ -245,6 +263,7 @@ export default function ReferencePageView({
   }, [page, entry, target, scope, projectId, onDocumentComponent]);
   const annotate = () =>
     frame.current?.contentWindow?.postMessage({ type: 'AXHUB_REFERENCE_SELECT_COMPONENT' }, '*');
+  if (!page && loading) return <main className="min-w-0 flex-1"><PageSkeleton label="正在加载本地参考页" /></main>;
   if (!page)
     return (
       <main className="flex flex-1 items-center justify-center bg-muted/10 p-10">
@@ -313,11 +332,11 @@ export default function ReferencePageView({
         </p>
       )}
       {!ready && !error && (
-        <p className="px-4 py-2 text-xs text-muted-foreground">正在加载参考页批注工具…</p>
+        <div className="h-12 border-b"><PageSkeleton variant="list" label="正在加载参考页批注工具" /></div>
       )}
-      <iframe
+      <PreviewIframe
         ref={frame}
-        key={`${projectId}:${page.id}:${entry}:${reload}`}
+        key={`${projectId}:${page.id}:${entry}:${revision}:${reload}`}
         title={page.title}
         className="min-h-0 w-full flex-1 border-0 bg-white"
         src={referencePreviewUrl(page, entry)}

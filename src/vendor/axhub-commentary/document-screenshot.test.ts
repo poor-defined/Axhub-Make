@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { captureElementScreenshot } from '../../../vendor/axhub-commentary/src/core/editor/screenshot';
 const { toPng } = vi.hoisted(() => ({
   toPng: vi.fn(
-    async (_node: HTMLElement, _options: { backgroundColor?: string }) =>
+    async (_node: HTMLElement, _options: { backgroundColor?: string; style?: Partial<CSSStyleDeclaration> }) =>
       'data:image/png;base64,cGlj',
   ),
 }));
@@ -48,6 +48,7 @@ describe('documentation screenshot canvas background', () => {
   it('uses white fallback for an otherwise transparent document canvas', async () => {
     await captureElementScreenshot(setup(), 'component', { fallbackBackgroundColor: '#ffffff' });
     expect(toPng.mock.calls[0][1].backgroundColor).toBe('#ffffff');
+    expect(toPng.mock.calls[0][1].style).toMatchObject({ margin: '0', position: 'relative', left: '0', top: '0' });
   });
   it('preserves a real ancestor background instead of forcing white', async () => {
     await captureElementScreenshot(setup('rgb(20, 30, 40)'), 'component', {

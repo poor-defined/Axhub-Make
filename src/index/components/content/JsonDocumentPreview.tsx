@@ -1,5 +1,6 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronDown, ChevronUp, Copy, Loader2, RotateCw } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Copy, RotateCw } from 'lucide-react';
 import { JsonView, defaultStyles } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
 
@@ -155,7 +156,7 @@ export default function JsonDocumentPreview({ item, projectId }: {
     }, [reloadToken, url]);
 
     if (loading) {
-        return <div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /></div>;
+        return <PageSkeleton variant="document" label="正在加载 JSON 文档" />;
     }
 
     if (error) {

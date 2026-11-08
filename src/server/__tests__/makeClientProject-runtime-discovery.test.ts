@@ -88,8 +88,17 @@ describe('make client runtime discovery', () => {
     expect(fetchSpy).toHaveBeenCalledWith(new URL('/api/health', runtimeOrigin), expect.any(Object));
   });
 
-  it('reuses a discovered running client when ensuring dev and the server info file is missing', async () => {
+  it('reuses a discovered client without replacing the global admin service identity', async () => {
     const projectRoot = createTempRoot();
+    const homeDir = createTempRoot('axhub-admin-home-');
+    const adminServerInfo = {
+      pid: process.pid,
+      port: 53818,
+      host: 'localhost',
+      origin: 'http://localhost:53818',
+      projectRoot: path.join(homeDir, '.axhub', 'make'),
+      startedAt: '2026-05-28T03:54:46.722Z',
+    };
     writeMakeClientMarker(projectRoot);
     writeJson(path.join(projectRoot, 'package.json'), {
       scripts: {
@@ -125,6 +134,8 @@ describe('make client runtime discovery', () => {
     const runCommand = vi.fn();
 
     const result = await ensureMakeClientDevServer(projectRoot, {
+      adminServerInfo,
+      serverInfoHomeDir: homeDir,
       commandRunner: {
         runCommand,
         spawn: spawn as any,
@@ -146,6 +157,7 @@ describe('make client runtime discovery', () => {
     });
     expect(runCommand).not.toHaveBeenCalled();
     expect(spawn).not.toHaveBeenCalled();
+    expect(readServerInfo(projectRoot, 'admin', { homeDir })).toEqual(adminServerInfo);
   });
 
   it('accepts runtime info written with a realpath-equivalent project root after spawning dev', async () => {

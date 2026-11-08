@@ -5,8 +5,18 @@ export interface ReferencePage {
   htmlFiles: string[];
   createdAt: string;
   sourceUrl?: string;
+  sourceDirectory?: string;
+  sourceFingerprint?: string;
+  sourceModifiedAt?: string;
+  updatedAt?: string;
+  cacheDirectory?: string;
   warnings: string[];
   previewUrl: string;
+}
+export interface LocalReferenceStatus {
+  directory?: string;
+  suppressed?: boolean;
+  error?: string;
 }
 export async function referenceRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);

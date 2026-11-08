@@ -17,7 +17,7 @@ import { createPerfMonitor } from '../perf-monitor';
 import { createDesignTokensService } from '../design-tokens';
 import { locateElement, generateCssSelector } from '../locator';
 import { createSelectionExportActions } from './selection-export';
-import { createDocumentComponentAction } from './document-component';
+import { createDocumentComponentAction, createComponentStatesAction } from './document-component';
 import { clearEditorRuntimeRefs, resetEditorTransientState } from './state';
 import { getSelectedElements, getSelectionActionTargets } from './element-selection';
 import type { EditorLifecycleDeps, ExternalEditingElementTarget } from './contracts';
@@ -2029,6 +2029,15 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
             }
             return services.summaries.getSaveRunPromptForElementBlockReason(element);
           },
+          onGenerateComponentStates: options.ui.onGenerateComponentStates ? createComponentStatesAction({
+            getSelectedElements: () => getSelectedElements(state),
+            deliver: options.ui.onGenerateComponentStates,
+            getSelector: element => services.changes.getMetaForElement(element)?.locator.selectors[0] || generateCssSelector(element),
+            capture: (element, name) => captureElementScreenshot(element, name, {
+              fallbackBackgroundColor: '#ffffff', isEditorUi: node => Boolean(state.shadowHost?.isOverlayElement(node)),
+            }),
+            toast: (tone, message) => services.feedback.toast(tone, message),
+          }) : undefined,
           onDocumentComponent: options.ui.onDocumentComponent ? createDocumentComponentAction({
             getSelectedElements: () => getSelectedElements(state),
             deliver: options.ui.onDocumentComponent,

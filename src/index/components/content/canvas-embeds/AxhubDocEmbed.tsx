@@ -1,5 +1,6 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { FileText, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, AlertCircle } from 'lucide-react';
 
 import { ReadOnlyMarkdown } from '../../../../common/markdown/ReadOnlyMarkdown';
 import { logEmbedDebug } from './AxhubWebEmbed';
@@ -108,11 +109,7 @@ function AxhubDocEmbedInner({ url, title, elementId }: AxhubDocEmbedProps) {
 
     if (loading) {
         return (
-            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff', gap: 8 }}>
-                <Loader2 style={{ width: 20, height: 20, color: '#94a3b8', animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: 12, color: '#94a3b8' }}>加载文档中...</span>
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
+            <PageSkeleton variant="document" label="正在加载文档" />
         );
     }
 

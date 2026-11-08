@@ -158,6 +158,7 @@ export interface PropertyPanelOptions {
   getAcpUiConnected?: () => boolean;
   /** Execute a host toolbar action from the inline toolbar/settings surface. */
   onDocumentComponent?: (element: Element, note: string) => void | Promise<void>;
+  onGenerateComponentStates?: (element: Element, note: string) => void | Promise<void>;
   onHostToolbarAction?: (
     action: CommentaryHostToolbarAction,
   ) => CommentaryHostToolbarActionResult | Promise<CommentaryHostToolbarActionResult>;

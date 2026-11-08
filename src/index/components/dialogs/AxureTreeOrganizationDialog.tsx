@@ -5,6 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AXURE_ORGANIZATION_LIMITS, type AxureTreeNode, type AxureTreePayload } from '../../../common/axureTreeOrganization';
 import type { AxureOrganizationState } from '../../domains/export/axureOrganizationSession';
+import { findPromptCardSkillTrigger, filterPromptCardSkills, clearPromptCardSkillTrigger } from '@axhub/commentary/prompt-card-skills';
+import { AXURE_PRD_SKILL } from '../../../common/axureOrganizationSkills';
 
 interface Props {
   state: AxureOrganizationState;
@@ -43,6 +45,16 @@ export default function AxureTreeOrganizationDialog({ state, onCancel, onRetry, 
   const analyzing = state.phase === 'analyzing';
   const copying = state.phase === 'copying';
   const [draft, setDraft] = React.useState('');
+  const [skillsDismissed, setSkillsDismissed] = React.useState(false);
+  const textarea = React.useRef<HTMLTextAreaElement>(null);
+  const trigger = skillsDismissed ? null : findPromptCardSkillTrigger(draft);
+  const skills = trigger ? filterPromptCardSkills(trigger.query, undefined, [{ ...AXURE_PRD_SKILL, prompt: AXURE_PRD_SKILL.token }]) : [];
+  const chooseSkill = () => {
+    const next = `${clearPromptCardSkillTrigger(draft)} ${AXURE_PRD_SKILL.token} `.trimStart();
+    if (next.length <= AXURE_ORGANIZATION_LIMITS.instructionChars) setDraft(next);
+    setSkillsDismissed(true);
+    textarea.current?.focus();
+  };
   const submittedDraft = React.useRef('');
   const inputId = React.useId();
   React.useEffect(() => { submittedDraft.current = ''; setDraft(''); }, [state.original]);
@@ -85,13 +97,25 @@ export default function AxureTreeOrganizationDialog({ state, onCancel, onRetry, 
         </ol>}
         <form onSubmit={submit} className="space-y-2">
           <label htmlFor={inputId} className="block text-sm font-medium">整理要求</label>
-          <Textarea id={inputId} value={draft} onChange={(event) => setDraft(event.target.value)} rows={2}
+          <Textarea ref={textarea} id={inputId} value={draft} onChange={(event) => { setDraft(event.target.value); setSkillsDismissed(false); }} rows={2}
             className="min-h-[64px] resize-y" disabled={analyzing || copying}
             maxLength={AXURE_ORGANIZATION_LIMITS.instructionChars}
-            placeholder="例如：按业务模块分组；按钮使用 btn_ 前缀，分组使用中文命名。可继续补充或修改上一轮要求。"
+            placeholder="输入 / 选择整理技能；例如按 PRD 用户端需求分组，按钮使用 btn_ 前缀。"
             onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing) return;
+              if (trigger && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setSkillsDismissed(true); return; }
+              if (skills.length && event.key === 'Enter' && !event.metaKey && !event.ctrlKey) { event.preventDefault(); chooseSkill(); return; }
               if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && !event.nativeEvent.isComposing) submit(event);
             }} />
+          {trigger && <div className="space-y-2 rounded-md border bg-background p-3" role="listbox" aria-label="选择整理技能">
+            <p className="text-xs text-muted-foreground">选择处理方式 · 点击或按 Enter 应用，Esc 关闭</p>
+            {skills.length ? skills.map(skill => <button type="button" role="option" aria-selected={false} key={skill.id}
+              title={skill.description} onMouseDown={event => event.preventDefault()} onClick={chooseSkill}
+              className="rounded-full border px-3 py-1.5 text-sm hover:bg-accent focus-visible:outline focus-visible:outline-2">
+              {skill.label}
+            </button>) : <p className="text-xs text-muted-foreground">没有匹配的整理技能</p>}
+            {skills.length > 0 && <p className="text-xs leading-5 text-muted-foreground">{AXURE_PRD_SKILL.description}</p>}
+          </div>}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">首次可留空，按业务含义整理。每条最多 {AXURE_ORGANIZATION_LIMITS.instructionChars} 字。</p>
             <div className="flex gap-2">

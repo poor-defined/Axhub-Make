@@ -1,0 +1,51 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, expect, it } from 'vitest';
+import { buildAxureOrganizationSkillContext } from '../axureOrganizationSkills.ts';
+import { previewPrdImageRenames, applyPrdImageRenames } from '../prdImageRenames.ts';
+const roots: string[] = [];
+afterEach(() => roots.splice(0).forEach(root => fs.rmSync(root, { recursive: true, force: true })));
+it('loads only the selected skill with configured PRD user-facing requirements', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'axure-prd-skill-')); roots.push(root);
+  fs.mkdirSync(path.join(root, '.axhub/make'), { recursive: true });
+  const document = path.join(root, 'PRD.md');
+  fs.writeFileSync(document, '# PRD\n## 用户端需求\nF02 首屏\n### 登录\n按钮\n## 后台与配置项\n后台配置 secret');
+  fs.writeFileSync(path.join(root, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { prdDocumentPath: document } }));
+  expect(buildAxureOrganizationSkillContext(root, ['按业务整理'])).toEqual({ system: '', data: '' });
+  const context = buildAxureOrganizationSkillContext(root, ['$organize-axure-by-prd 按F02分组']);
+  expect(context.system).toContain('[prd:');
+  expect(context.system).toContain('重复器');
+  expect(context.data).toContain('F02 首屏');
+  expect(context.data).not.toContain('后台配置 secret');
+});
+it('requires readable PRD configuration instead of guessing missing requirements', () => {
+  expect(() => buildAxureOrganizationSkillContext('/missing-project', ['$organize-axure-by-prd'])).toThrow(/PRD/);
+});
+it('supplies exact attachment markers, including unchanged files and login ordinals, from the rename plan', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'axure-naming-')); roots.push(root);
+  fs.mkdirSync(path.join(root, '.axhub/make'), { recursive: true });
+  const document = path.join(root, 'WEEX PRD.md');
+  fs.writeFileSync(document, '# PRD\n## 用户端需求\n| F02 | 首屏 | ![](a.png) |\n| F04 | 交易品种 | ![](b.png) |\n### 登录逻辑\n| 未登录 | ![](c.png) ![](d.png) |');
+  for (const file of ['a.png', 'b.png', 'c.png', 'd.png']) fs.writeFileSync(path.join(root, file), 'image');
+  fs.writeFileSync(path.join(root, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { prdDocumentPath: document } }));
+  const preview = previewPrdImageRenames(root);
+  const context = buildAxureOrganizationSkillContext(root, ['$organize-axure-by-prd']);
+  for (const item of preview.items) expect(context.data).toContain(path.basename(item.to, '.png'));
+  expect(context.system).toContain('naming-rules.json');
+  applyPrdImageRenames(root, preview.digest);
+  expect(previewPrdImageRenames(root).items).toEqual([]);
+  const after = buildAxureOrganizationSkillContext(root, ['$organize-axure-by-prd']);
+  expect(after.data).toContain('weex-f04-markets');
+  expect(after.data).toContain('weex-login-logged-out-02');
+});
+it('includes shared attachment identities in every PRD that references them', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'axure-shared-naming-')); roots.push(root);
+  fs.mkdirSync(path.join(root, '.axhub/make'), { recursive: true });
+  for (const name of ['CFD PRD.md', 'WEEX PRD.md']) fs.writeFileSync(path.join(root, name), '# PRD\n## 用户端需求\n| F02 | 首屏 | ![](shared.png) |');
+  fs.writeFileSync(path.join(root, 'shared.png'), 'shared image');
+  fs.writeFileSync(path.join(root, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { prdDocumentPath: root } }));
+  const context = buildAxureOrganizationSkillContext(root, ['$organize-axure-by-prd']);
+  expect(context.namingCatalog?.documents).toHaveLength(2);
+  for (const doc of context.namingCatalog!.documents) expect(doc.images).toMatchObject([{ from: 'shared.png', to: 'cfd-f02-hero.png', marker: 'cfd-f02-hero' }]);
+});

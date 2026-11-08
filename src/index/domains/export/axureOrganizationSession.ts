@@ -1,5 +1,6 @@
 import { AXURE_ORGANIZATION_LIMITS, applyAxureTreePlan, buildAxureTreeSummary, validateAxureTreePlan, validateAxureOrganizationContext,
   type AxureOrganizationContext, type AxureTreePayload, type AxureTreePlan, type AxureTreeSummary } from '../../../common/axureTreeOrganization';
+import { validateAxurePrdMarkers } from '../../../common/axurePrdMarkers';
 
 export interface AxureOrganizationTurn {
   instruction: string;
@@ -51,6 +52,7 @@ export function createAxureOrganizationSession(options: SessionOptions) {
       context = validateAxureOrganizationContext(request.context, summary);
       publish({ ...state, instructions: context.instructions });
       const plan = validateAxureTreePlan(await options.analyze(summary, signal, context));
+      validateAxurePrdMarkers(summary, plan);
       if (token !== sequence || signal.aborted) return;
       const organized = applyAxureTreePlan(original, plan);
       const version = (previous.version || 0) + 1;

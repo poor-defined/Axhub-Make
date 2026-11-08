@@ -12450,7 +12450,15 @@ async function captureElementScreenshot(element, fileNameHint, options = {}) {
   const restoreImageUrls = rewriteElementImageUrlsForScreenshot(element);
   const computedStyle = window.getComputedStyle(element);
   const captureStyle = {
-    boxSizing: computedStyle.boxSizing || "border-box"
+    boxSizing: computedStyle.boxSizing || "border-box",
+    // Render the cloned root at the canvas origin. Page margins/fixed offsets
+    // otherwise move the whole component outside its own screenshot bounds.
+    margin: "0",
+    position: "relative",
+    left: "0",
+    top: "0",
+    right: "auto",
+    bottom: "auto"
   };
   try {
     await prepareElementForScreenshot(element);
@@ -12912,6 +12920,13 @@ function getAgentPromptBubbleActionState(options) {
 }
 
 // src/ui/runtime/prompt-card-actions.ts
+function resolveComponentPrototypeDestination(options) {
+  return options.requested && options.generatorAvailable && !options.externalAnnotationMode && options.interactionProfile !== "annotation" && options.interactionProfile !== "text-comment";
+}
+function resolvePromptSubmitShortcut(options) {
+  if (options.isComposing || options.key !== "Enter" || !(options.metaKey || options.ctrlKey)) return null;
+  return options.componentComposer || options.generateNewPrototype ? "send" : "save";
+}
 async function executePromptCardCurrentElementAction(options) {
   const {
     currentTarget,
@@ -12919,6 +12934,11 @@ async function executePromptCardCurrentElementAction(options) {
     onConfirmNote,
     onSendCurrentElementPromptToAgent
   } = options;
+  if (options.generateNewPrototype) {
+    if (!currentTarget || !options.onGenerateComponentStates || !options.note?.trim()) return false;
+    await options.onGenerateComponentStates(currentTarget, options.note);
+    return true;
+  }
   if (!currentTarget || !onSendCurrentElementPromptToAgent) {
     return false;
   }
@@ -12933,6 +12953,84 @@ async function executePromptCardDocumentAction(options) {
   await options.onDocumentComponent(options.currentTarget, options.note);
 }
 
+// src/ui/runtime/component-prompt-footer.tsx
+import { ArrowUpOutlined, LoadingOutlined } from "@ant-design/icons";
+import { Fragment as Fragment3, jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
+function ComponentPromptFooter(props) {
+  const { newPrototype, loading } = props;
+  const actionDisabled = props.disabled || loading;
+  const destinationDisabled = props.selectedElementCount !== 1 || loading;
+  const explanation = props.selectedElementCount !== 1 ? "\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u540E\uFF0C\u53EF\u751F\u6210\u72EC\u7ACB\u72B6\u6001\u9875" : newPrototype ? "\u5728\u72EC\u7ACB\u9875\u9762\u5C55\u793A\u7EC4\u4EF6\u7684\u4E0D\u540C\u72B6\u6001" : "\u8C03\u6574\u5F53\u524D\u9009\u4E2D\u7684\u7EC4\u4EF6";
+  return /* @__PURE__ */ jsxs3("div", { "data-we-component-prompt-footer": "true", style: { flexShrink: 0, padding: "0 12px 12px" }, children: [
+    props.newPrototypeAvailable ? /* @__PURE__ */ jsxs3("div", { "data-we-component-states-option": "true", style: { padding: "0 0 10px" }, children: [
+      /* @__PURE__ */ jsxs3("label", { style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 7,
+        minHeight: 28,
+        fontSize: 12,
+        fontWeight: 500,
+        color: EDITOR_CHROME.textSecondary,
+        cursor: destinationDisabled ? "not-allowed" : "pointer"
+      }, children: [
+        /* @__PURE__ */ jsx3(
+          "input",
+          {
+            type: "checkbox",
+            "aria-label": "\u751F\u6210\u5230\u65B0\u539F\u578B",
+            checked: newPrototype,
+            disabled: destinationDisabled,
+            onChange: (event) => props.onNewPrototypeChange(event.target.checked),
+            style: { margin: 0, width: 15, height: 15, accentColor: EDITOR_CHROME.accent }
+          }
+        ),
+        "\u751F\u6210\u5230\u65B0\u539F\u578B"
+      ] }),
+      /* @__PURE__ */ jsx3("div", { "aria-live": "polite", style: { color: EDITOR_CHROME.textMuted, fontSize: 11, lineHeight: "18px", paddingLeft: 22 }, children: explanation })
+    ] }) : null,
+    /* @__PURE__ */ jsxs3("div", { style: { display: "flex", alignItems: "center", gap: 8, paddingTop: 10, borderTop: `1px solid ${EDITOR_CHROME.border}` }, children: [
+      /* @__PURE__ */ jsx3("div", { style: { display: "flex", alignItems: "center", gap: 2 }, children: props.leadingActions }),
+      /* @__PURE__ */ jsx3("div", { style: { flex: 1 } }),
+      props.actionVisible ? /* @__PURE__ */ jsxs3(Fragment3, { children: [
+        /* @__PURE__ */ jsx3("span", { "aria-hidden": "true", style: { color: EDITOR_CHROME.textMuted, fontSize: 10, whiteSpace: "nowrap" }, children: props.shortcut }),
+        /* @__PURE__ */ jsxs3(
+          "button",
+          {
+            type: "button",
+            "data-we-component-prompt-submit": "true",
+            "aria-label": props.actionTitle,
+            title: `${props.actionTitle} (${props.shortcut})`,
+            disabled: actionDisabled,
+            "aria-busy": loading,
+            onClick: props.onSend,
+            style: {
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              minHeight: 34,
+              padding: "7px 12px",
+              border: "1px solid transparent",
+              borderRadius: 8,
+              background: actionDisabled ? EDITOR_CHROME.surfaceInteractive : EDITOR_CHROME.accent,
+              color: actionDisabled ? EDITOR_CHROME.textMuted : "#fff",
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              cursor: actionDisabled ? "not-allowed" : "pointer"
+            },
+            children: [
+              loading ? /* @__PURE__ */ jsx3(LoadingOutlined, { spin: true }) : /* @__PURE__ */ jsx3(ArrowUpOutlined, {}),
+              loading ? newPrototype ? "\u51C6\u5907\u622A\u56FE\u2026" : "\u5904\u7406\u4E2D\u2026" : newPrototype ? "\u751F\u6210\u72B6\u6001\u9875" : "\u53D1\u9001\u4FEE\u6539"
+            ]
+          }
+        )
+      ] }) : null
+    ] })
+  ] });
+}
+
 // src/ui/runtime/prompt-card-shortcut-label.ts
 function resolvePromptCardCloseActionTitle(platform) {
   const shortcut = platform?.includes("Mac") ? "\u2318 Enter" : "Ctrl + Enter";
@@ -12943,7 +13041,7 @@ function resolvePromptCardCloseActionTitle(platform) {
 import React4 from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button as Button2, Tooltip } from "antd";
-import { LoadingOutlined } from "@ant-design/icons";
+import { LoadingOutlined as LoadingOutlined2 } from "@ant-design/icons";
 
 // src/ui/runtime/popup-container.ts
 var SELECTION_LOCK_ROOT_SELECTOR = '[data-we-selection-lock-root="true"]';
@@ -13019,7 +13117,7 @@ function resolveRuntimePopupContainerFromTrigger(trigger, fallbackContainer) {
 }
 
 // src/ui/runtime/action-buttons.tsx
-import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
+import { jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
 var ICON_ACTION_TONE_STYLES = {
   neutral: {
     color: EDITOR_CHROME.textPrimary
@@ -13038,7 +13136,7 @@ var ICON_ACTION_TONE_STYLES = {
 };
 function SvgIcon(props) {
   const { children, size = ACTION_ICON_SIZE, strokeWidth = ACTION_ICON_STROKE } = props;
-  return /* @__PURE__ */ jsx3(
+  return /* @__PURE__ */ jsx4(
     "svg",
     {
       width: size,
@@ -13047,7 +13145,7 @@ function SvgIcon(props) {
       fill: "none",
       "aria-hidden": "true",
       style: { display: "block" },
-      children: /* @__PURE__ */ jsx3(
+      children: /* @__PURE__ */ jsx4(
         "g",
         {
           stroke: "currentColor",
@@ -13061,17 +13159,17 @@ function SvgIcon(props) {
   );
 }
 function AgentSparkleIcon() {
-  return /* @__PURE__ */ jsx3(SvgIcon, { children: /* @__PURE__ */ jsx3("path", { d: "M8 2.5l1.4 4.1L13.5 8l-4.1 1.4L8 13.5 6.6 9.4 2.5 8l4.1-1.4L8 2.5z" }) });
+  return /* @__PURE__ */ jsx4(SvgIcon, { children: /* @__PURE__ */ jsx4("path", { d: "M8 2.5l1.4 4.1L13.5 8l-4.1 1.4L8 13.5 6.6 9.4 2.5 8l4.1-1.4L8 2.5z" }) });
 }
 function CloseToolIcon() {
-  return /* @__PURE__ */ jsx3("span", { role: "img", "aria-hidden": "true", className: "anticon anticon-close", children: /* @__PURE__ */ jsxs3(SvgIcon, { children: [
-    /* @__PURE__ */ jsx3("path", { d: "M4.5 4.5l7 7" }),
-    /* @__PURE__ */ jsx3("path", { d: "M11.5 4.5l-7 7" })
+  return /* @__PURE__ */ jsx4("span", { role: "img", "aria-hidden": "true", className: "anticon anticon-close", children: /* @__PURE__ */ jsxs4(SvgIcon, { children: [
+    /* @__PURE__ */ jsx4("path", { d: "M4.5 4.5l7 7" }),
+    /* @__PURE__ */ jsx4("path", { d: "M11.5 4.5l-7 7" })
   ] }) });
 }
 function TooltipButton(props) {
   const { title, children, disabled } = props;
-  return /* @__PURE__ */ jsx3(Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx3("span", { style: { display: "inline-flex" }, children: React4.cloneElement(children, { disabled }) }) });
+  return /* @__PURE__ */ jsx4(Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx4("span", { style: { display: "inline-flex" }, children: React4.cloneElement(children, { disabled }) }) });
 }
 function IconActionButton(props) {
   const { title, icon, onClick, disabled, loading, tone = "neutral", style, pressed, label } = props;
@@ -13079,14 +13177,14 @@ function IconActionButton(props) {
   const toneStyle = ICON_ACTION_TONE_STYLES[tone];
   const mobile = isMobileDevice();
   const btnSize = mobile ? Math.max(ACTION_BUTTON_SIZE, 36) : ACTION_BUTTON_SIZE;
-  return /* @__PURE__ */ jsx3(TooltipButton, { title, disabled, children: /* @__PURE__ */ jsx3(
+  return /* @__PURE__ */ jsx4(TooltipButton, { title, disabled, children: /* @__PURE__ */ jsx4(
     Button2,
     {
       size: "small",
       type: "text",
       "aria-label": title,
       "aria-pressed": pressed,
-      icon: loading ? /* @__PURE__ */ jsx3(LoadingOutlined, { spin: true }) : icon,
+      icon: loading ? /* @__PURE__ */ jsx4(LoadingOutlined2, { spin: true }) : icon,
       disabled,
       onClick,
       onMouseEnter: () => setHovered(true),
@@ -13123,7 +13221,7 @@ function AgentToolbarIconButton(props) {
   const color = active && !disabled ? EDITOR_CHROME.accent : defaultColor;
   const background = hovered && !disabled && !active ? awake ? EDITOR_CHROME.hoverSubtle : EDITOR_CHROME.hoverGhost : "transparent";
   const hoverColor = active ? EDITOR_CHROME.accentActive : EDITOR_CHROME.textPrimary;
-  return /* @__PURE__ */ jsx3(TooltipButton, { title, disabled, children: /* @__PURE__ */ jsx3(
+  return /* @__PURE__ */ jsx4(TooltipButton, { title, disabled, children: /* @__PURE__ */ jsx4(
     "button",
     {
       type: "button",
@@ -13150,7 +13248,7 @@ function AgentToolbarIconButton(props) {
         transition: "background-color 220ms ease, color 220ms ease, transform 220ms ease",
         transform: hovered && !disabled ? "translateY(-0.5px)" : "translateY(0)"
       },
-      children: /* @__PURE__ */ jsx3("span", { style: { display: "inline-flex", alignItems: "center", justifyContent: "center" }, children: loading ? /* @__PURE__ */ jsx3(LoadingOutlined, { spin: true }) : icon })
+      children: /* @__PURE__ */ jsx4("span", { style: { display: "inline-flex", alignItems: "center", justifyContent: "center" }, children: loading ? /* @__PURE__ */ jsx4(LoadingOutlined2, { spin: true }) : icon })
     }
   ) });
 }
@@ -13166,7 +13264,7 @@ function AgentToolbarShell(props) {
   const shellBorderColor = EDITOR_CHROME.toolbarShellBorder;
   const shellSurfaceShadow = EDITOR_CHROME.toolbarShellInset;
   const shellShadow = awake ? EDITOR_CHROME.toolbarGlow : EDITOR_CHROME.shadowCompact;
-  return /* @__PURE__ */ jsxs3(
+  return /* @__PURE__ */ jsxs4(
     "div",
     {
       className: "we-runtime-prop-panel__drag-handle",
@@ -13186,7 +13284,7 @@ function AgentToolbarShell(props) {
         ...style
       },
       children: [
-        /* @__PURE__ */ jsx3(
+        /* @__PURE__ */ jsx4(
           "div",
           {
             style: {
@@ -13197,7 +13295,7 @@ function AgentToolbarShell(props) {
             }
           }
         ),
-        /* @__PURE__ */ jsx3(AnimatePresence, { children: connected ? /* @__PURE__ */ jsxs3(
+        /* @__PURE__ */ jsx4(AnimatePresence, { children: connected ? /* @__PURE__ */ jsxs4(
           motion.div,
           {
             initial: { opacity: 0 },
@@ -13212,7 +13310,7 @@ function AgentToolbarShell(props) {
               borderRadius: 999
             },
             children: [
-              /* @__PURE__ */ jsx3(
+              /* @__PURE__ */ jsx4(
                 "div",
                 {
                   className: "we-runtime-toolbar__spinner",
@@ -13222,7 +13320,7 @@ function AgentToolbarShell(props) {
                   }
                 }
               ),
-              /* @__PURE__ */ jsx3(
+              /* @__PURE__ */ jsx4(
                 "div",
                 {
                   className: "we-runtime-toolbar__spinner",
@@ -13237,7 +13335,7 @@ function AgentToolbarShell(props) {
           },
           "toolbar-ring"
         ) : null }),
-        /* @__PURE__ */ jsxs3(
+        /* @__PURE__ */ jsxs4(
           "div",
           {
             style: {
@@ -13257,7 +13355,7 @@ function AgentToolbarShell(props) {
               minWidth: fullWidth ? 0 : "unset"
             },
             children: [
-              /* @__PURE__ */ jsx3(
+              /* @__PURE__ */ jsx4(
                 "div",
                 {
                   ref: dragHandleRef,
@@ -13268,7 +13366,7 @@ function AgentToolbarShell(props) {
                   style: {
                     color: EDITOR_CHROME.textMuted
                   },
-                  children: /* @__PURE__ */ jsxs3(
+                  children: /* @__PURE__ */ jsxs4(
                     "svg",
                     {
                       width: "8",
@@ -13278,12 +13376,12 @@ function AgentToolbarShell(props) {
                       focusable: "false",
                       style: { display: "block", pointerEvents: "none" },
                       children: [
-                        /* @__PURE__ */ jsx3("circle", { cx: "2", cy: "4", r: "1.25" }),
-                        /* @__PURE__ */ jsx3("circle", { cx: "6", cy: "4", r: "1.25" }),
-                        /* @__PURE__ */ jsx3("circle", { cx: "2", cy: "9", r: "1.25" }),
-                        /* @__PURE__ */ jsx3("circle", { cx: "6", cy: "9", r: "1.25" }),
-                        /* @__PURE__ */ jsx3("circle", { cx: "2", cy: "14", r: "1.25" }),
-                        /* @__PURE__ */ jsx3("circle", { cx: "6", cy: "14", r: "1.25" })
+                        /* @__PURE__ */ jsx4("circle", { cx: "2", cy: "4", r: "1.25" }),
+                        /* @__PURE__ */ jsx4("circle", { cx: "6", cy: "4", r: "1.25" }),
+                        /* @__PURE__ */ jsx4("circle", { cx: "2", cy: "9", r: "1.25" }),
+                        /* @__PURE__ */ jsx4("circle", { cx: "6", cy: "9", r: "1.25" }),
+                        /* @__PURE__ */ jsx4("circle", { cx: "2", cy: "14", r: "1.25" }),
+                        /* @__PURE__ */ jsx4("circle", { cx: "6", cy: "14", r: "1.25" })
                       ]
                     }
                   )
@@ -13346,7 +13444,7 @@ function deriveAgentUiState(options) {
 // src/ui/runtime/prompt-image-strip.tsx
 import React5 from "react";
 import { CloseOutlined } from "@ant-design/icons";
-import { jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
+import { jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
 var THUMB_SIZE = 28;
 var PREVIEW_WIDTH = 220;
 var PREVIEW_HEIGHT = 160;
@@ -13355,7 +13453,7 @@ function PromptImageStrip(props) {
   const { images, onRemoveImage, readOnly = false } = props;
   const [hoveredId, setHoveredId] = React5.useState(null);
   if (images.length === 0) return null;
-  return /* @__PURE__ */ jsx4(
+  return /* @__PURE__ */ jsx5(
     "div",
     {
       style: {
@@ -13367,7 +13465,7 @@ function PromptImageStrip(props) {
       children: images.map((image) => {
         const hovered = hoveredId === image.id;
         const canRemove = !readOnly;
-        return /* @__PURE__ */ jsxs4(
+        return /* @__PURE__ */ jsxs5(
           "div",
           {
             onMouseEnter: () => setHoveredId(image.id),
@@ -13378,7 +13476,7 @@ function PromptImageStrip(props) {
               height: THUMB_SIZE
             },
             children: [
-              hovered ? /* @__PURE__ */ jsx4(
+              hovered ? /* @__PURE__ */ jsx5(
                 "div",
                 {
                   style: {
@@ -13398,7 +13496,7 @@ function PromptImageStrip(props) {
                     justifyContent: "center",
                     zIndex: 2
                   },
-                  children: /* @__PURE__ */ jsx4(
+                  children: /* @__PURE__ */ jsx5(
                     "img",
                     {
                       src: image.data,
@@ -13414,7 +13512,7 @@ function PromptImageStrip(props) {
                   )
                 }
               ) : null,
-              /* @__PURE__ */ jsx4(
+              /* @__PURE__ */ jsx5(
                 "button",
                 {
                   type: "button",
@@ -13437,7 +13535,7 @@ function PromptImageStrip(props) {
                     justifyContent: "center",
                     boxShadow: hovered ? EDITOR_CHROME.shadow : "none"
                   },
-                  children: hovered && canRemove ? /* @__PURE__ */ jsx4(CloseOutlined, { style: { fontSize: 12, color: EDITOR_CHROME.textPrimary } }) : /* @__PURE__ */ jsx4(
+                  children: hovered && canRemove ? /* @__PURE__ */ jsx5(CloseOutlined, { style: { fontSize: 12, color: EDITOR_CHROME.textPrimary } }) : /* @__PURE__ */ jsx5(
                     "img",
                     {
                       src: image.data,
@@ -13488,7 +13586,7 @@ import {
   LinkOutlined,
   UpOutlined
 } from "@ant-design/icons";
-import { Fragment as Fragment3, jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
+import { Fragment as Fragment4, jsx as jsx6, jsxs as jsxs6 } from "react/jsx-runtime";
 var TEXT_ALIGN_OPTIONS = [
   { value: "left", label: "\u5DE6" },
   { value: "center", label: "\u4E2D" },
@@ -13648,8 +13746,8 @@ function SizeSection(props) {
     }
   }, [constraintsPresent, target]);
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ jsx5("div", { style: sectionStackStyle, children: /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-      /* @__PURE__ */ jsx5(
+    return /* @__PURE__ */ jsx6("div", { style: sectionStackStyle, children: /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+      /* @__PURE__ */ jsx6(
         LengthField,
         {
           label: "\u5BBD\u5EA6 (px)",
@@ -13660,7 +13758,7 @@ function SizeSection(props) {
           onCommit: (value) => commitLength("width", value)
         }
       ),
-      /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsx6(
         LengthField,
         {
           label: "\u9AD8\u5EA6 (px)",
@@ -13673,10 +13771,10 @@ function SizeSection(props) {
       )
     ] }) });
   }
-  return /* @__PURE__ */ jsxs5("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsxs5("div", { style: modeGridStyle, children: [
-      /* @__PURE__ */ jsx5(Field, { label: "\u5BBD\u5EA6", children: /* @__PURE__ */ jsxs5("div", { style: modeFieldStyle, children: [
-        /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsxs6("div", { style: modeGridStyle, children: [
+      /* @__PURE__ */ jsx6(Field, { label: "\u5BBD\u5EA6", children: /* @__PURE__ */ jsxs6("div", { style: modeFieldStyle, children: [
+        /* @__PURE__ */ jsx6(
           UnitValueInput,
           {
             value: width,
@@ -13686,7 +13784,7 @@ function SizeSection(props) {
             onCommit: (value) => commitLength("width", value)
           }
         ),
-        /* @__PURE__ */ jsx5(
+        /* @__PURE__ */ jsx6(
           Segmented,
           {
             size: "small",
@@ -13707,8 +13805,8 @@ function SizeSection(props) {
           }
         )
       ] }) }),
-      /* @__PURE__ */ jsx5(Field, { label: "\u9AD8\u5EA6", children: /* @__PURE__ */ jsxs5("div", { style: modeFieldStyle, children: [
-        /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsx6(Field, { label: "\u9AD8\u5EA6", children: /* @__PURE__ */ jsxs6("div", { style: modeFieldStyle, children: [
+        /* @__PURE__ */ jsx6(
           UnitValueInput,
           {
             value: height,
@@ -13718,7 +13816,7 @@ function SizeSection(props) {
             onCommit: (value) => commitLength("height", value)
           }
         ),
-        /* @__PURE__ */ jsx5(
+        /* @__PURE__ */ jsx6(
           Segmented,
           {
             size: "small",
@@ -13740,11 +13838,11 @@ function SizeSection(props) {
         )
       ] }) })
     ] }),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       Subsection,
       {
         title: "\u5C3A\u5BF8\u7EA6\u675F",
-        action: /* @__PURE__ */ jsx5(
+        action: /* @__PURE__ */ jsx6(
           SizeConstraintToggleButton,
           {
             expanded: showConstraints,
@@ -13752,9 +13850,9 @@ function SizeSection(props) {
             onClick: () => setShowConstraints((prev) => !prev)
           }
         ),
-        children: showConstraints ? /* @__PURE__ */ jsxs5(Fragment3, { children: [
-          /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-            /* @__PURE__ */ jsx5(
+        children: showConstraints ? /* @__PURE__ */ jsxs6(Fragment4, { children: [
+          /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+            /* @__PURE__ */ jsx6(
               LengthField,
               {
                 label: "\u6700\u5C0F\u5BBD\u5EA6",
@@ -13765,7 +13863,7 @@ function SizeSection(props) {
                 onCommit: (value) => commitLength("min-width", value)
               }
             ),
-            /* @__PURE__ */ jsx5(
+            /* @__PURE__ */ jsx6(
               LengthField,
               {
                 label: "\u6700\u5C0F\u9AD8\u5EA6",
@@ -13777,8 +13875,8 @@ function SizeSection(props) {
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-            /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+            /* @__PURE__ */ jsx6(
               LengthField,
               {
                 label: "\u6700\u5927\u5BBD\u5EA6",
@@ -13789,7 +13887,7 @@ function SizeSection(props) {
                 onCommit: (value) => commitLength("max-width", value)
               }
             ),
-            /* @__PURE__ */ jsx5(
+            /* @__PURE__ */ jsx6(
               LengthField,
               {
                 label: "\u6700\u5927\u9AD8\u5EA6",
@@ -13861,12 +13959,12 @@ function SpacingSection(props) {
     snapshot.paddingRight,
     snapshot.paddingTop
   ]);
-  return /* @__PURE__ */ jsxs5("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx6(
       Subsection,
       {
         title: "\u5916\u8FB9\u8DDD",
-        action: /* @__PURE__ */ jsx5(
+        action: /* @__PURE__ */ jsx6(
           SpacingModeToggleButton,
           {
             expanded: expandedGroups.margin,
@@ -13874,8 +13972,8 @@ function SpacingSection(props) {
             onClick: () => setExpandedGroups((prev) => ({ ...prev, margin: !prev.margin }))
           }
         ),
-        children: expandedGroups.margin ? /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx5(
+        children: expandedGroups.margin ? /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u4E0A",
@@ -13885,7 +13983,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-top", value)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u53F3",
@@ -13895,7 +13993,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-right", value)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u4E0B",
@@ -13905,7 +14003,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-bottom", value)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u5DE6",
@@ -13915,8 +14013,8 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-left", value)
             }
           )
-        ] }) : /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx5(
+        ] }) : /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx6(
             PairLengthField,
             {
               label: "\u6C34\u5E73",
@@ -13927,7 +14025,7 @@ function SpacingSection(props) {
               onCommit: (value) => commitPair(["margin-left", "margin-right"], value)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             PairLengthField,
             {
               label: "\u5782\u76F4",
@@ -13941,11 +14039,11 @@ function SpacingSection(props) {
         ] })
       }
     ),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       Subsection,
       {
         title: "\u5185\u8FB9\u8DDD",
-        action: /* @__PURE__ */ jsx5(
+        action: /* @__PURE__ */ jsx6(
           SpacingModeToggleButton,
           {
             expanded: expandedGroups.padding,
@@ -13953,8 +14051,8 @@ function SpacingSection(props) {
             onClick: () => setExpandedGroups((prev) => ({ ...prev, padding: !prev.padding }))
           }
         ),
-        children: expandedGroups.padding ? /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx5(
+        children: expandedGroups.padding ? /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u4E0A",
@@ -13964,7 +14062,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-top", value)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u53F3",
@@ -13974,7 +14072,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-right", value)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u4E0B",
@@ -13984,7 +14082,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-bottom", value)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u5DE6",
@@ -13994,8 +14092,8 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-left", value)
             }
           )
-        ] }) : /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx5(
+        ] }) : /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx6(
             PairLengthField,
             {
               label: "\u6C34\u5E73",
@@ -14006,7 +14104,7 @@ function SpacingSection(props) {
               onCommit: (value) => commitPair(["padding-left", "padding-right"], value)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             PairLengthField,
             {
               label: "\u5782\u76F4",
@@ -14060,8 +14158,8 @@ function TypographySection(props) {
     snapshot.textDecorationLine
   ]);
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ jsxs5("div", { style: sectionStackStyle, children: [
-      /* @__PURE__ */ jsx5(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ jsx5(
+    return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
+      /* @__PURE__ */ jsx6(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ jsx6(
         Input2,
         {
           value: fontFamily,
@@ -14072,8 +14170,8 @@ function TypographySection(props) {
           onPressEnter: () => commitStyle(transactionManager, target, "font-family", fontFamily.trim(), onRefreshRequest)
         }
       ) }),
-      /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-        /* @__PURE__ */ jsx5(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+        /* @__PURE__ */ jsx6(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ jsx6(
           Select,
           {
             value: fontWeight || "400",
@@ -14086,7 +14184,7 @@ function TypographySection(props) {
             }
           }
         ) }),
-        /* @__PURE__ */ jsx5(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ jsx5(
+        /* @__PURE__ */ jsx6(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ jsx6(
           Select,
           {
             value: textAlign || "left",
@@ -14100,8 +14198,8 @@ function TypographySection(props) {
           }
         ) })
       ] }),
-      /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-        /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+        /* @__PURE__ */ jsx6(
           LengthField,
           {
             label: "\u5B57\u53F7 (px)",
@@ -14112,7 +14210,7 @@ function TypographySection(props) {
             onCommit: (value) => commitStyle(transactionManager, target, "font-size", normalizeLength(value), onRefreshRequest)
           }
         ),
-        /* @__PURE__ */ jsx5(
+        /* @__PURE__ */ jsx6(
           LengthField,
           {
             label: "\u884C\u9AD8 (px)",
@@ -14126,8 +14224,8 @@ function TypographySection(props) {
       ] })
     ] });
   }
-  return /* @__PURE__ */ jsxs5("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx5(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx6(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ jsx6(
       Input2,
       {
         value: fontFamily,
@@ -14138,8 +14236,8 @@ function TypographySection(props) {
         onPressEnter: () => commitStyle(transactionManager, target, "font-family", fontFamily.trim(), onRefreshRequest)
       }
     ) }),
-    /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-      /* @__PURE__ */ jsx5(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+      /* @__PURE__ */ jsx6(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ jsx6(
         Select,
         {
           value: fontWeight || "400",
@@ -14152,7 +14250,7 @@ function TypographySection(props) {
           }
         }
       ) }),
-      /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsx6(
         LengthField,
         {
           label: "\u5B57\u53F7",
@@ -14163,7 +14261,7 @@ function TypographySection(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       ColorField,
       {
         label: "\u6587\u5B57\u989C\u8272",
@@ -14177,8 +14275,8 @@ function TypographySection(props) {
         onValueChange: setColor
       }
     ),
-    /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-      /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+      /* @__PURE__ */ jsx6(
         LengthField,
         {
           label: "\u884C\u9AD8",
@@ -14189,7 +14287,7 @@ function TypographySection(props) {
           onCommit: (value) => commitStyle(transactionManager, target, "line-height", value.trim(), onRefreshRequest)
         }
       ),
-      /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsx6(
         LengthField,
         {
           label: "\u5B57\u95F4\u8DDD",
@@ -14200,7 +14298,7 @@ function TypographySection(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ jsx5(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ jsx6(
       Segmented,
       {
         size: "small",
@@ -14215,7 +14313,7 @@ function TypographySection(props) {
         }
       }
     ) }),
-    /* @__PURE__ */ jsx5(Field, { label: "\u6587\u672C\u88C5\u9970", children: /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(Field, { label: "\u6587\u672C\u88C5\u9970", children: /* @__PURE__ */ jsx6(
       Segmented,
       {
         size: "small",
@@ -14243,8 +14341,8 @@ function AppearanceSection(props) {
   React6.useEffect(() => {
     setOpacity(toOpacityPercent(snapshot.opacity));
   }, [snapshot.opacity]);
-  return /* @__PURE__ */ jsx5("div", { style: sectionStackStyle, children: /* @__PURE__ */ jsx5(Field, { label: "\u900F\u660E\u5EA6", children: /* @__PURE__ */ jsxs5("div", { style: { display: "grid", gridTemplateColumns: "1fr 72px", gap: 10, alignItems: "center" }, children: [
-    /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx6("div", { style: sectionStackStyle, children: /* @__PURE__ */ jsx6(Field, { label: "\u900F\u660E\u5EA6", children: /* @__PURE__ */ jsxs6("div", { style: { display: "grid", gridTemplateColumns: "1fr 72px", gap: 10, alignItems: "center" }, children: [
+    /* @__PURE__ */ jsx6(
       Slider,
       {
         min: 0,
@@ -14261,7 +14359,7 @@ function AppearanceSection(props) {
         )
       }
     ),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       InputNumber,
       {
         min: 0,
@@ -14294,8 +14392,8 @@ function CommonColorsSection(props) {
     setTextColor(snapshot.color);
     setBorderColor(snapshot.borderColor);
   }, [snapshot.backgroundColor, snapshot.backgroundImage, snapshot.borderColor, snapshot.color]);
-  return /* @__PURE__ */ jsxs5("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx6(
       BackgroundFillField,
       {
         label: "\u80CC\u666F\u989C\u8272",
@@ -14308,7 +14406,7 @@ function CommonColorsSection(props) {
         onValueChange: setFillValue
       }
     ),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       ColorField,
       {
         label: "\u6587\u5B57\u989C\u8272",
@@ -14322,7 +14420,7 @@ function CommonColorsSection(props) {
         onValueChange: setTextColor
       }
     ),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       ColorField,
       {
         label: "\u8FB9\u6846\u989C\u8272",
@@ -14449,8 +14547,8 @@ function BorderSection(props) {
     [onRefreshRequest, target, transactionManager]
   );
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ jsxs5("div", { style: sectionStackStyle, children: [
-      /* @__PURE__ */ jsx5(
+    return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
+      /* @__PURE__ */ jsx6(
         LengthField,
         {
           label: "\u8FB9\u6846\u5BBD\u5EA6 (px)",
@@ -14461,7 +14559,7 @@ function BorderSection(props) {
           onCommit: (value) => commitWidthGroup(value)
         }
       ),
-      /* @__PURE__ */ jsx5(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsx6(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ jsx6(
         Select,
         {
           value: borderStyle || "none",
@@ -14474,7 +14572,7 @@ function BorderSection(props) {
           }
         }
       ) }),
-      /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsx6(
         LengthField,
         {
           label: "\u5706\u89D2 (px)",
@@ -14485,7 +14583,7 @@ function BorderSection(props) {
           onCommit: (value) => commitRadiusGroup(value)
         }
       ),
-      /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsx6(
         ColorField,
         {
           label: "\u8FB9\u6846\u989C\u8272",
@@ -14501,8 +14599,8 @@ function BorderSection(props) {
       )
     ] });
   }
-  return /* @__PURE__ */ jsxs5("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx5(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx6(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ jsx6(
       Select,
       {
         value: borderStyle || "none",
@@ -14515,11 +14613,11 @@ function BorderSection(props) {
         }
       }
     ) }),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       Field,
       {
         label: "\u8FB9\u6846\u5BBD\u5EA6",
-        action: /* @__PURE__ */ jsx5(
+        action: /* @__PURE__ */ jsx6(
           AxisModeToggleButton,
           {
             expanded: !widthLinked,
@@ -14527,7 +14625,7 @@ function BorderSection(props) {
             onClick: () => setWidthLinked((prev) => !prev)
           }
         ),
-        children: widthLinked ? /* @__PURE__ */ jsx5(
+        children: widthLinked ? /* @__PURE__ */ jsx6(
           UnitValueInput,
           {
             value: borderWidth,
@@ -14536,8 +14634,8 @@ function BorderSection(props) {
             onChange: setBorderWidth,
             onCommit: (value) => commitWidthGroup(value)
           }
-        ) : /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx5(
+        ) : /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u4E0A",
@@ -14547,7 +14645,7 @@ function BorderSection(props) {
               onCommit: (value) => commitStyle(transactionManager, target, "border-top-width", normalizeLength(value), onRefreshRequest)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u53F3",
@@ -14557,7 +14655,7 @@ function BorderSection(props) {
               onCommit: (value) => commitStyle(transactionManager, target, "border-right-width", normalizeLength(value), onRefreshRequest)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u4E0B",
@@ -14567,7 +14665,7 @@ function BorderSection(props) {
               onCommit: (value) => commitStyle(transactionManager, target, "border-bottom-width", normalizeLength(value), onRefreshRequest)
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u5DE6",
@@ -14580,7 +14678,7 @@ function BorderSection(props) {
         ] })
       }
     ),
-    hideColorField ? null : /* @__PURE__ */ jsx5(
+    hideColorField ? null : /* @__PURE__ */ jsx6(
       ColorField,
       {
         label: "\u8FB9\u6846\u989C\u8272",
@@ -14594,11 +14692,11 @@ function BorderSection(props) {
         onValueChange: setBorderColor
       }
     ),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       Field,
       {
         label: "\u5706\u89D2",
-        action: /* @__PURE__ */ jsx5(
+        action: /* @__PURE__ */ jsx6(
           AxisModeToggleButton,
           {
             expanded: !radiusLinked,
@@ -14606,7 +14704,7 @@ function BorderSection(props) {
             onClick: () => setRadiusLinked((prev) => !prev)
           }
         ),
-        children: radiusLinked ? /* @__PURE__ */ jsx5(
+        children: radiusLinked ? /* @__PURE__ */ jsx6(
           UnitValueInput,
           {
             value: borderRadius,
@@ -14615,8 +14713,8 @@ function BorderSection(props) {
             onChange: setBorderRadius,
             onCommit: (value) => commitRadiusGroup(value)
           }
-        ) : /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx5(
+        ) : /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u5DE6\u4E0A",
@@ -14632,7 +14730,7 @@ function BorderSection(props) {
               )
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u53F3\u4E0A",
@@ -14648,7 +14746,7 @@ function BorderSection(props) {
               )
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u53F3\u4E0B",
@@ -14664,7 +14762,7 @@ function BorderSection(props) {
               )
             }
           ),
-          /* @__PURE__ */ jsx5(
+          /* @__PURE__ */ jsx6(
             LengthField,
             {
               label: "\u5DE6\u4E0B",
@@ -14715,8 +14813,8 @@ function EffectsSection(props) {
     commitStyle(transactionManager, target, "box-shadow", next, onRefreshRequest);
   }, [onRefreshRequest, shadowBlur, shadowColor, shadowSpread, shadowX, shadowY, target, transactionManager]);
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ jsxs5("div", { style: sectionStackStyle, children: [
-      /* @__PURE__ */ jsx5(
+    return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
+      /* @__PURE__ */ jsx6(
         ColorField,
         {
           label: "\u9634\u5F71\u989C\u8272",
@@ -14730,8 +14828,8 @@ function EffectsSection(props) {
           onValueChange: setShadowColor
         }
       ),
-      /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-        /* @__PURE__ */ jsx5(
+      /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+        /* @__PURE__ */ jsx6(
           LengthField,
           {
             label: "\u6A2A\u5411",
@@ -14741,7 +14839,7 @@ function EffectsSection(props) {
             onCommit: () => commitShadow()
           }
         ),
-        /* @__PURE__ */ jsx5(
+        /* @__PURE__ */ jsx6(
           LengthField,
           {
             label: "\u7EB5\u5411",
@@ -14751,7 +14849,7 @@ function EffectsSection(props) {
             onCommit: () => commitShadow()
           }
         ),
-        /* @__PURE__ */ jsx5(
+        /* @__PURE__ */ jsx6(
           LengthField,
           {
             label: "\u6A21\u7CCA",
@@ -14764,8 +14862,8 @@ function EffectsSection(props) {
       ] })
     ] });
   }
-  return /* @__PURE__ */ jsxs5("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx6(
       ColorField,
       {
         label: "\u9634\u5F71\u989C\u8272",
@@ -14779,13 +14877,13 @@ function EffectsSection(props) {
         onValueChange: setShadowColor
       }
     ),
-    /* @__PURE__ */ jsxs5("div", { style: grid2Style, children: [
-      /* @__PURE__ */ jsx5(LengthField, { label: "\u6A2A\u5411", value: shadowX, disabled, onChange: setShadowX, onCommit: () => commitShadow() }),
-      /* @__PURE__ */ jsx5(LengthField, { label: "\u7EB5\u5411", value: shadowY, disabled, onChange: setShadowY, onCommit: () => commitShadow() }),
-      /* @__PURE__ */ jsx5(LengthField, { label: "\u6A21\u7CCA", value: shadowBlur, disabled, onChange: setShadowBlur, onCommit: () => commitShadow() }),
-      /* @__PURE__ */ jsx5(LengthField, { label: "\u6269\u6563", value: shadowSpread, disabled, onChange: setShadowSpread, onCommit: () => commitShadow() })
+    /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
+      /* @__PURE__ */ jsx6(LengthField, { label: "\u6A2A\u5411", value: shadowX, disabled, onChange: setShadowX, onCommit: () => commitShadow() }),
+      /* @__PURE__ */ jsx6(LengthField, { label: "\u7EB5\u5411", value: shadowY, disabled, onChange: setShadowY, onCommit: () => commitShadow() }),
+      /* @__PURE__ */ jsx6(LengthField, { label: "\u6A21\u7CCA", value: shadowBlur, disabled, onChange: setShadowBlur, onCommit: () => commitShadow() }),
+      /* @__PURE__ */ jsx6(LengthField, { label: "\u6269\u6563", value: shadowSpread, disabled, onChange: setShadowSpread, onCommit: () => commitShadow() })
     ] }),
-    /* @__PURE__ */ jsx5(Subsection, { title: "\u9AD8\u7EA7\u9634\u5F71", children: /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(Subsection, { title: "\u9AD8\u7EA7\u9634\u5F71", children: /* @__PURE__ */ jsx6(
       Input2.TextArea,
       {
         autoSize: { minRows: 2, maxRows: 5 },
@@ -14805,9 +14903,9 @@ function EffectsSection(props) {
   ] });
 }
 function Field(props) {
-  return /* @__PURE__ */ jsxs5("div", { style: fieldStyle, children: [
-    /* @__PURE__ */ jsxs5("div", { style: { ...labelStyle, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }, children: [
-      /* @__PURE__ */ jsx5("span", { children: props.label }),
+  return /* @__PURE__ */ jsxs6("div", { style: fieldStyle, children: [
+    /* @__PURE__ */ jsxs6("div", { style: { ...labelStyle, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }, children: [
+      /* @__PURE__ */ jsx6("span", { children: props.label }),
       props.action
     ] }),
     props.children
@@ -14816,21 +14914,21 @@ function Field(props) {
 function AxisModeToggleButton(props) {
   const { expanded, disabled, onClick } = props;
   const title = expanded ? "\u805A\u5408\u7F16\u8F91" : "\u9010\u9879\u7F16\u8F91";
-  return /* @__PURE__ */ jsx5(Tooltip2, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx6(Tooltip2, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx6(
     Button3,
     {
       type: "text",
       size: "small",
       "aria-label": title,
-      icon: expanded ? /* @__PURE__ */ jsx5(FullscreenExitOutlined, {}) : /* @__PURE__ */ jsx5(FullscreenOutlined, {}),
+      icon: expanded ? /* @__PURE__ */ jsx6(FullscreenExitOutlined, {}) : /* @__PURE__ */ jsx6(FullscreenOutlined, {}),
       disabled,
       onClick
     }
   ) });
 }
 function Subsection(props) {
-  return /* @__PURE__ */ jsxs5("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: [
-    /* @__PURE__ */ jsxs5(
+  return /* @__PURE__ */ jsxs6("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: [
+    /* @__PURE__ */ jsxs6(
       "div",
       {
         style: {
@@ -14844,7 +14942,7 @@ function Subsection(props) {
           gap: 8
         },
         children: [
-          /* @__PURE__ */ jsx5("span", { children: props.title }),
+          /* @__PURE__ */ jsx6("span", { children: props.title }),
           props.action
         ]
       }
@@ -14855,14 +14953,14 @@ function Subsection(props) {
 function SpacingModeToggleButton(props) {
   const { expanded, disabled, onClick } = props;
   const title = expanded ? "\u805A\u5408\u7F16\u8F91" : "\u9010\u9879\u7F16\u8F91";
-  return /* @__PURE__ */ jsx5(Tooltip2, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx6(Tooltip2, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx6(
     Button3,
     {
       type: "text",
       size: "small",
       disabled,
       "aria-label": title,
-      icon: expanded ? /* @__PURE__ */ jsx5(FullscreenExitOutlined, {}) : /* @__PURE__ */ jsx5(FullscreenOutlined, {}),
+      icon: expanded ? /* @__PURE__ */ jsx6(FullscreenExitOutlined, {}) : /* @__PURE__ */ jsx6(FullscreenOutlined, {}),
       onClick
     }
   ) });
@@ -14870,7 +14968,7 @@ function SpacingModeToggleButton(props) {
 function SizeConstraintToggleButton(props) {
   const { expanded, disabled, onClick } = props;
   const title = expanded ? "\u9690\u85CF\u6700\u5C0F\u503C\u548C\u6700\u5927\u503C" : "\u663E\u793A\u6700\u5C0F\u503C\u548C\u6700\u5927\u503C";
-  return /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx6(
     Button3,
     {
       type: "text",
@@ -14879,15 +14977,15 @@ function SizeConstraintToggleButton(props) {
       "aria-label": title,
       onClick,
       style: { paddingInline: 4, color: PANEL_TEXT_SECONDARY },
-      children: /* @__PURE__ */ jsxs5("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
-        /* @__PURE__ */ jsx5("span", { children: "Min Max" }),
-        expanded ? /* @__PURE__ */ jsx5(UpOutlined, { style: { fontSize: 10 } }) : /* @__PURE__ */ jsx5(DownOutlined, { style: { fontSize: 10 } })
+      children: /* @__PURE__ */ jsxs6("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
+        /* @__PURE__ */ jsx6("span", { children: "Min Max" }),
+        expanded ? /* @__PURE__ */ jsx6(UpOutlined, { style: { fontSize: 10 } }) : /* @__PURE__ */ jsx6(DownOutlined, { style: { fontSize: 10 } })
       ] })
     }
   );
 }
 function LengthField(props) {
-  return /* @__PURE__ */ jsx5(Field, { label: props.label, children: /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx6(Field, { label: props.label, children: /* @__PURE__ */ jsx6(
     UnitValueInput,
     {
       value: props.value,
@@ -14909,8 +15007,8 @@ function BackgroundFillField(props) {
     onRefreshRequest,
     onValueChange
   } = props;
-  return /* @__PURE__ */ jsx5(Field, { label, children: /* @__PURE__ */ jsxs5("div", { style: colorRowStyle, children: [
-    /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx6(Field, { label, children: /* @__PURE__ */ jsxs6("div", { style: colorRowStyle, children: [
+    /* @__PURE__ */ jsx6(
       ColorPicker,
       {
         mode: ["single", "gradient"],
@@ -14927,10 +15025,10 @@ function BackgroundFillField(props) {
           onValueChange("");
           commitBackgroundFill(transactionManager, target, "", onRefreshRequest);
         },
-        children: /* @__PURE__ */ jsx5(SquareColorTriggerButton, { value })
+        children: /* @__PURE__ */ jsx6(SquareColorTriggerButton, { value })
       }
     ),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       Input2,
       {
         value,
@@ -14949,7 +15047,7 @@ function BackgroundFillField(props) {
         }
       }
     ),
-    tokensService && !isGradientCss(value) ? /* @__PURE__ */ jsx5(
+    tokensService && !isGradientCss(value) ? /* @__PURE__ */ jsx6(
       TokenPickerButton,
       {
         target,
@@ -14965,7 +15063,7 @@ function BackgroundFillField(props) {
   ] }) });
 }
 function PairLengthField(props) {
-  return /* @__PURE__ */ jsx5(Field, { label: props.label, children: /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx6(Field, { label: props.label, children: /* @__PURE__ */ jsx6(
     UnitValueInput,
     {
       value: props.value,
@@ -14994,7 +15092,7 @@ function UnitValueInput(props) {
     [props]
   );
   if (parsed.kind === "raw") {
-    return /* @__PURE__ */ jsx5(
+    return /* @__PURE__ */ jsx6(
       Input2,
       {
         size: "small",
@@ -15023,8 +15121,8 @@ function UnitValueInput(props) {
   const amountPlaceholder = isSpecialUnit ? selectedUnitLabel : props.placeholder;
   const amountInputStyle = isSpecialUnit ? compactValueInputWideStyle : compactValueInputStyle;
   const unitSelectStyle = isSpecialUnit ? compactUnitSelectWideStyle : compactUnitSelectStyle;
-  return /* @__PURE__ */ jsxs5(Space.Compact, { block: true, className: "we-runtime-prop-panel__unit-input", style: unitInputRowStyle, children: [
-    /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsxs6(Space.Compact, { block: true, className: "we-runtime-prop-panel__unit-input", style: unitInputRowStyle, children: [
+    /* @__PURE__ */ jsx6(
       Input2,
       {
         className: "we-runtime-prop-panel__unit-input-amount",
@@ -15039,7 +15137,7 @@ function UnitValueInput(props) {
         onPressEnter: (event) => commitAmountValue(event.currentTarget.value, parsed.unit)
       }
     ),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       Select,
       {
         className: "we-runtime-prop-panel__unit-input-unit",
@@ -15089,8 +15187,8 @@ function ColorField(props) {
     },
     [onRefreshRequest, onValueChange, property, target, transactionManager]
   );
-  return /* @__PURE__ */ jsx5(Field, { label, children: /* @__PURE__ */ jsxs5("div", { style: colorRowStyle, children: [
-    /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx6(Field, { label, children: /* @__PURE__ */ jsxs6("div", { style: colorRowStyle, children: [
+    /* @__PURE__ */ jsx6(
       ColorPicker,
       {
         value: isColorValue(literalValue) ? literalValue : "#ffffff",
@@ -15101,10 +15199,10 @@ function ColorField(props) {
           const nextValue = css || next.toCssString();
           commitValue(nextValue);
         },
-        children: /* @__PURE__ */ jsx5(SquareColorTriggerButton, { value: literalValue })
+        children: /* @__PURE__ */ jsx6(SquareColorTriggerButton, { value: literalValue })
       }
     ),
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       Input2,
       {
         value,
@@ -15115,7 +15213,7 @@ function ColorField(props) {
         onPressEnter: () => commitValue(value.trim())
       }
     ),
-    tokensService ? /* @__PURE__ */ jsx5(
+    tokensService ? /* @__PURE__ */ jsx6(
       TokenPickerButton,
       {
         target,
@@ -15128,7 +15226,7 @@ function ColorField(props) {
         onValueChange
       }
     ) : null,
-    tokenRef && tokensService ? /* @__PURE__ */ jsx5(
+    tokenRef && tokensService ? /* @__PURE__ */ jsx6(
       Button3,
       {
         size: "small",
@@ -15147,14 +15245,14 @@ var SquareColorTriggerButton = React6.forwardRef(
   function SquareColorTriggerButton2(props, ref) {
     const { value, style, ...triggerProps } = props;
     const previewBackground = resolveColorPreviewBackground(value);
-    return /* @__PURE__ */ jsx5(
+    return /* @__PURE__ */ jsx6(
       "span",
       {
         ...triggerProps,
         ref,
         "data-we-prompt-primary-focus-exempt": "true",
         style: { ...squareColorTriggerStyle, ...style },
-        children: /* @__PURE__ */ jsx5(
+        children: /* @__PURE__ */ jsx6(
           "span",
           {
             style: {
@@ -15194,15 +15292,15 @@ function TokenPickerButton(props) {
       return name.includes(keyword) || value.includes(keyword);
     });
   }, [query, tokens]);
-  return /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx6(
     Popover,
     {
       trigger: ["click"],
       open,
       onOpenChange: setOpen,
       getPopupContainer: resolveRuntimePopupContainer,
-      content: /* @__PURE__ */ jsxs5("div", { style: { width: 280, display: "flex", flexDirection: "column", gap: 8 }, children: [
-        /* @__PURE__ */ jsx5(
+      content: /* @__PURE__ */ jsxs6("div", { style: { width: 280, display: "flex", flexDirection: "column", gap: 8 }, children: [
+        /* @__PURE__ */ jsx6(
           Input2,
           {
             size: "small",
@@ -15211,7 +15309,7 @@ function TokenPickerButton(props) {
             onChange: (event) => setQuery(event.target.value)
           }
         ),
-        /* @__PURE__ */ jsx5(
+        /* @__PURE__ */ jsx6(
           "div",
           {
             style: {
@@ -15221,7 +15319,7 @@ function TokenPickerButton(props) {
               maxHeight: 280,
               overflowY: "auto"
             },
-            children: filteredTokens.length > 0 ? filteredTokens.map((entry) => /* @__PURE__ */ jsx5(
+            children: filteredTokens.length > 0 ? filteredTokens.map((entry) => /* @__PURE__ */ jsx6(
               Button3,
               {
                 size: "small",
@@ -15244,16 +15342,16 @@ function TokenPickerButton(props) {
                   setOpen(false);
                   setQuery("");
                 },
-                children: /* @__PURE__ */ jsxs5(Space, { direction: "vertical", size: 0, style: { alignItems: "flex-start" }, children: [
-                  /* @__PURE__ */ jsx5("span", { style: { fontSize: 11, fontWeight: 600, color: PANEL_TEXT_PRIMARY }, children: entry.token.name }),
-                  /* @__PURE__ */ jsx5("span", { style: { fontSize: 10, color: PANEL_TOKEN_NOTE }, children: entry.computedValue })
+                children: /* @__PURE__ */ jsxs6(Space, { direction: "vertical", size: 0, style: { alignItems: "flex-start" }, children: [
+                  /* @__PURE__ */ jsx6("span", { style: { fontSize: 11, fontWeight: 600, color: PANEL_TEXT_PRIMARY }, children: entry.token.name }),
+                  /* @__PURE__ */ jsx6("span", { style: { fontSize: 10, color: PANEL_TOKEN_NOTE }, children: entry.computedValue })
                 ] })
               },
               entry.token.name
-            )) : /* @__PURE__ */ jsx5("div", { style: { fontSize: 11, color: PANEL_TOKEN_NOTE }, children: "\u6CA1\u6709\u5339\u914D\u5230\u8BBE\u8BA1\u4EE4\u724C\u3002" })
+            )) : /* @__PURE__ */ jsx6("div", { style: { fontSize: 11, color: PANEL_TOKEN_NOTE }, children: "\u6CA1\u6709\u5339\u914D\u5230\u8BBE\u8BA1\u4EE4\u724C\u3002" })
           }
         ),
-        currentValue ? /* @__PURE__ */ jsxs5(
+        currentValue ? /* @__PURE__ */ jsxs6(
           Button3,
           {
             size: "small",
@@ -15269,7 +15367,7 @@ function TokenPickerButton(props) {
           }
         ) : null
       ] }),
-      children: /* @__PURE__ */ jsx5(Button3, { size: "small", icon: /* @__PURE__ */ jsx5(LinkOutlined, {}), disabled })
+      children: /* @__PURE__ */ jsx6(Button3, { size: "small", icon: /* @__PURE__ */ jsx6(LinkOutlined, {}), disabled })
     }
   );
 }
@@ -15535,7 +15633,7 @@ import React7 from "react";
 import {
   OverlayScrollbarsComponent
 } from "overlayscrollbars-react";
-import { jsx as jsx6 } from "react/jsx-runtime";
+import { jsx as jsx7 } from "react/jsx-runtime";
 var PROMPT_CARD_SCROLL_OPTIONS = {
   overflow: {
     x: "hidden",
@@ -15607,7 +15705,7 @@ function PromptCardScrollArea(props) {
     event.stopPropagation();
     viewport.scrollTop = nextOffset;
   }, []);
-  return /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx7(
     OverlayScrollbarsComponent,
     {
       ref: rootRef,
@@ -15617,43 +15715,43 @@ function PromptCardScrollArea(props) {
       style: { width: "100%", ...style },
       options: PROMPT_CARD_SCROLL_OPTIONS,
       onWheelCapture: handleWheelCapture,
-      children: /* @__PURE__ */ jsx6("div", { className: "we-runtime-prompt-card__scroll-content", children })
+      children: /* @__PURE__ */ jsx7("div", { className: "we-runtime-prompt-card__scroll-content", children })
     }
   );
 }
 
 // src/ui/runtime/prompt-card-design-editor.tsx
-import { jsx as jsx7, jsxs as jsxs6 } from "react/jsx-runtime";
+import { jsx as jsx8, jsxs as jsxs7 } from "react/jsx-runtime";
 var mergedGroupStackStyle = {
   display: "flex",
   flexDirection: "column",
   gap: 10
 };
 function PromptCardGroupDivider() {
-  return /* @__PURE__ */ jsx7("div", { className: "we-runtime-prompt-card__group-divider", "aria-hidden": "true" });
+  return /* @__PURE__ */ jsx8("div", { className: "we-runtime-prompt-card__group-divider", "aria-hidden": "true" });
 }
 function PromptCardLayoutPanel(props) {
-  return /* @__PURE__ */ jsxs6("div", { style: mergedGroupStackStyle, children: [
-    /* @__PURE__ */ jsx7(SpacingSection, { ...props }),
-    /* @__PURE__ */ jsx7(PromptCardGroupDivider, {}),
-    /* @__PURE__ */ jsx7(SizeSection, { ...props, variant: "prompt-card" })
+  return /* @__PURE__ */ jsxs7("div", { style: mergedGroupStackStyle, children: [
+    /* @__PURE__ */ jsx8(SpacingSection, { ...props }),
+    /* @__PURE__ */ jsx8(PromptCardGroupDivider, {}),
+    /* @__PURE__ */ jsx8(SizeSection, { ...props, variant: "prompt-card" })
   ] });
 }
 function PromptCardTypographyPanel(props) {
-  return /* @__PURE__ */ jsx7(TypographySection, { ...props, variant: "prompt-card" });
+  return /* @__PURE__ */ jsx8(TypographySection, { ...props, variant: "prompt-card" });
 }
 function PromptCardCommonColorsPanel(props) {
-  return /* @__PURE__ */ jsxs6("div", { style: mergedGroupStackStyle, children: [
-    /* @__PURE__ */ jsx7(CommonColorsSection, { ...props }),
-    /* @__PURE__ */ jsx7(PromptCardGroupDivider, {}),
-    /* @__PURE__ */ jsx7(AppearanceSection, { ...props })
+  return /* @__PURE__ */ jsxs7("div", { style: mergedGroupStackStyle, children: [
+    /* @__PURE__ */ jsx8(CommonColorsSection, { ...props }),
+    /* @__PURE__ */ jsx8(PromptCardGroupDivider, {}),
+    /* @__PURE__ */ jsx8(AppearanceSection, { ...props })
   ] });
 }
 function PromptCardBorderEffectsPanel(props) {
-  return /* @__PURE__ */ jsxs6("div", { style: mergedGroupStackStyle, children: [
-    /* @__PURE__ */ jsx7(BorderSection, { ...props, hideColorField: true }),
-    /* @__PURE__ */ jsx7(PromptCardGroupDivider, {}),
-    /* @__PURE__ */ jsx7(EffectsSection, { ...props, variant: "prompt-card" })
+  return /* @__PURE__ */ jsxs7("div", { style: mergedGroupStackStyle, children: [
+    /* @__PURE__ */ jsx8(BorderSection, { ...props, hideColorField: true }),
+    /* @__PURE__ */ jsx8(PromptCardGroupDivider, {}),
+    /* @__PURE__ */ jsx8(EffectsSection, { ...props, variant: "prompt-card" })
   ] });
 }
 var GROUPS = [
@@ -15701,7 +15799,7 @@ function PromptCardDesignEditor(props) {
     });
   }, [defaultGroupId]);
   if (!target || !snapshot) {
-    return /* @__PURE__ */ jsx7("div", { style: { paddingTop: 10 }, children: /* @__PURE__ */ jsx7(
+    return /* @__PURE__ */ jsx8("div", { style: { paddingTop: 10 }, children: /* @__PURE__ */ jsx8(
       Empty2,
       {
         image: Empty2.PRESENTED_IMAGE_SIMPLE,
@@ -15720,9 +15818,9 @@ function PromptCardDesignEditor(props) {
   };
   const activeGroup = GROUPS.find((group) => group.id === activeGroupId) ?? GROUPS[0];
   const ActiveGroupPanel = activeGroup.render;
-  return /* @__PURE__ */ jsxs6("div", { "data-we-prompt-primary-focus-exempt": "true", style: editorShellStyle, children: [
-    /* @__PURE__ */ jsxs6("div", { style: tabStripStyle, children: [
-      /* @__PURE__ */ jsx7(
+  return /* @__PURE__ */ jsxs7("div", { "data-we-prompt-primary-focus-exempt": "true", style: editorShellStyle, children: [
+    /* @__PURE__ */ jsxs7("div", { style: tabStripStyle, children: [
+      /* @__PURE__ */ jsx8(
         Segmented2,
         {
           value: activeGroup.id,
@@ -15733,7 +15831,7 @@ function PromptCardDesignEditor(props) {
           onChange: (value) => setActiveGroupId(String(value))
         }
       ),
-      /* @__PURE__ */ jsx7(
+      /* @__PURE__ */ jsx8(
         Popconfirm,
         {
           title: "\u5220\u9664\u5F53\u524D\u5143\u7D20",
@@ -15744,11 +15842,11 @@ function PromptCardDesignEditor(props) {
           disabled: disabled || !onDeleteElement,
           getPopupContainer: resolveRuntimePopupContainer,
           onConfirm: () => onDeleteElement?.(target),
-          children: /* @__PURE__ */ jsx7("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx7(
+          children: /* @__PURE__ */ jsx8("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx8(
             IconActionButton,
             {
               title: "\u5220\u9664\u5F53\u524D\u5143\u7D20\uFF08Delete / Backspace\uFF09",
-              icon: /* @__PURE__ */ jsx7(DeleteOutlined, {}),
+              icon: /* @__PURE__ */ jsx8(DeleteOutlined, {}),
               tone: "dark",
               disabled: disabled || !onDeleteElement
             }
@@ -15756,12 +15854,12 @@ function PromptCardDesignEditor(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ jsx7(PromptCardScrollArea, { style: contentStyle, children: /* @__PURE__ */ jsx7(ActiveGroupPanel, { ...sectionProps }) })
+    /* @__PURE__ */ jsx8(PromptCardScrollArea, { style: contentStyle, children: /* @__PURE__ */ jsx8(ActiveGroupPanel, { ...sectionProps }) })
   ] });
 }
 
 // src/ui/runtime/prompt-card-view.tsx
-import { Fragment as Fragment4, jsx as jsx8, jsxs as jsxs7 } from "react/jsx-runtime";
+import { Fragment as Fragment5, jsx as jsx9, jsxs as jsxs8 } from "react/jsx-runtime";
 function normalizePromptStyleSummaryLine(line) {
   return line.replace(/^样式\s+/u, "").trim();
 }
@@ -16014,6 +16112,7 @@ var PromptCardView = React9.forwardRef(
       canExportSelectionToDesignTool,
       onExportSelectionToDesignTool,
       onDocumentComponent,
+      onGenerateComponentStates,
       getExportSelectionToDesignToolBlockReason,
       hideExecutionControls = false,
       hideCurrentElementExecutionAction = false,
@@ -16062,6 +16161,8 @@ var PromptCardView = React9.forwardRef(
     } = props;
     const documentSourceMarkdownEditor = options.annotationMarkdownEditorKind === "document-source";
     const isAnnotationSession = interactionProfile === "annotation";
+    const textCommentMode = interactionProfile === "text-comment";
+    const componentComposer = Boolean(onDocumentComponent && !isAnnotationSession && !externalAnnotationMode && !textCommentMode);
     const rootRef = React9.useRef(null);
     const textComposerRef = React9.useRef(null);
     const noteComposerRef = React9.useRef(null);
@@ -16072,6 +16173,14 @@ var PromptCardView = React9.forwardRef(
     const [refreshKey, setRefreshKey] = React9.useState(0);
     const [selectedSkills, setSelectedSkills] = React9.useState([]);
     const [promptDismissed, setPromptDismissed] = React9.useState(false);
+    const [newPrototypeRequested, setGenerateNewPrototype] = React9.useState(false);
+    const generateNewPrototype = resolveComponentPrototypeDestination({
+      requested: newPrototypeRequested,
+      generatorAvailable: Boolean(onGenerateComponentStates),
+      interactionProfile,
+      externalAnnotationMode
+    });
+    React9.useEffect(() => setGenerateNewPrototype(false), [currentTarget, selectedElementCount, isAnnotationSession, externalAnnotationMode, textCommentMode, onGenerateComponentStates]);
     const [externalCommentsToolOpen, setExternalCommentsToolOpen] = React9.useState(true);
     const [hoveredExternalCommentId, setHoveredExternalCommentId] = React9.useState(null);
     const [annotationEditorOpen, setAnnotationEditorOpen] = React9.useState(
@@ -16276,7 +16385,7 @@ var PromptCardView = React9.forwardRef(
     }, []);
     const promptPosition = React9.useMemo(() => {
       if (!currentTarget || !anchorRect || toolMinimized || uiMode !== "bubble-card") return null;
-      const mobileWidth = isMobileDevice() ? Math.max(200, window.innerWidth - 16) : promptCardSize?.width ?? PROMPT_CARD_WIDTH;
+      const mobileWidth = isMobileDevice() ? Math.max(200, window.innerWidth - 16) : promptCardSize?.width ?? (componentComposer ? 360 : PROMPT_CARD_WIDTH);
       return computePromptCardPosition({
         anchorRect,
         cardWidth: mobileWidth,
@@ -16293,6 +16402,7 @@ var PromptCardView = React9.forwardRef(
     }, [
       anchorRect,
       currentTarget,
+      componentComposer,
       promptCardSize,
       propertyPanelEnabled,
       pinnedToTopRight,
@@ -16514,7 +16624,6 @@ var PromptCardView = React9.forwardRef(
       canExportSelectionToDesignTool,
       getExportSelectionToDesignToolBlockReason
     });
-    const textCommentMode = interactionProfile === "text-comment";
     const {
       currentTask: currentAgentTask,
       currentTaskRunning,
@@ -16541,9 +16650,14 @@ var PromptCardView = React9.forwardRef(
       [currentTarget, currentTaskTerminal, onDismissSelection]
     );
     const handlePromptCardClose = React9.useCallback(() => {
+      if (generateNewPrototype) {
+        setPromptDismissed(true);
+        onDismissSelection?.();
+        return;
+      }
       if (dismissTerminalTaskAndSelection()) return;
       void saveAndDismissPromptCard().catch(() => void 0);
-    }, [dismissTerminalTaskAndSelection, saveAndDismissPromptCard]);
+    }, [dismissTerminalTaskAndSelection, saveAndDismissPromptCard, generateNewPrototype, onDismissSelection]);
     const currentTaskSessionHref = currentAgentTask?.sessionUrl ?? (currentAgentTask?.sessionId ? `/session/${currentAgentTask.sessionId}` : "");
     const currentTaskDescription = resolveExternalEditingStatusDescription(
       currentAgentTask,
@@ -16623,7 +16737,10 @@ var PromptCardView = React9.forwardRef(
       onWakeAgent
     ]);
     const handleConfirmSendCurrentElementPrompt = React9.useCallback(async () => {
-      const ready = await wakeAgentForCurrentElementAction();
+      if (sendingCurrentElementPrompt || generateNewPrototype && selectedElementCount !== 1) return;
+      if (componentComposer && (hideCurrentElementExecutionAction || !generateNewPrototype && (!currentElementPromptAction.visible || currentElementPromptAction.disabled))) return;
+      if (generateNewPrototype && !draftNote.trim()) return;
+      const ready = generateNewPrototype || await wakeAgentForCurrentElementAction();
       if (!ready) return;
       setSendingCurrentElementPrompt(true);
       try {
@@ -16631,7 +16748,10 @@ var PromptCardView = React9.forwardRef(
           currentTarget,
           onConfirmText,
           onConfirmNote: onConfirmNoteWithSelectedSkills,
-          onSendCurrentElementPromptToAgent
+          onSendCurrentElementPromptToAgent,
+          generateNewPrototype,
+          note: [draftNote, ...selectedSkills.map((skill) => skill.prompt)].filter(Boolean).join("\n\n"),
+          onGenerateComponentStates
         });
         if (sent) {
           clearSelectedSkills();
@@ -16642,32 +16762,51 @@ var PromptCardView = React9.forwardRef(
       }
     }, [
       clearSelectedSkills,
+      componentComposer,
+      hideCurrentElementExecutionAction,
+      currentElementPromptAction.visible,
+      currentElementPromptAction.disabled,
       currentTarget,
       onConfirmNoteWithSelectedSkills,
       onConfirmText,
       onSendCurrentElementPromptToAgent,
       selectedSkills,
+      generateNewPrototype,
+      draftNote,
+      onGenerateComponentStates,
+      selectedElementCount,
+      sendingCurrentElementPrompt,
       wakeAgentForCurrentElementAction
     ]);
     const handlePromptKeyDown = React9.useCallback(
       (event) => {
-        if (event.nativeEvent.isComposing) return;
-        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        const isComposing = event.nativeEvent.isComposing;
+        if (isComposing) return;
+        const submit = resolvePromptSubmitShortcut({ key: event.key, metaKey: event.metaKey, ctrlKey: event.ctrlKey, isComposing, componentComposer, generateNewPrototype });
+        if (submit) {
           event.preventDefault();
           event.stopPropagation();
+          if (submit === "send") {
+            void handleConfirmSendCurrentElementPrompt();
+            return;
+          }
           void saveAndCloseNoteComposer();
           return;
         }
         if (event.key !== "Escape") return;
         event.preventDefault();
         event.stopPropagation();
+        if (generateNewPrototype) {
+          handlePromptCardClose();
+          return;
+        }
         if (dismissTerminalTaskAndSelection()) return;
         void saveAndCloseNoteComposer();
       },
-      [dismissTerminalTaskAndSelection, saveAndCloseNoteComposer]
+      [dismissTerminalTaskAndSelection, saveAndCloseNoteComposer, componentComposer, generateNewPrototype, handleConfirmSendCurrentElementPrompt, handlePromptCardClose]
     );
     if (!promptPositionBaseVisible || !currentTarget || !promptPosition || toolMinimized || uiMode !== "bubble-card") {
-      return /* @__PURE__ */ jsx8("div", { ref: rootRef, style: { ...promptCardStyle, visibility: "hidden" } });
+      return /* @__PURE__ */ jsx9("div", { ref: rootRef, style: { ...promptCardStyle, visibility: "hidden" } });
     }
     const promptTarget = currentTarget;
     const handleElementToolAction = async (tool) => {
@@ -16716,14 +16855,20 @@ var PromptCardView = React9.forwardRef(
     const agentSelectionActionTitle = currentTaskRunning ? "\u6DFB\u52A0\u5230 AI \u5BF9\u8BDD" : `\u6DFB\u52A0\u5230 AI \u5BF9\u8BDD${agentSelectionShortcutHint}`;
     const showContextAppendExecutionControls = !hideExecutionControls;
     const showPromptCardExecutionActions = !isAnnotationSession || !annotationMarkdownEditorOpen;
+    const componentName = selectedElementCount > 1 ? `\u5DF2\u9009 ${selectedElementCount} \u4E2A\u5143\u7D20` : currentTarget.getAttribute("aria-label") || currentTarget.getAttribute("data-label") || currentTarget.id || currentTarget.tagName.toLowerCase();
+    const appendContextAction = showContextAppendExecutionControls && agentAvailable ? /* @__PURE__ */ jsx9(IconActionButton, { title: agentSelectionActionTitle, icon: /* @__PURE__ */ jsx9(AgentSparkleIcon, {}), tone: "dark", disabled: !currentTarget, onClick: () => {
+      triggerAgentPromptAction({ currentTarget: promptTarget, onAppendElementToAgentContext: options.onAppendElementToAgentContext });
+    } }) : null;
+    const clearEditsAction = !hideClearEditsAction && canClearCurrentElementEdits ? /* @__PURE__ */ jsx9(IconActionButton, { title: "\u6E05\u7A7A\u6279\u6CE8", icon: /* @__PURE__ */ jsx9(ClearOutlined, {}), tone: "dark", disabled: !currentTarget || sendingCurrentElementPrompt, onClick: () => {
+      clearSelectedSkills();
+      void onClearCurrentElementEdits();
+    } }) : null;
     const notePlaceholder = resolvePromptCardNotePlaceholder(
       isAnnotationSession,
       externalAnnotationMode
     );
-    const promptCardCloseActionTitle = resolvePromptCardCloseActionTitle(
-      globalThis.navigator?.platform
-    );
-    const annotationDeleteAction = !documentSourceMarkdownEditor ? /* @__PURE__ */ jsx8(
+    const promptCardCloseActionTitle = componentComposer ? generateNewPrototype ? "\u5173\u95ED\uFF08Esc\uFF09" : "\u5173\u95ED\u5E76\u4FDD\u5B58\uFF08Esc\uFF09" : resolvePromptCardCloseActionTitle(globalThis.navigator?.platform);
+    const annotationDeleteAction = !documentSourceMarkdownEditor ? /* @__PURE__ */ jsx9(
       Popconfirm2,
       {
         title: "\u5220\u9664\u6807\u6CE8",
@@ -16736,25 +16881,26 @@ var PromptCardView = React9.forwardRef(
         onConfirm: () => {
           void onDeleteCurrentAnnotationNode?.();
         },
-        children: /* @__PURE__ */ jsx8("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx8(
+        children: /* @__PURE__ */ jsx9("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx9(
           IconActionButton,
           {
             title: "\u5220\u9664\u6807\u6CE8",
-            icon: /* @__PURE__ */ jsx8(DeleteOutlined2, {}),
+            icon: /* @__PURE__ */ jsx9(DeleteOutlined2, {}),
             tone: "dark",
             disabled: annotationLoading || annotationSaving || !onDeleteCurrentAnnotationNode
           }
         ) })
       }
     ) : null;
-    const promptCardNode = /* @__PURE__ */ jsxs7(
+    const promptCardNode = /* @__PURE__ */ jsxs8(
       "div",
       {
         ref: rootRef,
         "data-we-selection-lock-root": "true",
         style: {
           ...promptCardStyle,
-          width: isAnnotationSession ? ANNOTATION_EDITOR_PROMPT_CARD_WIDTH : promptCardStyle.width,
+          width: componentComposer ? 360 : isAnnotationSession ? ANNOTATION_EDITOR_PROMPT_CARD_WIDTH : promptCardStyle.width,
+          ...componentComposer ? { padding: 0, gap: 0, borderRadius: 16, background: EDITOR_CHROME.surfaceElevated } : {},
           left: promptPosition.left,
           top: promptPosition.top,
           visibility: promptVisible ? "visible" : "hidden",
@@ -16774,7 +16920,7 @@ var PromptCardView = React9.forwardRef(
           onHoverSelectionSuppressedChange(false);
         },
         children: [
-          /* @__PURE__ */ jsx8("style", { nonce: resolveCspNonce(), children: `
+          /* @__PURE__ */ jsx9("style", { nonce: resolveCspNonce(), children: `
             .we-runtime-prompt-card__textarea,
             .we-runtime-prompt-card__textarea:disabled,
             .we-runtime-prompt-card__textarea textarea,
@@ -16800,30 +16946,47 @@ var PromptCardView = React9.forwardRef(
               border-color: ${EDITOR_CHROME.accent} !important;
               box-shadow: 0 0 0 3px ${EDITOR_CHROME.accentSoft};
             }
+            [data-we-component-composer="true"]:focus-within {
+              border-color: ${EDITOR_CHROME.accent} !important;
+              box-shadow: 0 0 0 3px ${EDITOR_CHROME.accentSoft};
+            }
+            [data-we-component-prompt-footer="true"] button:focus-visible,
+            [data-we-component-prompt-footer="true"] input:focus-visible {
+              outline: 2px solid ${EDITOR_CHROME.accent};
+              outline-offset: 3px;
+            }
+            [data-we-component-prompt-submit="true"]:not(:disabled):hover {
+              background: ${EDITOR_CHROME.accentHover} !important;
+            }
           ` }),
-          /* @__PURE__ */ jsxs7(
+          /* @__PURE__ */ jsxs8(
             "div",
             {
               "data-we-annotation-session-toolbar": "true",
               style: {
                 display: "flex",
-                flexWrap: "wrap",
+                flexWrap: componentComposer ? "nowrap" : "wrap",
                 alignItems: "center",
-                gap: 8
+                gap: 8,
+                ...componentComposer ? { padding: "10px 12px", borderBottom: `1px solid ${EDITOR_CHROME.border}`, flexShrink: 0, gap: 4 } : {}
               },
               children: [
-                selectedElementCount > 1 ? /* @__PURE__ */ jsxs7("span", { "data-we-selection-count": "true", style: { fontSize: 12, color: EDITOR_CHROME.textMuted }, children: [
+                componentComposer ? /* @__PURE__ */ jsxs8("div", { style: { flex: "1 1 80px", minWidth: 0, marginRight: 4 }, children: [
+                  /* @__PURE__ */ jsx9("div", { style: { color: EDITOR_CHROME.textMuted, fontSize: 10, lineHeight: "15px" }, children: "\u7EC4\u4EF6\u6279\u6CE8" }),
+                  /* @__PURE__ */ jsx9("div", { title: componentName, style: { color: EDITOR_CHROME.textPrimary, fontSize: 12, lineHeight: "18px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: componentName })
+                ] }) : null,
+                !componentComposer && selectedElementCount > 1 ? /* @__PURE__ */ jsxs8("span", { "data-we-selection-count": "true", style: { fontSize: 12, color: EDITOR_CHROME.textMuted }, children: [
                   "\u5DF2\u9009 ",
                   selectedElementCount,
                   " \u4E2A\u5143\u7D20"
                 ] }) : null,
-                /* @__PURE__ */ jsxs7(
+                /* @__PURE__ */ jsxs8(
                   "div",
                   {
                     "data-we-prompt-card-tool-actions": "true",
-                    style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 2 },
+                    style: { display: "flex", flexWrap: componentComposer ? "nowrap" : "wrap", alignItems: "center", gap: 2, ...componentComposer ? { flexShrink: 0 } : {} },
                     children: [
-                      isAnnotationSession && showAnnotationMarkdownEditorButton ? /* @__PURE__ */ jsxs7(
+                      isAnnotationSession && showAnnotationMarkdownEditorButton ? /* @__PURE__ */ jsxs8(
                         "div",
                         {
                           "data-we-annotation-mode-tabs": "true",
@@ -16839,7 +17002,7 @@ var PromptCardView = React9.forwardRef(
                             border: `1px solid ${EDITOR_CHROME.border}`
                           },
                           children: [
-                            /* @__PURE__ */ jsx8(
+                            /* @__PURE__ */ jsx9(
                               "button",
                               {
                                 type: "button",
@@ -16864,7 +17027,7 @@ var PromptCardView = React9.forwardRef(
                                 children: "\u7F16\u8F91"
                               }
                             ),
-                            /* @__PURE__ */ jsx8(
+                            /* @__PURE__ */ jsx9(
                               "button",
                               {
                                 type: "button",
@@ -16891,11 +17054,11 @@ var PromptCardView = React9.forwardRef(
                             )
                           ]
                         }
-                      ) : showAnnotationMarkdownEditorButton ? /* @__PURE__ */ jsx8(
+                      ) : showAnnotationMarkdownEditorButton ? /* @__PURE__ */ jsx9(
                         IconActionButton,
                         {
                           title: documentSourceMarkdownEditor ? annotationEditorOpen ? "\u5173\u95ED Markdown \u6E90\u7801\u7F16\u8F91" : "Markdown \u6E90\u7801\u7F16\u8F91" : annotationEditorOpen ? "\u5173\u95ED\u6807\u6CE8\u7F16\u8F91" : "\u6807\u6CE8\u7F16\u8F91",
-                          icon: /* @__PURE__ */ jsx8(FileTextOutlined, {}),
+                          icon: /* @__PURE__ */ jsx9(FileTextOutlined, {}),
                           tone: annotationEditorOpen ? "accent" : "dark",
                           disabled: annotationLoading,
                           onClick: () => {
@@ -16907,11 +17070,11 @@ var PromptCardView = React9.forwardRef(
                           }
                         }
                       ) : null,
-                      showAnnotationDocumentEditButton ? /* @__PURE__ */ jsx8(
+                      showAnnotationDocumentEditButton ? /* @__PURE__ */ jsx9(
                         IconActionButton,
                         {
                           title: "\u6587\u6863\u7F16\u8F91",
-                          icon: /* @__PURE__ */ jsx8(FileTextOutlined, {}),
+                          icon: /* @__PURE__ */ jsx9(FileTextOutlined, {}),
                           tone: "dark",
                           onClick: () => {
                             window.open(annotationDocumentEditUrl, "_blank", "noopener,noreferrer");
@@ -16920,11 +17083,11 @@ var PromptCardView = React9.forwardRef(
                       ) : null,
                       elementTools.map((tool) => {
                         const running = runningElementToolId === tool.id;
-                        return /* @__PURE__ */ jsx8("span", { "data-we-element-tool": tool.id, children: /* @__PURE__ */ jsx8(
+                        return /* @__PURE__ */ jsx9("span", { "data-we-element-tool": tool.id, children: /* @__PURE__ */ jsx9(
                           IconActionButton,
                           {
                             title: running ? `${tool.label}\uFF08\u6B63\u5728\u6253\u5F00\uFF09` : tool.label,
-                            icon: tool.icon === "document" ? /* @__PURE__ */ jsx8(FileTextOutlined, {}) : /* @__PURE__ */ jsx8(ExportOutlined, {}),
+                            icon: tool.icon === "document" ? /* @__PURE__ */ jsx9(FileTextOutlined, {}) : /* @__PURE__ */ jsx9(ExportOutlined, {}),
                             tone: "dark",
                             loading: running,
                             disabled: Boolean(tool.disabled || runningElementToolId),
@@ -16934,38 +17097,39 @@ var PromptCardView = React9.forwardRef(
                           }
                         ) }, tool.id);
                       }),
-                      !isAnnotationSession && !externalAnnotationMode && externalCommentGroups.length > 0 ? /* @__PURE__ */ jsx8("span", { "data-we-external-comments-tool-toggle": "true", children: /* @__PURE__ */ jsx8(
+                      !isAnnotationSession && !externalAnnotationMode && externalCommentGroups.length > 0 ? /* @__PURE__ */ jsx9("span", { "data-we-external-comments-tool-toggle": "true", children: /* @__PURE__ */ jsx9(
                         IconActionButton,
                         {
                           title: externalCommentsToolOpen ? "\u5173\u95ED\u5916\u90E8\u6279\u6CE8" : "\u6253\u5F00\u5916\u90E8\u6279\u6CE8",
-                          icon: /* @__PURE__ */ jsx8(MessageOutlined, {}),
+                          icon: /* @__PURE__ */ jsx9(MessageOutlined, {}),
                           tone: "dark",
                           onClick: () => setExternalCommentsToolOpen((open) => !open)
                         }
                       ) }) : null,
-                      propertyPanelEnabled && styleDesignEnabled && !hasElementTools && !isAnnotationSession && !textCommentMode && !isCurrentAnnotationPanelTarget ? /* @__PURE__ */ jsx8(
+                      propertyPanelEnabled && styleDesignEnabled && !hasElementTools && !isAnnotationSession && !textCommentMode && !isCurrentAnnotationPanelTarget ? /* @__PURE__ */ jsx9(
                         IconActionButton,
                         {
                           title: styleEditorToggleTitle,
-                          icon: /* @__PURE__ */ jsx8(FormatPainterOutlined, {}),
+                          icon: /* @__PURE__ */ jsx9(FormatPainterOutlined, {}),
                           tone: bubbleStyleEditorOpen ? "accent" : "dark",
                           onClick: () => {
                             const nextBubbleStyleEditorOpen = !bubbleStyleEditorOpen;
                             onBubbleStyleEditorOpenChange(nextBubbleStyleEditorOpen);
                             if (nextBubbleStyleEditorOpen) {
+                              setGenerateNewPrototype(false);
                               setAnnotationEditorOpen(false);
                             }
                           }
                         }
                       ) : null,
-                      onDocumentComponent && currentTarget && !textCommentMode ? /* @__PURE__ */ jsx8(
+                      onDocumentComponent && currentTarget && !textCommentMode ? /* @__PURE__ */ jsx9(
                         "button",
                         {
                           type: "button",
                           "data-we-document-component": "true",
                           title: selectedElementCount !== 1 ? "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668" : "\u622A\u56FE\u5E76\u5C06\u8BF4\u660E\u5F15\u5165 PRD \u6587\u6863",
                           disabled: selectedElementCount !== 1,
-                          style: { border: "1px solid #d9d9d9", borderRadius: 6, background: "transparent", color: "inherit", padding: "4px 8px", cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" },
+                          style: { border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 6, background: "transparent", color: EDITOR_CHROME.textSecondary, padding: "4px 8px", fontFamily: "inherit", fontSize: 12, whiteSpace: "nowrap", cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" },
                           onClick: () => {
                             void executePromptCardDocumentAction({
                               currentTarget,
@@ -16978,11 +17142,11 @@ var PromptCardView = React9.forwardRef(
                           children: "\u5F15\u5165\u8BF4\u660E"
                         }
                       ) : null,
-                      axureSelectionExportAction.visible && !textCommentMode ? /* @__PURE__ */ jsx8(
+                      axureSelectionExportAction.visible && !textCommentMode ? /* @__PURE__ */ jsx9(
                         IconActionButton,
                         {
                           title: axureSelectionExportAction.title,
-                          icon: /* @__PURE__ */ jsx8(ExportOutlined, {}),
+                          icon: /* @__PURE__ */ jsx9(ExportOutlined, {}),
                           tone: "dark",
                           disabled: axureSelectionExportAction.disabled,
                           onClick: () => {
@@ -16990,11 +17154,11 @@ var PromptCardView = React9.forwardRef(
                           }
                         }
                       ) : null,
-                      designAdjustmentTool !== "axure" && designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? /* @__PURE__ */ jsx8(
+                      designAdjustmentTool !== "axure" && designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? /* @__PURE__ */ jsx9(
                         IconActionButton,
                         {
                           title: designToolExportAction.title,
-                          icon: /* @__PURE__ */ jsx8(ExportOutlined, {}),
+                          icon: /* @__PURE__ */ jsx9(ExportOutlined, {}),
                           tone: "dark",
                           disabled: designToolExportAction.disabled,
                           onClick: () => {
@@ -17009,59 +17173,33 @@ var PromptCardView = React9.forwardRef(
                     ]
                   }
                 ),
-                /* @__PURE__ */ jsx8("div", { style: { flex: 1 } }),
-                showPromptCardExecutionActions ? /* @__PURE__ */ jsxs7(
+                !componentComposer ? /* @__PURE__ */ jsx9("div", { style: { flex: 1 } }) : null,
+                showPromptCardExecutionActions && !componentComposer ? /* @__PURE__ */ jsxs8(
                   "div",
                   {
                     "data-we-prompt-card-execution-actions": "true",
                     style: { display: "flex", alignItems: "center", gap: 2 },
                     children: [
-                      showContextAppendExecutionControls && agentAvailable ? /* @__PURE__ */ jsx8(
+                      appendContextAction,
+                      !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype) ? /* @__PURE__ */ jsx9(
                         IconActionButton,
                         {
-                          title: agentSelectionActionTitle,
-                          icon: /* @__PURE__ */ jsx8(AgentSparkleIcon, {}),
-                          tone: "dark",
-                          disabled: !currentTarget,
-                          onClick: () => {
-                            triggerAgentPromptAction({
-                              currentTarget: promptTarget,
-                              onAppendElementToAgentContext: options.onAppendElementToAgentContext
-                            });
-                          }
-                        }
-                      ) : null,
-                      !hideCurrentElementExecutionAction && currentElementPromptAction.visible ? /* @__PURE__ */ jsx8(
-                        IconActionButton,
-                        {
-                          title: promptCardSendActionTitle,
-                          label: onDocumentComponent ? "AI \u751F\u6210\u539F\u578B" : void 0,
-                          icon: /* @__PURE__ */ jsx8(CaretRightFilled, {}),
+                          title: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
+                          label: generateNewPrototype ? "\u751F\u6210\u7EC4\u4EF6\u72B6\u6001" : onDocumentComponent ? "AI \u751F\u6210\u539F\u578B" : void 0,
+                          icon: /* @__PURE__ */ jsx9(CaretRightFilled, {}),
                           tone: "accent",
-                          loading: currentElementPromptAction.loading,
-                          disabled: currentElementPromptAction.disabled,
+                          loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
+                          disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
                           onClick: () => {
                             void handleConfirmSendCurrentElementPrompt();
                           }
                         }
                       ) : null,
-                      !hideClearEditsAction && canClearCurrentElementEdits ? /* @__PURE__ */ jsx8(
-                        IconActionButton,
-                        {
-                          title: "\u6E05\u7A7A\u6279\u6CE8",
-                          icon: /* @__PURE__ */ jsx8(ClearOutlined, {}),
-                          tone: "dark",
-                          disabled: !currentTarget,
-                          onClick: () => {
-                            clearSelectedSkills();
-                            void onClearCurrentElementEdits();
-                          }
-                        }
-                      ) : null
+                      clearEditsAction
                     ]
                   }
                 ) : null,
-                /* @__PURE__ */ jsxs7(
+                /* @__PURE__ */ jsxs8(
                   "div",
                   {
                     style: {
@@ -17070,24 +17208,25 @@ var PromptCardView = React9.forwardRef(
                       gap: 2,
                       paddingLeft: 8,
                       marginLeft: 2,
-                      borderLeft: `1px solid ${EDITOR_CHROME.border}`
+                      borderLeft: `1px solid ${EDITOR_CHROME.border}`,
+                      flexShrink: 0
                     },
                     children: [
-                      !isMobileDevice() && onPinnedToTopRightChange ? /* @__PURE__ */ jsx8(
+                      !isMobileDevice() && onPinnedToTopRightChange ? /* @__PURE__ */ jsx9(
                         IconActionButton,
                         {
                           title: pinnedToTopRight ? "\u53D6\u6D88\u56FA\u5B9A\uFF0C\u8DDF\u968F\u5143\u7D20" : "\u56FA\u5B9A\u5230\u53F3\u4E0A\u89D2",
-                          icon: pinnedToTopRight ? /* @__PURE__ */ jsx8(PushpinFilled, {}) : /* @__PURE__ */ jsx8(PushpinOutlined, {}),
+                          icon: pinnedToTopRight ? /* @__PURE__ */ jsx9(PushpinFilled, {}) : /* @__PURE__ */ jsx9(PushpinOutlined, {}),
                           pressed: pinnedToTopRight,
                           tone: pinnedToTopRight ? "accent" : "dark",
                           onClick: () => onPinnedToTopRightChange(!pinnedToTopRight)
                         }
                       ) : null,
-                      /* @__PURE__ */ jsx8(
+                      /* @__PURE__ */ jsx9(
                         IconActionButton,
                         {
                           title: promptCardCloseActionTitle,
-                          icon: /* @__PURE__ */ jsx8(CloseToolIcon, {}),
+                          icon: /* @__PURE__ */ jsx9(CloseToolIcon, {}),
                           tone: "dark",
                           onClick: handlePromptCardClose
                         }
@@ -17098,7 +17237,7 @@ var PromptCardView = React9.forwardRef(
               ]
             }
           ),
-          /* @__PURE__ */ jsxs7(
+          /* @__PURE__ */ jsxs8(
             "div",
             {
               "data-we-prompt-card-content-scroll": "true",
@@ -17108,17 +17247,18 @@ var PromptCardView = React9.forwardRef(
                 flexDirection: "column",
                 minHeight: 0,
                 overflowX: "hidden",
-                overflowY: "auto"
+                overflowY: "auto",
+                ...componentComposer ? { padding: "12px 12px 10px" } : {}
               },
               children: [
-                !isAnnotationSession && !externalAnnotationMode && externalCommentsToolOpen && externalCommentGroups.length > 0 ? /* @__PURE__ */ jsxs7(
+                !isAnnotationSession && !externalAnnotationMode && externalCommentsToolOpen && externalCommentGroups.length > 0 ? /* @__PURE__ */ jsxs8(
                   "section",
                   {
                     "data-we-external-comments-tool": "true",
                     "aria-label": "\u5916\u90E8\u6279\u6CE8",
                     style: externalCommentsToolStyle,
                     children: [
-                      /* @__PURE__ */ jsx8(
+                      /* @__PURE__ */ jsx9(
                         "div",
                         {
                           style: {
@@ -17131,24 +17271,25 @@ var PromptCardView = React9.forwardRef(
                             fontWeight: 600,
                             lineHeight: "16px"
                           },
-                          children: /* @__PURE__ */ jsxs7(
+                          children: /* @__PURE__ */ jsxs8(
                             "div",
                             {
+                              "data-we-component-composer": componentComposer ? "true" : void 0,
                               style: {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 5
                               },
                               children: [
-                                /* @__PURE__ */ jsx8(MessageOutlined, {}),
-                                /* @__PURE__ */ jsx8("span", { children: "\u5916\u90E8\u6279\u6CE8" }),
-                                /* @__PURE__ */ jsx8("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: externalComments.length })
+                                /* @__PURE__ */ jsx9(MessageOutlined, {}),
+                                /* @__PURE__ */ jsx9("span", { children: "\u5916\u90E8\u6279\u6CE8" }),
+                                /* @__PURE__ */ jsx9("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: externalComments.length })
                               ]
                             }
                           )
                         }
                       ),
-                      externalCommentEntries.map(({ group, comment }, entryIndex) => /* @__PURE__ */ jsxs7(
+                      externalCommentEntries.map(({ group, comment }, entryIndex) => /* @__PURE__ */ jsxs8(
                         "div",
                         {
                           "data-we-external-comments-entry": comment.id,
@@ -17164,8 +17305,8 @@ var PromptCardView = React9.forwardRef(
                             ...entryIndex === externalCommentEntries.length - 1 ? { paddingBottom: 7 } : {}
                           },
                           children: [
-                            /* @__PURE__ */ jsxs7("div", { style: { flex: 1, minWidth: 0 }, children: [
-                              /* @__PURE__ */ jsxs7(
+                            /* @__PURE__ */ jsxs8("div", { style: { flex: 1, minWidth: 0 }, children: [
+                              /* @__PURE__ */ jsxs8(
                                 "div",
                                 {
                                   "data-we-external-comments-author-label": "true",
@@ -17187,7 +17328,7 @@ var PromptCardView = React9.forwardRef(
                                   ]
                                 }
                               ),
-                              /* @__PURE__ */ jsx8(
+                              /* @__PURE__ */ jsx9(
                                 "div",
                                 {
                                   style: {
@@ -17201,11 +17342,11 @@ var PromptCardView = React9.forwardRef(
                                 }
                               )
                             ] }),
-                            onDeleteExternalComment ? /* @__PURE__ */ jsx8(
+                            onDeleteExternalComment ? /* @__PURE__ */ jsx9(
                               IconActionButton,
                               {
                                 title: "\u5220\u9664\u8FD9\u6761\u5916\u90E8\u6279\u6CE8",
-                                icon: /* @__PURE__ */ jsx8(DeleteOutlined2, {}),
+                                icon: /* @__PURE__ */ jsx9(DeleteOutlined2, {}),
                                 tone: "dark",
                                 onClick: () => {
                                   void onDeleteExternalComment(comment.id);
@@ -17232,7 +17373,7 @@ var PromptCardView = React9.forwardRef(
                     ]
                   }
                 ) : null,
-                elementToolError ? /* @__PURE__ */ jsx8(
+                elementToolError ? /* @__PURE__ */ jsx9(
                   "div",
                   {
                     role: "alert",
@@ -17248,7 +17389,7 @@ var PromptCardView = React9.forwardRef(
                     children: elementToolError.slice(0, 240)
                   }
                 ) : null,
-                savedNoteMeta?.commenterName ? /* @__PURE__ */ jsxs7(
+                savedNoteMeta?.commenterName ? /* @__PURE__ */ jsxs8(
                   "div",
                   {
                     "data-we-prompt-card-commenter": "true",
@@ -17266,12 +17407,12 @@ var PromptCardView = React9.forwardRef(
                       lineHeight: 1.35
                     },
                     children: [
-                      /* @__PURE__ */ jsx8("span", { style: { color: EDITOR_CHROME.textMuted }, children: "\u6279\u6CE8\u8005" }),
-                      /* @__PURE__ */ jsx8("span", { style: { color: savedNoteMeta.commenterColor || EDITOR_CHROME.textPrimary, fontWeight: 600 }, children: savedNoteMeta.commenterName })
+                      /* @__PURE__ */ jsx9("span", { style: { color: EDITOR_CHROME.textMuted }, children: "\u6279\u6CE8\u8005" }),
+                      /* @__PURE__ */ jsx9("span", { style: { color: savedNoteMeta.commenterColor || EDITOR_CHROME.textPrimary, fontWeight: 600 }, children: savedNoteMeta.commenterName })
                     ]
                   }
                 ) : null,
-                /* @__PURE__ */ jsxs7(
+                /* @__PURE__ */ jsxs8(
                   "div",
                   {
                     ref: noteComposerRef,
@@ -17296,7 +17437,7 @@ var PromptCardView = React9.forwardRef(
                       pointerEvents: inlineTextEditing ? "none" : "auto"
                     },
                     children: [
-                      showPromptTextInput ? /* @__PURE__ */ jsx8("div", { ref: textComposerRef, children: /* @__PURE__ */ jsx8(
+                      showPromptTextInput ? /* @__PURE__ */ jsx9("div", { ref: textComposerRef, children: /* @__PURE__ */ jsx9(
                         Input3,
                         {
                           value: draftText,
@@ -17336,8 +17477,8 @@ var PromptCardView = React9.forwardRef(
                           }
                         }
                       ) }) : null,
-                      showNoteComposer ? /* @__PURE__ */ jsxs7(Fragment4, { children: [
-                        /* @__PURE__ */ jsx8(
+                      showNoteComposer ? /* @__PURE__ */ jsxs8(Fragment5, { children: [
+                        /* @__PURE__ */ jsx9(
                           Dropdown,
                           {
                             open: skillMenuOpen,
@@ -17347,7 +17488,7 @@ var PromptCardView = React9.forwardRef(
                             destroyOnHidden: true,
                             getPopupContainer: resolveRuntimePopupContainer,
                             styles: { root: { zIndex: POPUP_LAYER_Z_INDEX + 40 } },
-                            popupRender: () => /* @__PURE__ */ jsxs7(
+                            popupRender: () => /* @__PURE__ */ jsxs8(
                               "div",
                               {
                                 "data-we-selection-lock-root": "true",
@@ -17376,7 +17517,7 @@ var PromptCardView = React9.forwardRef(
                                   onHoverSelectionSuppressedChange(false);
                                 },
                                 children: [
-                                  /* @__PURE__ */ jsxs7(
+                                  /* @__PURE__ */ jsxs8(
                                     "div",
                                     {
                                       "data-we-prompt-card-skill-menu-header": "true",
@@ -17386,7 +17527,7 @@ var PromptCardView = React9.forwardRef(
                                         gap: 2
                                       },
                                       children: [
-                                        /* @__PURE__ */ jsx8(
+                                        /* @__PURE__ */ jsx9(
                                           "span",
                                           {
                                             style: {
@@ -17398,7 +17539,7 @@ var PromptCardView = React9.forwardRef(
                                             children: "\u9009\u62E9\u5904\u7406\u65B9\u5F0F"
                                           }
                                         ),
-                                        /* @__PURE__ */ jsx8(
+                                        /* @__PURE__ */ jsx9(
                                           "span",
                                           {
                                             style: {
@@ -17412,7 +17553,7 @@ var PromptCardView = React9.forwardRef(
                                       ]
                                     }
                                   ),
-                                  /* @__PURE__ */ jsx8(
+                                  /* @__PURE__ */ jsx9(
                                     "div",
                                     {
                                       "data-we-prompt-card-skill-options": "true",
@@ -17426,14 +17567,14 @@ var PromptCardView = React9.forwardRef(
                                         const selected = selectedSkills.some(
                                           (selectedSkill) => selectedSkill.id === skill.id
                                         );
-                                        return /* @__PURE__ */ jsx8(
+                                        return /* @__PURE__ */ jsx9(
                                           Tooltip3,
                                           {
                                             title: skill.description,
                                             placement: "topLeft",
                                             mouseEnterDelay: 0.15,
                                             getPopupContainer: resolveRuntimePopupContainer,
-                                            children: /* @__PURE__ */ jsx8(
+                                            children: /* @__PURE__ */ jsx9(
                                               "button",
                                               {
                                                 type: "button",
@@ -17474,7 +17615,7 @@ var PromptCardView = React9.forwardRef(
                                 ]
                               }
                             ),
-                            children: /* @__PURE__ */ jsxs7(
+                            children: /* @__PURE__ */ jsxs8(
                               "div",
                               {
                                 style: {
@@ -17489,7 +17630,7 @@ var PromptCardView = React9.forwardRef(
                                   border: `1px solid ${EDITOR_CHROME.borderStrong}`
                                 },
                                 children: [
-                                  selectedSkills.length > 0 ? /* @__PURE__ */ jsx8(
+                                  selectedSkills.length > 0 ? /* @__PURE__ */ jsx9(
                                     "div",
                                     {
                                       style: {
@@ -17498,7 +17639,7 @@ var PromptCardView = React9.forwardRef(
                                         gap: 6,
                                         padding: "8px 8px 0"
                                       },
-                                      children: selectedSkills.map((skill) => /* @__PURE__ */ jsxs7(
+                                      children: selectedSkills.map((skill) => /* @__PURE__ */ jsxs8(
                                         "button",
                                         {
                                           type: "button",
@@ -17520,7 +17661,7 @@ var PromptCardView = React9.forwardRef(
                                           },
                                           onClick: () => handleSkillRemove(skill.id),
                                           children: [
-                                            /* @__PURE__ */ jsx8(
+                                            /* @__PURE__ */ jsx9(
                                               "span",
                                               {
                                                 style: {
@@ -17532,14 +17673,21 @@ var PromptCardView = React9.forwardRef(
                                                 children: skill.label
                                               }
                                             ),
-                                            /* @__PURE__ */ jsx8(CloseOutlined2, { style: { fontSize: 9, color: EDITOR_CHROME.textMuted } })
+                                            /* @__PURE__ */ jsx9(CloseOutlined2, { style: { fontSize: 9, color: EDITOR_CHROME.textMuted } })
                                           ]
                                         },
                                         skill.id
                                       ))
                                     }
                                   ) : null,
-                                  /* @__PURE__ */ jsx8(
+                                  !componentComposer && onGenerateComponentStates && !isAnnotationSession && !externalAnnotationMode && !textCommentMode ? /* @__PURE__ */ jsxs8("div", { "data-we-component-states-option": "true", style: { padding: "7px 10px 2px", fontSize: 12, color: EDITOR_CHROME.textSecondary }, children: [
+                                    /* @__PURE__ */ jsxs8("label", { style: { display: "flex", alignItems: "center", gap: 6, cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" }, children: [
+                                      /* @__PURE__ */ jsx9("input", { type: "checkbox", "aria-label": "\u751F\u6210\u5230\u65B0\u539F\u578B", checked: generateNewPrototype, disabled: selectedElementCount !== 1 || sendingCurrentElementPrompt, style: { accentColor: EDITOR_CHROME.accent }, onChange: (event) => setGenerateNewPrototype(event.target.checked) }),
+                                      "\u751F\u6210\u5230\u65B0\u539F\u578B"
+                                    ] }),
+                                    generateNewPrototype ? /* @__PURE__ */ jsx9("div", { style: { paddingTop: 5, fontSize: 11, lineHeight: 1.6 }, children: "\u586B\u5199\u72B6\u6001\u8981\u6C42\uFF0C\u751F\u6210\u540E\u53EF\u9010\u4E2A\u67E5\u770B\u3001\u6BD4\u8F83\u548C\u6279\u6CE8\u3002" }) : null
+                                  ] }) : null,
+                                  /* @__PURE__ */ jsx9(
                                     Input3.TextArea,
                                     {
                                       className: "we-runtime-prompt-card__textarea",
@@ -17548,16 +17696,16 @@ var PromptCardView = React9.forwardRef(
                                       readOnly: inlineTextEditing,
                                       tabIndex: inlineTextEditing ? -1 : 0,
                                       allowClear: true,
-                                      autoSize: { minRows: 1, maxRows: 4 },
-                                      placeholder: notePlaceholder,
+                                      autoSize: { minRows: componentComposer ? 3 : 1, maxRows: componentComposer ? 6 : 4 },
+                                      placeholder: generateNewPrototype ? "\u4F8B\u5982\uFF1A\u672A\u767B\u5F55\u3001\u5DF2\u767B\u5F55\u3001\u8BED\u8A00\u83DC\u5355\u5C55\u5F00\uFF1B\u8BF4\u660E\u5404\u72B6\u6001\u7684\u53D8\u5316" : notePlaceholder,
                                       variant: "borderless",
                                       styles: {
                                         textarea: {
                                           color: EDITOR_CHROME.textPrimary,
                                           background: "transparent",
-                                          minHeight: 32,
-                                          padding: "6px 10px",
-                                          fontSize: 12.5,
+                                          minHeight: componentComposer ? 76 : 32,
+                                          padding: componentComposer ? "10px 12px" : "6px 10px",
+                                          fontSize: componentComposer ? 13 : 12.5,
                                           lineHeight: 1.55,
                                           caretColor: EDITOR_CHROME.textPrimary
                                         }
@@ -17578,7 +17726,9 @@ var PromptCardView = React9.forwardRef(
                                       onPasteCapture: onNotePasteCapture,
                                       onKeyDown: handlePromptKeyDown,
                                       onBlur: (event) => {
+                                        if (generateNewPrototype) return;
                                         const nextTarget = event.relatedTarget;
+                                        if (componentComposer && nextTarget instanceof Node && rootRef.current?.contains(nextTarget)) return;
                                         if (nextTarget instanceof Node && noteComposerRef.current?.contains(nextTarget)) {
                                           return;
                                         }
@@ -17592,7 +17742,7 @@ var PromptCardView = React9.forwardRef(
                             )
                           }
                         ),
-                        /* @__PURE__ */ jsx8(
+                        /* @__PURE__ */ jsx9(
                           PromptImageStrip,
                           {
                             images,
@@ -17603,9 +17753,9 @@ var PromptCardView = React9.forwardRef(
                           }
                         )
                       ] }) : null,
-                      showAnnotationMarkdownEditor ? /* @__PURE__ */ jsxs7("div", { "data-we-prompt-primary-focus-exempt": "true", style: annotationEditorShellStyle, children: [
-                        /* @__PURE__ */ jsxs7("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
-                          /* @__PURE__ */ jsx8(
+                      showAnnotationMarkdownEditor ? /* @__PURE__ */ jsxs8("div", { "data-we-prompt-primary-focus-exempt": "true", style: annotationEditorShellStyle, children: [
+                        /* @__PURE__ */ jsxs8("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+                          /* @__PURE__ */ jsx9(
                             "span",
                             {
                               style: {
@@ -17621,7 +17771,7 @@ var PromptCardView = React9.forwardRef(
                           ),
                           annotationDeleteAction
                         ] }),
-                        /* @__PURE__ */ jsx8("div", { "data-we-annotation-markdown-editor": "true", style: annotationEditorInputStyle, children: /* @__PURE__ */ jsx8(
+                        /* @__PURE__ */ jsx9("div", { "data-we-annotation-markdown-editor": "true", style: annotationEditorInputStyle, children: /* @__PURE__ */ jsx9(
                           Input3.TextArea,
                           {
                             className: "we-runtime-prompt-card__textarea",
@@ -17664,7 +17814,7 @@ var PromptCardView = React9.forwardRef(
                           }
                         ) })
                       ] }) : null,
-                      showPromptDesignEditor && transactionManager ? /* @__PURE__ */ jsx8(
+                      showPromptDesignEditor && transactionManager ? /* @__PURE__ */ jsx9(
                         PromptCardDesignEditor,
                         {
                           target: currentTarget,
@@ -17678,7 +17828,7 @@ var PromptCardView = React9.forwardRef(
                           onDeleteElement: options.onDeleteCurrentElement
                         }
                       ) : null,
-                      !isAnnotationSession && !bubbleStyleEditorOpen && styleSummaryLines.length > 0 ? /* @__PURE__ */ jsxs7(
+                      !isAnnotationSession && !bubbleStyleEditorOpen && styleSummaryLines.length > 0 ? /* @__PURE__ */ jsxs8(
                         "div",
                         {
                           style: {
@@ -17691,7 +17841,7 @@ var PromptCardView = React9.forwardRef(
                             border: `1px solid ${EDITOR_CHROME.border}`
                           },
                           children: [
-                            /* @__PURE__ */ jsx8(
+                            /* @__PURE__ */ jsx9(
                               "span",
                               {
                                 style: {
@@ -17703,7 +17853,7 @@ var PromptCardView = React9.forwardRef(
                                 children: "\u6837\u5F0F\u7F16\u8F91"
                               }
                             ),
-                            styleSummaryLines.map((line) => /* @__PURE__ */ jsx8(
+                            styleSummaryLines.map((line) => /* @__PURE__ */ jsx9(
                               "span",
                               {
                                 style: {
@@ -17719,7 +17869,7 @@ var PromptCardView = React9.forwardRef(
                           ]
                         }
                       ) : null,
-                      currentAgentTask ? /* @__PURE__ */ jsxs7(
+                      currentAgentTask ? /* @__PURE__ */ jsxs8(
                         "div",
                         {
                           style: {
@@ -17730,8 +17880,8 @@ var PromptCardView = React9.forwardRef(
                             marginTop: -2
                           },
                           children: [
-                            currentAgentTask.status === "completed" ? /* @__PURE__ */ jsx8(CheckCircleFilled, { style: { color: "#22c55e", fontSize: 13, marginTop: 3 } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ jsx8(ExclamationCircleFilled, { style: { color: "#ef4444", fontSize: 13, marginTop: 3 } }) : /* @__PURE__ */ jsx8("div", { style: { marginTop: 2 }, children: /* @__PURE__ */ jsx8(AgentSparkleIcon, {}) }),
-                            /* @__PURE__ */ jsxs7(
+                            currentAgentTask.status === "completed" ? /* @__PURE__ */ jsx9(CheckCircleFilled, { style: { color: "#22c55e", fontSize: 13, marginTop: 3 } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ jsx9(ExclamationCircleFilled, { style: { color: "#ef4444", fontSize: 13, marginTop: 3 } }) : /* @__PURE__ */ jsx9("div", { style: { marginTop: 2 }, children: /* @__PURE__ */ jsx9(AgentSparkleIcon, {}) }),
+                            /* @__PURE__ */ jsxs8(
                               "div",
                               {
                                 style: {
@@ -17742,7 +17892,7 @@ var PromptCardView = React9.forwardRef(
                                   overflow: "hidden"
                                 },
                                 children: [
-                                  /* @__PURE__ */ jsxs7(
+                                  /* @__PURE__ */ jsxs8(
                                     "div",
                                     {
                                       style: {
@@ -17752,7 +17902,7 @@ var PromptCardView = React9.forwardRef(
                                         minWidth: 0
                                       },
                                       children: [
-                                        /* @__PURE__ */ jsx8(
+                                        /* @__PURE__ */ jsx9(
                                           "span",
                                           {
                                             style: {
@@ -17763,11 +17913,11 @@ var PromptCardView = React9.forwardRef(
                                             children: currentAgentTask.status === "pending" ? "AI \u51C6\u5907\u4E2D" : currentAgentTask.status === "created" ? "AI \u6B63\u5728\u4FEE\u6539" : currentAgentTask.status === "completed" ? "AI \u4FEE\u6539\u5B8C\u6210" : "AI \u4FEE\u6539\u5931\u8D25"
                                           }
                                         ),
-                                        currentAgentTask.status === "error" && currentTaskErrorMessage ? /* @__PURE__ */ jsx8(
+                                        currentAgentTask.status === "error" && currentTaskErrorMessage ? /* @__PURE__ */ jsx9(
                                           IconActionButton,
                                           {
                                             title: "\u590D\u5236\u9519\u8BEF\u4FE1\u606F",
-                                            icon: /* @__PURE__ */ jsx8(CopyOutlined, {}),
+                                            icon: /* @__PURE__ */ jsx9(CopyOutlined, {}),
                                             tone: "danger",
                                             style: {
                                               width: 20,
@@ -17786,7 +17936,7 @@ var PromptCardView = React9.forwardRef(
                                       ]
                                     }
                                   ),
-                                  currentTaskDescription ? /* @__PURE__ */ jsxs7(
+                                  currentTaskDescription ? /* @__PURE__ */ jsxs8(
                                     "span",
                                     {
                                       style: {
@@ -17815,11 +17965,32 @@ var PromptCardView = React9.forwardRef(
                 )
               ]
             }
-          )
+          ),
+          componentComposer && showPromptCardExecutionActions ? /* @__PURE__ */ jsx9(
+            ComponentPromptFooter,
+            {
+              newPrototypeAvailable: Boolean(onGenerateComponentStates) && showNoteComposer,
+              newPrototype: generateNewPrototype,
+              onNewPrototypeChange: setGenerateNewPrototype,
+              selectedElementCount,
+              actionVisible: !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype),
+              disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
+              loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
+              actionTitle: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
+              onSend: () => {
+                void handleConfirmSendCurrentElementPrompt();
+              },
+              shortcut: /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? "") ? "\u2318 Enter" : "Ctrl Enter",
+              leadingActions: /* @__PURE__ */ jsxs8(Fragment5, { children: [
+                appendContextAction,
+                clearEditsAction
+              ] })
+            }
+          ) : null
         ]
       }
     );
-    const overlayNode = /* @__PURE__ */ jsx8(
+    const overlayNode = /* @__PURE__ */ jsx9(
       MobileSelectionOverlay,
       {
         currentTarget,
@@ -17832,14 +18003,14 @@ var PromptCardView = React9.forwardRef(
     );
     if (portalContainer) {
       return createPortal(
-        /* @__PURE__ */ jsxs7(Fragment4, { children: [
+        /* @__PURE__ */ jsxs8(Fragment5, { children: [
           overlayNode,
           promptCardNode
         ] }),
         portalContainer
       );
     }
-    return /* @__PURE__ */ jsxs7(Fragment4, { children: [
+    return /* @__PURE__ */ jsxs8(Fragment5, { children: [
       overlayNode,
       promptCardNode
     ] });
@@ -17859,7 +18030,7 @@ import {
   FileTextOutlined as FileTextOutlined2,
   FolderOpenOutlined,
   HomeOutlined,
-  ArrowUpOutlined,
+  ArrowUpOutlined as ArrowUpOutlined2,
   CloseOutlined as CloseOutlined3,
   HistoryOutlined,
   QuestionCircleOutlined,
@@ -18657,17 +18828,17 @@ import {
   Tooltip as Tooltip4,
   Typography
 } from "antd";
-import { jsx as jsx9, jsxs as jsxs8 } from "react/jsx-runtime";
+import { jsx as jsx10, jsxs as jsxs9 } from "react/jsx-runtime";
 function InfoTooltipIcon(props) {
   const { title } = props;
-  return /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(
     Tooltip4,
     {
       title,
       placement: "left",
       arrow: { pointAtCenter: true },
       getPopupContainer: resolveRuntimePopupContainer,
-      children: /* @__PURE__ */ jsx9(InfoCircleOutlined, { className: "we-runtime-config-panel__info-icon" })
+      children: /* @__PURE__ */ jsx10(InfoCircleOutlined, { className: "we-runtime-config-panel__info-icon" })
     }
   );
 }
@@ -18703,23 +18874,23 @@ function asBooleanValue(value) {
 function AttrLabel(props) {
   const { config, canCollapse = false, collapsed = false, onClick } = props;
   if (!config.displayName) return null;
-  return /* @__PURE__ */ jsxs8(
+  return /* @__PURE__ */ jsxs9(
     "div",
     {
       className: "we-runtime-config-panel__attr-label",
       style: { cursor: onClick ? "pointer" : "default" },
       onClick,
       children: [
-        canCollapse ? /* @__PURE__ */ jsx9(
+        canCollapse ? /* @__PURE__ */ jsx10(
           CaretRightOutlined,
           {
             rotate: collapsed ? 0 : 90,
             className: "we-runtime-config-panel__collapse-icon"
           }
         ) : null,
-        /* @__PURE__ */ jsx9("div", { className: "we-runtime-config-panel__label-main", children: /* @__PURE__ */ jsxs8("span", { className: "we-runtime-config-panel__label-inline", children: [
-          /* @__PURE__ */ jsx9("span", { className: "we-runtime-config-panel__label-text", children: config.displayName }),
-          config.info ? /* @__PURE__ */ jsx9(InfoTooltipIcon, { title: config.info }) : null
+        /* @__PURE__ */ jsx10("div", { className: "we-runtime-config-panel__label-main", children: /* @__PURE__ */ jsxs9("span", { className: "we-runtime-config-panel__label-inline", children: [
+          /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__label-text", children: config.displayName }),
+          config.info ? /* @__PURE__ */ jsx10(InfoTooltipIcon, { title: config.info }) : null
         ] }) })
       ]
     }
@@ -18727,14 +18898,14 @@ function AttrLabel(props) {
 }
 function BaseComponent(props) {
   const { config, multiline = false, controlClassName, children } = props;
-  return /* @__PURE__ */ jsxs8(
+  return /* @__PURE__ */ jsxs9(
     "div",
     {
       className: "we-runtime-config-panel__attr-component",
       "data-multiline": multiline ? "true" : "false",
       children: [
-        /* @__PURE__ */ jsx9(AttrLabel, { config }),
-        /* @__PURE__ */ jsx9(
+        /* @__PURE__ */ jsx10(AttrLabel, { config }),
+        /* @__PURE__ */ jsx10(
           "div",
           {
             className: ["we-runtime-config-panel__control", controlClassName].filter(Boolean).join(" "),
@@ -18749,7 +18920,7 @@ function TextComponent(props) {
   const { config, attributes } = props;
   const value = asStringValue(readValue(attributes, config));
   if (config.hint) {
-    return /* @__PURE__ */ jsx9("div", { className: "we-runtime-config-panel__hint", children: /* @__PURE__ */ jsx9(
+    return /* @__PURE__ */ jsx10("div", { className: "we-runtime-config-panel__hint", children: /* @__PURE__ */ jsx10(
       Typography.Text,
       {
         className: "we-runtime-config-panel__hint-text",
@@ -18758,9 +18929,9 @@ function TextComponent(props) {
       }
     ) });
   }
-  return /* @__PURE__ */ jsxs8("div", { className: "we-runtime-config-panel__text-row", children: [
-    config.displayName ? /* @__PURE__ */ jsx9(AttrLabel, { config }) : null,
-    /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsxs9("div", { className: "we-runtime-config-panel__text-row", children: [
+    config.displayName ? /* @__PURE__ */ jsx10(AttrLabel, { config }) : null,
+    /* @__PURE__ */ jsx10(
       Typography.Text,
       {
         className: "we-runtime-config-panel__text",
@@ -18772,7 +18943,7 @@ function TextComponent(props) {
 }
 function InputComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx9(BaseComponent, { config, children: /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(BaseComponent, { config, children: /* @__PURE__ */ jsx10(
     Input4,
     {
       variant: "filled",
@@ -18789,13 +18960,13 @@ function InputComponent(props) {
 }
 function CustomTextAreaComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(
     BaseComponent,
     {
       config,
       multiline: true,
       controlClassName: "we-runtime-config-panel__control--full",
-      children: /* @__PURE__ */ jsx9(
+      children: /* @__PURE__ */ jsx10(
         Input4.TextArea,
         {
           variant: "filled",
@@ -18817,7 +18988,7 @@ function CustomTextAreaComponent(props) {
 }
 function InputNumberComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx9(BaseComponent, { config, children: /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(BaseComponent, { config, children: /* @__PURE__ */ jsx10(
     InputNumber2,
     {
       variant: "filled",
@@ -18839,7 +19010,7 @@ function InputNumberComponent(props) {
 }
 function SelectComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx9(BaseComponent, { config, children: /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(BaseComponent, { config, children: /* @__PURE__ */ jsx10(
     Select2,
     {
       allowClear: true,
@@ -18862,13 +19033,13 @@ function SelectComponent(props) {
 }
 function SegmentedComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(
     BaseComponent,
     {
       config,
       multiline: true,
       controlClassName: "we-runtime-config-panel__control--full",
-      children: /* @__PURE__ */ jsx9(
+      children: /* @__PURE__ */ jsx10(
         Segmented3,
         {
           block: true,
@@ -18877,9 +19048,9 @@ function SegmentedComponent(props) {
           value: readValue(attributes, config),
           options: (config.options ?? []).map((option) => ({
             value: option.value,
-            label: /* @__PURE__ */ jsxs8("span", { className: "we-runtime-config-panel__segmented-option", children: [
-              /* @__PURE__ */ jsx9("span", { className: "we-runtime-config-panel__segmented-option-label", children: option.label }),
-              option.description ? /* @__PURE__ */ jsx9("span", { className: "we-runtime-config-panel__segmented-option-description", children: option.description }) : null
+            label: /* @__PURE__ */ jsxs9("span", { className: "we-runtime-config-panel__segmented-option", children: [
+              /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__segmented-option-label", children: option.label }),
+              option.description ? /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__segmented-option-description", children: option.description }) : null
             ] })
           })),
           disabled: config.disabled,
@@ -18895,13 +19066,13 @@ function SegmentedComponent(props) {
 function CardSelectComponent(props) {
   const { config, attributes, onChange } = props;
   const currentValue = readValue(attributes, config);
-  return /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(
     BaseComponent,
     {
       config,
       multiline: true,
       controlClassName: "we-runtime-config-panel__control--full",
-      children: /* @__PURE__ */ jsx9(
+      children: /* @__PURE__ */ jsx10(
         "div",
         {
           className: "we-runtime-config-panel__card-list",
@@ -18909,7 +19080,7 @@ function CardSelectComponent(props) {
           "aria-label": config.displayName ?? "\u5361\u7247\u9009\u62E9",
           children: (config.options ?? []).map((option) => {
             const selected = currentValue === option.value;
-            return /* @__PURE__ */ jsxs8(
+            return /* @__PURE__ */ jsxs9(
               "button",
               {
                 type: "button",
@@ -18926,8 +19097,8 @@ function CardSelectComponent(props) {
                   void onChange({ [config.attributeId]: option.value });
                 },
                 children: [
-                  /* @__PURE__ */ jsx9("span", { className: "we-runtime-config-panel__card-option-title", children: option.label }),
-                  option.description ? /* @__PURE__ */ jsx9("span", { className: "we-runtime-config-panel__card-option-description", children: option.description }) : null
+                  /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__card-option-title", children: option.label }),
+                  option.description ? /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__card-option-description", children: option.description }) : null
                 ]
               },
               String(option.value)
@@ -18940,7 +19111,7 @@ function CardSelectComponent(props) {
 }
 function SwitchComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx9(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ jsx10(
     Switch,
     {
       size: "small",
@@ -18956,7 +19127,7 @@ function SwitchComponent(props) {
 function ColorPickerComponent(props) {
   const { config, attributes, onChange } = props;
   const value = asStringValue(readValue(attributes, config)) || void 0;
-  return /* @__PURE__ */ jsx9(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ jsx10(
     ColorPicker2,
     {
       size: "small",
@@ -18974,7 +19145,7 @@ function ColorPickerComponent(props) {
 function GroupComponent(props) {
   const { config, attributes, onChange } = props;
   const [collapsed, setCollapsed] = React10.useState(config.defaultExpanded === false);
-  return /* @__PURE__ */ jsxs8(
+  return /* @__PURE__ */ jsxs9(
     "div",
     {
       className: [
@@ -18982,7 +19153,7 @@ function GroupComponent(props) {
         config.displayType === "inline" ? "we-runtime-config-panel__group--inline" : ""
       ].filter(Boolean).join(" "),
       children: [
-        /* @__PURE__ */ jsx9(
+        /* @__PURE__ */ jsx10(
           AttrLabel,
           {
             config,
@@ -18991,14 +19162,14 @@ function GroupComponent(props) {
             onClick: () => setCollapsed((previous) => !previous)
           }
         ),
-        /* @__PURE__ */ jsx9(
+        /* @__PURE__ */ jsx10(
           "div",
           {
             className: [
               "we-runtime-config-panel__group-content",
               collapsed ? "we-runtime-config-panel__group-content--collapsed" : ""
             ].filter(Boolean).join(" "),
-            children: (config.children ?? []).map((child, index) => /* @__PURE__ */ jsx9(
+            children: (config.children ?? []).map((child, index) => /* @__PURE__ */ jsx10(
               AttributeTree,
               {
                 attributes,
@@ -19031,7 +19202,7 @@ function AttributeTree(props) {
     return null;
   }
   const Component = configComponents[titleCase(config.type)];
-  return Component ? /* @__PURE__ */ jsx9(Component, { ...props }) : null;
+  return Component ? /* @__PURE__ */ jsx10(Component, { ...props }) : null;
 }
 function convertFieldToConfig(field, values, disabled) {
   const common = {
@@ -19115,7 +19286,7 @@ function buildConfigNodes(schema, values, disabled) {
 function ReactTweakPanel(props) {
   const { schema, values, disabled = false, onChange } = props;
   if (!schema?.fields?.length) {
-    return /* @__PURE__ */ jsx9(
+    return /* @__PURE__ */ jsx10(
       Empty3,
       {
         image: Empty3.PRESENTED_IMAGE_SIMPLE,
@@ -19126,7 +19297,7 @@ function ReactTweakPanel(props) {
   }
   const attributes = values ?? {};
   const configNodes = buildConfigNodes(schema, values, disabled);
-  return /* @__PURE__ */ jsx9("div", { className: "we-runtime-prop-panel__body we-runtime-config-panel", children: configNodes.map((config, index) => /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10("div", { className: "we-runtime-prop-panel__body we-runtime-config-panel", children: configNodes.map((config, index) => /* @__PURE__ */ jsx10(
     AttributeTree,
     {
       attributes,
@@ -19140,7 +19311,7 @@ function ReactTweakPanel(props) {
 }
 
 // src/ui/property-panel/react-page-tweak-panel.tsx
-import { jsx as jsx10, jsxs as jsxs9 } from "react/jsx-runtime";
+import { jsx as jsx11, jsxs as jsxs10 } from "react/jsx-runtime";
 function resolveNextActivePageTweakKeys(params) {
   const { previousKeys, allKeys, initialized } = params;
   const validKeySet = new Set(allKeys);
@@ -19168,14 +19339,14 @@ function stopHeaderActionEvent(event) {
 }
 function HeaderActionButton(props) {
   const { title, icon, disabled = false, onClick } = props;
-  return /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx11(
     Tooltip5,
     {
       title,
       placement: "left",
       arrow: { pointAtCenter: true },
       getPopupContainer: resolveRuntimePopupContainer,
-      children: /* @__PURE__ */ jsx10("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx10(
+      children: /* @__PURE__ */ jsx11("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx11(
         Button4,
         {
           type: "text",
@@ -19198,29 +19369,29 @@ function CollapseHeaderLabel(props) {
     onClear,
     onLocate
   } = props;
-  return /* @__PURE__ */ jsxs9("span", { className: "we-runtime-page-tweak-panel__header-row", children: [
-    /* @__PURE__ */ jsx10("span", { className: "we-runtime-page-tweak-panel__header-label", children: /* @__PURE__ */ jsx10("span", { className: "we-runtime-page-tweak-panel__header-label-text", children: title }) }),
-    /* @__PURE__ */ jsxs9(
+  return /* @__PURE__ */ jsxs10("span", { className: "we-runtime-page-tweak-panel__header-row", children: [
+    /* @__PURE__ */ jsx11("span", { className: "we-runtime-page-tweak-panel__header-label", children: /* @__PURE__ */ jsx11("span", { className: "we-runtime-page-tweak-panel__header-label-text", children: title }) }),
+    /* @__PURE__ */ jsxs10(
       "span",
       {
         className: "we-runtime-page-tweak-panel__header-actions",
         onClick: stopHeaderActionEvent,
         onPointerDown: stopHeaderActionEvent,
         children: [
-          /* @__PURE__ */ jsx10(
+          /* @__PURE__ */ jsx11(
             HeaderActionButton,
             {
               title: "\u6E05\u7A7A\u5F53\u524D\u5206\u7EC4\u7F16\u8F91",
-              icon: /* @__PURE__ */ jsx10(DeleteOutlined3, {}),
+              icon: /* @__PURE__ */ jsx11(DeleteOutlined3, {}),
               disabled: disabled || !onClear,
               onClick: onClear
             }
           ),
-          /* @__PURE__ */ jsx10(
+          /* @__PURE__ */ jsx11(
             HeaderActionButton,
             {
               title: "\u5B9A\u4F4D\u5F53\u524D\u5143\u7D20",
-              icon: /* @__PURE__ */ jsx10(LinkOutlined2, {}),
+              icon: /* @__PURE__ */ jsx11(LinkOutlined2, {}),
               disabled: disabled || !onLocate,
               onClick: onLocate
             }
@@ -19258,7 +19429,7 @@ function ReactPageTweakPanel(props) {
     });
   }, [allKeys]);
   if (entries.length <= 0) {
-    return /* @__PURE__ */ jsx10(
+    return /* @__PURE__ */ jsx11(
       Empty4,
       {
         image: Empty4.PRESENTED_IMAGE_SIMPLE,
@@ -19267,7 +19438,7 @@ function ReactPageTweakPanel(props) {
       }
     );
   }
-  return /* @__PURE__ */ jsx10("div", { className: "we-runtime-prop-panel__body", style: { gap: 8 }, children: /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx11("div", { className: "we-runtime-prop-panel__body", style: { gap: 8 }, children: /* @__PURE__ */ jsx11(
     Collapse2,
     {
       className: "we-runtime-prop-panel__collapse",
@@ -19284,7 +19455,7 @@ function ReactPageTweakPanel(props) {
         const bodySchema = entry.schema.title ? { ...entry.schema, title: void 0, description: void 0 } : entry.schema;
         return {
           key,
-          label: /* @__PURE__ */ jsx10(
+          label: /* @__PURE__ */ jsx11(
             CollapseHeaderLabel,
             {
               title: headerLabel,
@@ -19297,7 +19468,7 @@ function ReactPageTweakPanel(props) {
               } : void 0
             }
           ),
-          children: /* @__PURE__ */ jsx10(
+          children: /* @__PURE__ */ jsx11(
             ReactTweakPanel,
             {
               schema: bodySchema,
@@ -19316,7 +19487,7 @@ function ReactPageTweakPanel(props) {
 
 // src/ui/runtime/shortcut-capture-card.tsx
 import React12 from "react";
-import { jsx as jsx11, jsxs as jsxs10 } from "react/jsx-runtime";
+import { jsx as jsx12, jsxs as jsxs11 } from "react/jsx-runtime";
 var shortcutCaptureHintStyle = {
   fontSize: 11,
   color: EDITOR_CHROME.textMuted,
@@ -19341,7 +19512,7 @@ var shortcutCaptureCardStyle = {
 var ShortcutCaptureCard = React12.forwardRef(
   function ShortcutCaptureCard2(props, ref) {
     const { label, value, capturing, onActivate, onCapture, onCancelCapture, onClear } = props;
-    return /* @__PURE__ */ jsxs10(
+    return /* @__PURE__ */ jsxs11(
       "button",
       {
         ref,
@@ -19365,10 +19536,10 @@ var ShortcutCaptureCard = React12.forwardRef(
           onCapture(normalized);
         },
         children: [
-          /* @__PURE__ */ jsx11("span", { style: { fontSize: 12, fontWeight: 600, color: EDITOR_CHROME.textSecondary }, children: label }),
-          /* @__PURE__ */ jsx11("span", { style: { fontSize: 18, fontWeight: 600, color: EDITOR_CHROME.textPrimary }, children: capturing ? "\u6309\u4E0B\u4FEE\u9970\u952E\u2026" : formatModifierShortcutLabel(value) }),
-          /* @__PURE__ */ jsx11("span", { style: shortcutCaptureHintStyle, children: capturing ? "\u4EC5\u652F\u6301 Shift / Alt / Ctrl / Command\uFF0C\u6309 Esc \u53D6\u6D88\u3002" : "\u70B9\u51FB\u540E\u5F55\u5165\u4E00\u4E2A\u4FEE\u9970\u952E\u3002" }),
-          value ? /* @__PURE__ */ jsx11(
+          /* @__PURE__ */ jsx12("span", { style: { fontSize: 12, fontWeight: 600, color: EDITOR_CHROME.textSecondary }, children: label }),
+          /* @__PURE__ */ jsx12("span", { style: { fontSize: 18, fontWeight: 600, color: EDITOR_CHROME.textPrimary }, children: capturing ? "\u6309\u4E0B\u4FEE\u9970\u952E\u2026" : formatModifierShortcutLabel(value) }),
+          /* @__PURE__ */ jsx12("span", { style: shortcutCaptureHintStyle, children: capturing ? "\u4EC5\u652F\u6301 Shift / Alt / Ctrl / Command\uFF0C\u6309 Esc \u53D6\u6D88\u3002" : "\u70B9\u51FB\u540E\u5F55\u5165\u4E00\u4E2A\u4FEE\u9970\u952E\u3002" }),
+          value ? /* @__PURE__ */ jsx12(
             "span",
             {
               style: { ...shortcutCaptureHintStyle, color: EDITOR_CHROME.accent },
@@ -19480,7 +19651,7 @@ function buildAiWorkspaceBreadcrumbs(workspacePath) {
 }
 
 // src/ui/runtime/property-panel-view.tsx
-import { Fragment as Fragment5, jsx as jsx12, jsxs as jsxs11 } from "react/jsx-runtime";
+import { Fragment as Fragment6, jsx as jsx13, jsxs as jsxs12 } from "react/jsx-runtime";
 var AGENT_WAKE_FAILURE_MESSAGE = "AI \u5524\u9192\u5931\u8D25\uFF0C\u8BF7\u5728\u7EC8\u7AEF\u6267\u884C npx @axhub/acp@latest\uFF0C\u518D\u91CD\u8BD5";
 var AGENT_WAKE_TIMEOUT_MS = 12e3;
 var AGENT_INTERRUPT_TIMEOUT_MS = 12e3;
@@ -19504,7 +19675,7 @@ function CommenterNameSettingsInput({
   React13.useEffect(() => {
     setDraft(value);
   }, [value]);
-  return /* @__PURE__ */ jsx12(
+  return /* @__PURE__ */ jsx13(
     Input5,
     {
       "aria-label": "\u6279\u6CE8\u8005\u540D\u79F0",
@@ -20531,7 +20702,7 @@ var PropertyPanelView = React13.forwardRef(
       if (!currentTarget || !options.dismissElementAgentTaskState) return;
       options.dismissElementAgentTaskState(currentTarget);
     }, [currentTarget, options]);
-    const agentTaskStatusCard = currentAgentTask ? /* @__PURE__ */ jsxs11(
+    const agentTaskStatusCard = currentAgentTask ? /* @__PURE__ */ jsxs12(
       "div",
       {
         style: {
@@ -20545,9 +20716,9 @@ var PropertyPanelView = React13.forwardRef(
           boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.03)"
         },
         children: [
-          /* @__PURE__ */ jsxs11("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
-            currentAgentTask.status === "completed" ? /* @__PURE__ */ jsx12(CheckCircleFilled2, { style: { color: "#22c55e" } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ jsx12(ExclamationCircleFilled2, { style: { color: "#ef4444" } }) : /* @__PURE__ */ jsx12(AgentSparkleIcon, {}),
-            /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsxs12("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+            currentAgentTask.status === "completed" ? /* @__PURE__ */ jsx13(CheckCircleFilled2, { style: { color: "#22c55e" } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ jsx13(ExclamationCircleFilled2, { style: { color: "#ef4444" } }) : /* @__PURE__ */ jsx13(AgentSparkleIcon, {}),
+            /* @__PURE__ */ jsx13(
               "span",
               {
                 style: {
@@ -20559,7 +20730,7 @@ var PropertyPanelView = React13.forwardRef(
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs11(
+          /* @__PURE__ */ jsxs12(
             "span",
             {
               style: {
@@ -20576,13 +20747,13 @@ var PropertyPanelView = React13.forwardRef(
               ]
             }
           ),
-          /* @__PURE__ */ jsxs11(Space2, { size: 8, wrap: true, children: [
-            !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsxs12(Space2, { size: 8, wrap: true, children: [
+            !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ jsx13(
               Button5,
               {
                 size: "small",
                 danger: true,
-                icon: /* @__PURE__ */ jsx12(StopOutlined, {}),
+                icon: /* @__PURE__ */ jsx13(StopOutlined, {}),
                 disabled: !agentPromptCanInterrupt || agentPromptInterrupting,
                 loading: agentPromptInterrupting,
                 onClick: () => {
@@ -20591,11 +20762,11 @@ var PropertyPanelView = React13.forwardRef(
                 children: "\u4E2D\u65AD"
               }
             ) : null,
-            !hideExecutionControls && currentAgentTask.status === "error" ? /* @__PURE__ */ jsx12(
+            !hideExecutionControls && currentAgentTask.status === "error" ? /* @__PURE__ */ jsx13(
               Button5,
               {
                 size: "small",
-                icon: /* @__PURE__ */ jsx12(ReloadOutlined, {}),
+                icon: /* @__PURE__ */ jsx13(ReloadOutlined, {}),
                 disabled: agentPromptToolbarAction.sendDisabled || actionBusy,
                 onClick: () => {
                   void handleConfirmSendPromptToAgent();
@@ -20603,8 +20774,8 @@ var PropertyPanelView = React13.forwardRef(
                 children: "\u91CD\u8BD5"
               }
             ) : null,
-            currentTaskSessionHref ? /* @__PURE__ */ jsx12(Button5, { size: "small", icon: /* @__PURE__ */ jsx12(LinkOutlined3, {}), onClick: handleOpenCurrentTaskSession, children: "\u6253\u5F00\u4F1A\u8BDD" }) : null,
-            currentTaskTerminal ? /* @__PURE__ */ jsx12(Button5, { size: "small", icon: /* @__PURE__ */ jsx12(CloseToolIcon, {}), onClick: handleDismissCurrentTaskState, children: "\u5173\u95ED\u63D0\u793A" }) : null
+            currentTaskSessionHref ? /* @__PURE__ */ jsx13(Button5, { size: "small", icon: /* @__PURE__ */ jsx13(LinkOutlined3, {}), onClick: handleOpenCurrentTaskSession, children: "\u6253\u5F00\u4F1A\u8BDD" }) : null,
+            currentTaskTerminal ? /* @__PURE__ */ jsx13(Button5, { size: "small", icon: /* @__PURE__ */ jsx13(CloseToolIcon, {}), onClick: handleDismissCurrentTaskState, children: "\u5173\u95ED\u63D0\u793A" }) : null
           ] })
         ]
       }
@@ -20711,11 +20882,11 @@ var PropertyPanelView = React13.forwardRef(
     const hasClearableEdits = modifiedCount + visibleTerminalTaskCount > 0 || hasPrototypeClearableEdits;
     const clearAllEditsDisabled = actionBusy || !hasClearableEdits || !options.onClearEdits;
     const copyPromptDisabled = clearAllEditsDisabled || copyBlocked || copyPromptUnavailable;
-    const copyToolbarButton = showCopyPromptAction ? /* @__PURE__ */ jsx12(
+    const copyToolbarButton = showCopyPromptAction ? /* @__PURE__ */ jsx13(
       AgentToolbarIconButton,
       {
         title: copyReason ?? "\u590D\u5236 Prompt",
-        icon: /* @__PURE__ */ jsx12(CopyOutlined2, {}),
+        icon: /* @__PURE__ */ jsx13(CopyOutlined2, {}),
         awake: agentShellAwake,
         disabled: copyPromptDisabled,
         onClick: () => {
@@ -20727,7 +20898,7 @@ var PropertyPanelView = React13.forwardRef(
     const inlineSendVisible = !hideExecutionControls && agentPromptToolbarAction.sendVisible;
     const inlineInterruptVisible = !hideExecutionControls && agentPromptToolbarAction.interruptVisible;
     const hostSendVisible = agentPromptToolbarAction.sendVisible;
-    const sessionActivityCardContent = /* @__PURE__ */ jsxs11(
+    const sessionActivityCardContent = /* @__PURE__ */ jsxs12(
       "div",
       {
         style: {
@@ -20738,7 +20909,7 @@ var PropertyPanelView = React13.forwardRef(
           padding: 4
         },
         children: [
-          /* @__PURE__ */ jsxs11(
+          /* @__PURE__ */ jsxs12(
             "div",
             {
               style: {
@@ -20748,7 +20919,7 @@ var PropertyPanelView = React13.forwardRef(
                 gap: 12
               },
               children: [
-                /* @__PURE__ */ jsx12(
+                /* @__PURE__ */ jsx13(
                   "span",
                   {
                     style: {
@@ -20759,12 +20930,12 @@ var PropertyPanelView = React13.forwardRef(
                     children: "\u6700\u8FD1\u52A8\u6001"
                   }
                 ),
-                !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ jsx12(
+                !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ jsx13(
                   Button5,
                   {
                     size: "small",
                     danger: true,
-                    icon: /* @__PURE__ */ jsx12(StopOutlined, {}),
+                    icon: /* @__PURE__ */ jsx13(StopOutlined, {}),
                     disabled: !agentPromptCanInterrupt || agentPromptInterrupting,
                     loading: agentPromptInterrupting,
                     onClick: () => {
@@ -20776,12 +20947,12 @@ var PropertyPanelView = React13.forwardRef(
               ]
             }
           ),
-          visibleSessionActivities.length > 0 ? /* @__PURE__ */ jsx12(
+          visibleSessionActivities.length > 0 ? /* @__PURE__ */ jsx13(
             Timeline,
             {
               items: visibleSessionActivities.map((item) => ({
                 key: item.id,
-                children: /* @__PURE__ */ jsxs11(
+                children: /* @__PURE__ */ jsxs12(
                   "div",
                   {
                     style: {
@@ -20791,7 +20962,7 @@ var PropertyPanelView = React13.forwardRef(
                       paddingBottom: 4
                     },
                     children: [
-                      /* @__PURE__ */ jsx12(
+                      /* @__PURE__ */ jsx13(
                         "span",
                         {
                           style: {
@@ -20808,7 +20979,7 @@ var PropertyPanelView = React13.forwardRef(
                           children: item.text
                         }
                       ),
-                      /* @__PURE__ */ jsx12(
+                      /* @__PURE__ */ jsx13(
                         "span",
                         {
                           style: {
@@ -20824,7 +20995,7 @@ var PropertyPanelView = React13.forwardRef(
                 )
               }))
             }
-          ) : /* @__PURE__ */ jsx12(
+          ) : /* @__PURE__ */ jsx13(
             "div",
             {
               style: {
@@ -20840,15 +21011,15 @@ var PropertyPanelView = React13.forwardRef(
     );
     const agentPrimaryMenuLabel = agentPromptToolbarAction.sendTitle.includes("\u8FFD\u52A0") ? "\u8FFD\u52A0" : "\u5FEB\u901F\u6267\u884C";
     const clearEditsTitle = externalAnnotationMode ? "\u6E05\u7A7A\u6211\u7684\u5916\u90E8\u6279\u6CE8" : hasPrototypeClearableEdits ? "\u6E05\u7A7A\u6279\u6CE8" : "\u6E05\u7A7A\u5168\u90E8\u7F16\u8F91";
-    const clearAllEditsToolbarButton = options.hideClearEditsAction ? null : clearAllEditsDisabled ? /* @__PURE__ */ jsx12(
+    const clearAllEditsToolbarButton = options.hideClearEditsAction ? null : clearAllEditsDisabled ? /* @__PURE__ */ jsx13(
       AgentToolbarIconButton,
       {
         title: clearEditsTitle,
-        icon: /* @__PURE__ */ jsx12(DeleteOutlined4, {}),
+        icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
         awake: agentShellAwake,
         disabled: true
       }
-    ) : externalAnnotationMode ? /* @__PURE__ */ jsx12(
+    ) : externalAnnotationMode ? /* @__PURE__ */ jsx13(
       Popconfirm3,
       {
         title: "\u6E05\u7A7A\u6211\u7684\u5916\u90E8\u6279\u6CE8",
@@ -20865,22 +21036,22 @@ var PropertyPanelView = React13.forwardRef(
             target: "all"
           })
         ),
-        children: /* @__PURE__ */ jsx12("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx12(
+        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
           AgentToolbarIconButton,
           {
             title: clearEditsTitle,
-            icon: /* @__PURE__ */ jsx12(DeleteOutlined4, {}),
+            icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
             awake: agentShellAwake
           }
         ) })
       }
-    ) : hasPrototypeClearableEdits ? /* @__PURE__ */ jsx12(
+    ) : hasPrototypeClearableEdits ? /* @__PURE__ */ jsx13(
       Popconfirm3,
       {
         title: "\u6E05\u7A7A\u5F53\u524D\u539F\u578B\u6279\u6CE8",
-        description: /* @__PURE__ */ jsxs11(Fragment5, { children: [
+        description: /* @__PURE__ */ jsxs12(Fragment6, { children: [
           "\u8BF7\u9009\u62E9\u6E05\u7A7A\u8303\u56F4\uFF1A\u5DF2\u5B8C\u6210\u6279\u6CE8\uFF0C\u6216\u5168\u90E8\u6279\u6CE8\u3002",
-          /* @__PURE__ */ jsx12("br", {}),
+          /* @__PURE__ */ jsx13("br", {}),
           "\u5DF2\u4FDD\u5B58\u7684\u4EE3\u7801\u4FEE\u6539\u4E0D\u53D7\u5F71\u54CD\u3002"
         ] }),
         arrow: { pointAtCenter: true },
@@ -20904,16 +21075,16 @@ var PropertyPanelView = React13.forwardRef(
             })
           );
         },
-        children: /* @__PURE__ */ jsx12("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx12(
+        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
           AgentToolbarIconButton,
           {
             title: clearEditsTitle,
-            icon: /* @__PURE__ */ jsx12(DeleteOutlined4, {}),
+            icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
             awake: agentShellAwake
           }
         ) })
       }
-    ) : /* @__PURE__ */ jsx12(
+    ) : /* @__PURE__ */ jsx13(
       Popconfirm3,
       {
         title: "\u6E05\u7A7A\u5168\u90E8\u7F16\u8F91",
@@ -20924,22 +21095,22 @@ var PropertyPanelView = React13.forwardRef(
         cancelText: "\u53D6\u6D88",
         okButtonProps: { danger: true },
         onConfirm: () => runAction(() => options.onClearEdits?.({ skipConfirm: true })),
-        children: /* @__PURE__ */ jsx12("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx12(
+        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
           AgentToolbarIconButton,
           {
             title: clearEditsTitle,
-            icon: /* @__PURE__ */ jsx12(DeleteOutlined4, {}),
+            icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
             awake: agentShellAwake
           }
         ) })
       }
     );
-    const htmlFileSaveToolbarButton = options.htmlFileSaveEnabled && options.onHostToolbarAction ? /* @__PURE__ */ jsx12(
+    const htmlFileSaveToolbarButton = options.htmlFileSaveEnabled && options.onHostToolbarAction ? /* @__PURE__ */ jsx13(
       AgentToolbarIconButton,
       {
         title: "\u4FDD\u5B58\u6587\u672C\u548C\u6837\u5F0F",
         ariaLabel: "\u4FDD\u5B58\u6587\u672C\u548C\u6837\u5F0F",
-        icon: /* @__PURE__ */ jsx12(SaveOutlined, {}),
+        icon: /* @__PURE__ */ jsx13(SaveOutlined, {}),
         awake: agentShellAwake,
         disabled: actionBusy,
         onClick: () => {
@@ -20947,7 +21118,7 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     ) : null;
-    const agentExecutionToolbarButton = hideExecutionControls ? null : inlineInterruptVisible ? /* @__PURE__ */ jsx12(
+    const agentExecutionToolbarButton = hideExecutionControls ? null : inlineInterruptVisible ? /* @__PURE__ */ jsx13(
       Popconfirm3,
       {
         title: "\u7EC8\u6B62\u5168\u90E8\u4FEE\u6539",
@@ -20960,12 +21131,12 @@ var PropertyPanelView = React13.forwardRef(
         onConfirm: () => {
           void handleInterruptSendPromptToAgent(null);
         },
-        children: /* @__PURE__ */ jsx12("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx12(
+        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
           AgentToolbarIconButton,
           {
             title: agentPromptToolbarAction.interruptTitle,
             ariaLabel: "\u7EC8\u6B62\u5168\u90E8\u4FEE\u6539",
-            icon: /* @__PURE__ */ jsx12(PoweroffOutlined, {}),
+            icon: /* @__PURE__ */ jsx13(PoweroffOutlined, {}),
             awake: agentShellAwake,
             active: !agentPromptToolbarAction.interruptDisabled,
             disabled: agentPromptToolbarAction.interruptDisabled,
@@ -20973,12 +21144,12 @@ var PropertyPanelView = React13.forwardRef(
           }
         ) })
       }
-    ) : /* @__PURE__ */ jsx12(
+    ) : /* @__PURE__ */ jsx13(
       AgentToolbarIconButton,
       {
         title: agentPromptToolbarAction.sendDisabled ? agentPromptToolbarAction.sendTitle : agentPrimaryMenuLabel,
         ariaLabel: agentPrimaryMenuLabel,
-        icon: /* @__PURE__ */ jsx12(CaretRightFilled2, {}),
+        icon: /* @__PURE__ */ jsx13(CaretRightFilled2, {}),
         awake: agentShellAwake,
         active: inlineSendVisible && !agentPromptToolbarAction.sendDisabled,
         disabled: !inlineSendVisible || agentPromptToolbarAction.sendDisabled || actionBusy,
@@ -20988,12 +21159,12 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     );
-    const hostSurfaceVisibilityToolbarButton = hostSurfaceVisibilityControl && options.onHostToolbarAction ? /* @__PURE__ */ jsx12(
+    const hostSurfaceVisibilityToolbarButton = hostSurfaceVisibilityControl && options.onHostToolbarAction ? /* @__PURE__ */ jsx13(
       AgentToolbarIconButton,
       {
         title: hostSurfaceVisible ? hostSurfaceVisibilityControl.hideTitle || "\u9690\u85CF\u7A97\u53E3" : hostSurfaceVisibilityControl.showTitle || "\u663E\u793A\u7A97\u53E3",
         ariaLabel: hostSurfaceVisible ? hostSurfaceVisibilityControl.hideTitle || "\u9690\u85CF\u7A97\u53E3" : hostSurfaceVisibilityControl.showTitle || "\u663E\u793A\u7A97\u53E3",
-        icon: hostSurfaceVisible ? /* @__PURE__ */ jsx12(EyeOutlined, {}) : /* @__PURE__ */ jsx12(EyeInvisibleOutlined, {}),
+        icon: hostSurfaceVisible ? /* @__PURE__ */ jsx13(EyeOutlined, {}) : /* @__PURE__ */ jsx13(EyeInvisibleOutlined, {}),
         awake: agentShellAwake,
         active: hostSurfaceVisible,
         disabled: actionBusy,
@@ -21290,17 +21461,17 @@ var PropertyPanelView = React13.forwardRef(
     const commentarySkillInstallSettingsItem = {
       key: "commentary-skill-install",
       compactControl: true,
-      label: /* @__PURE__ */ jsxs11("span", { className: "we-runtime-settings-card__skill-label", children: [
-        /* @__PURE__ */ jsx12("span", { children: "\u6279\u6CE8\u6280\u80FD" }),
-        /* @__PURE__ */ jsx12("span", { className: "we-runtime-settings-card__recommended-badge", children: "\u63A8\u8350" })
+      label: /* @__PURE__ */ jsxs12("span", { className: "we-runtime-settings-card__skill-label", children: [
+        /* @__PURE__ */ jsx13("span", { children: "\u6279\u6CE8\u6280\u80FD" }),
+        /* @__PURE__ */ jsx13("span", { className: "we-runtime-settings-card__recommended-badge", children: "\u63A8\u8350" })
       ] }),
-      control: /* @__PURE__ */ jsx12(
+      control: /* @__PURE__ */ jsx13(
         Tooltip6,
         {
           title: skillInstallPromptCopied ? "\u5B89\u88C5\u63D0\u793A\u8BCD\u5DF2\u590D\u5236" : "\u590D\u5236\u5B89\u88C5\u63D0\u793A\u8BCD",
           placement: "bottomRight",
           getPopupContainer: resolveRuntimePopupContainer,
-          children: /* @__PURE__ */ jsx12(
+          children: /* @__PURE__ */ jsx13(
             "button",
             {
               type: "button",
@@ -21320,14 +21491,14 @@ var PropertyPanelView = React13.forwardRef(
       key: "ai-workspace",
       label: "AI \u5DE5\u4F5C\u76EE\u5F55",
       action: handleOpenDirectoryPicker,
-      control: /* @__PURE__ */ jsxs11(
+      control: /* @__PURE__ */ jsxs12(
         "span",
         {
           className: "we-runtime-settings-card__value we-runtime-settings-card__workspace-value",
           title: aiExecutionWorkspacePath || void 0,
           children: [
-            /* @__PURE__ */ jsx12("span", { className: "we-runtime-settings-card__workspace-value-text", children: aiExecutionWorkspaceDisplayName || "\u672A\u914D\u7F6E" }),
-            /* @__PURE__ */ jsx12(RightOutlined, { style: { fontSize: 10 } })
+            /* @__PURE__ */ jsx13("span", { className: "we-runtime-settings-card__workspace-value-text", children: aiExecutionWorkspaceDisplayName || "\u672A\u914D\u7F6E" }),
+            /* @__PURE__ */ jsx13(RightOutlined, { style: { fontSize: 10 } })
           ]
         }
       )
@@ -21335,7 +21506,7 @@ var PropertyPanelView = React13.forwardRef(
     const propertyPanelSettingsItem = !externalAnnotationMode && showPropertyPanelSettingsItem ? {
       key: "property-panel",
       label: "\u8BBE\u8BA1\u51B3\u7B56",
-      control: /* @__PURE__ */ jsx12(
+      control: /* @__PURE__ */ jsx13(
         Switch2,
         {
           checked: propertyPanelOpen,
@@ -21350,7 +21521,7 @@ var PropertyPanelView = React13.forwardRef(
         {
           key: "commenter-name",
           label: "\u6279\u6CE8\u8005",
-          control: /* @__PURE__ */ jsx12(
+          control: /* @__PURE__ */ jsx13(
             CommenterNameSettingsInput,
             {
               value: options.commenterName ?? "",
@@ -21368,7 +21539,7 @@ var PropertyPanelView = React13.forwardRef(
         {
           key: "capture-target-screenshot",
           label: "\u9644\u5E26\u76EE\u6807\u622A\u56FE",
-          control: /* @__PURE__ */ jsx12(
+          control: /* @__PURE__ */ jsx13(
             Switch2,
             {
               checked: uiSettings.captureTargetScreenshot,
@@ -21386,7 +21557,7 @@ var PropertyPanelView = React13.forwardRef(
         {
           key: "disable-page-animations",
           label: "\u5173\u95ED\u9875\u9762\u52A8\u753B",
-          control: /* @__PURE__ */ jsx12(
+          control: /* @__PURE__ */ jsx13(
             Switch2,
             {
               checked: uiSettings.disablePageAnimations,
@@ -21403,7 +21574,7 @@ var PropertyPanelView = React13.forwardRef(
           {
             key: "document-comment-mode",
             label: "\u6587\u6863\u6279\u6CE8\u6A21\u5F0F",
-            control: /* @__PURE__ */ jsx12(
+            control: /* @__PURE__ */ jsx13(
               Switch2,
               {
                 checked: uiSettings.documentCommentMode,
@@ -21425,7 +21596,7 @@ var PropertyPanelView = React13.forwardRef(
           setKeyboardShortcutsDialogOpen(true);
           setSettingsPopoverOpen(false);
         },
-        control: /* @__PURE__ */ jsxs11(
+        control: /* @__PURE__ */ jsxs12(
           "span",
           {
             style: {
@@ -21436,35 +21607,35 @@ var PropertyPanelView = React13.forwardRef(
               gap: 6
             },
             children: [
-              /* @__PURE__ */ jsx12("span", { children: "\u67E5\u770B" }),
-              /* @__PURE__ */ jsx12(RightOutlined, { style: { fontSize: 10 } })
+              /* @__PURE__ */ jsx13("span", { children: "\u67E5\u770B" }),
+              /* @__PURE__ */ jsx13(RightOutlined, { style: { fontSize: 10 } })
             ]
           }
         )
       }
     ];
-    const settingsCardContent = /* @__PURE__ */ jsxs11(
+    const settingsCardContent = /* @__PURE__ */ jsxs12(
       "div",
       {
         className: "we-runtime-settings-card",
         onPointerDownCapture: (event) => event.stopPropagation(),
         children: [
-          /* @__PURE__ */ jsxs11("div", { className: "we-runtime-settings-card__header", children: [
-            /* @__PURE__ */ jsx12("span", { className: "we-runtime-settings-card__title", children: "Axhub \u6279\u6CE8" }),
-            /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsxs12("div", { className: "we-runtime-settings-card__header", children: [
+            /* @__PURE__ */ jsx13("span", { className: "we-runtime-settings-card__title", children: "Axhub \u6279\u6CE8" }),
+            /* @__PURE__ */ jsx13(
               Tooltip6,
               {
                 title: uiSettings.darkMode ? "\u5173\u95ED\u6DF1\u8272\u6A21\u5F0F" : "\u5F00\u542F\u6DF1\u8272\u6A21\u5F0F",
                 placement: "bottomRight",
                 getPopupContainer: resolveRuntimePopupContainer,
-                children: /* @__PURE__ */ jsx12(
+                children: /* @__PURE__ */ jsx13(
                   Button5,
                   {
                     type: "text",
                     size: "small",
                     className: "we-runtime-settings-dark-mode-button",
                     "aria-label": uiSettings.darkMode ? "\u5173\u95ED\u6DF1\u8272\u6A21\u5F0F" : "\u5F00\u542F\u6DF1\u8272\u6A21\u5F0F",
-                    icon: /* @__PURE__ */ jsx12(MoonOutlined, { style: { fontSize: 18 } }),
+                    icon: /* @__PURE__ */ jsx13(MoonOutlined, { style: { fontSize: 18 } }),
                     onClick: (event) => {
                       event.stopPropagation();
                       onUiSettingsChange({
@@ -21486,7 +21657,7 @@ var PropertyPanelView = React13.forwardRef(
               }
             )
           ] }),
-          /* @__PURE__ */ jsx12("div", { className: "we-runtime-settings-card__list", children: settingsItems.map((item) => /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsx13("div", { className: "we-runtime-settings-card__list", children: settingsItems.map((item) => /* @__PURE__ */ jsx13(
             "div",
             {
               className: [
@@ -21500,9 +21671,9 @@ var PropertyPanelView = React13.forwardRef(
                   void item.action();
                 }
               },
-              children: item.fullWidth ? /* @__PURE__ */ jsx12("div", { className: "we-runtime-settings-card__full-control", children: item.control }) : /* @__PURE__ */ jsxs11(Fragment5, { children: [
-                /* @__PURE__ */ jsx12("span", { className: "we-runtime-settings-card__label", children: item.label }),
-                /* @__PURE__ */ jsx12("div", { className: "we-runtime-settings-card__row-control", children: item.control })
+              children: item.fullWidth ? /* @__PURE__ */ jsx13("div", { className: "we-runtime-settings-card__full-control", children: item.control }) : /* @__PURE__ */ jsxs12(Fragment6, { children: [
+                /* @__PURE__ */ jsx13("span", { className: "we-runtime-settings-card__label", children: item.label }),
+                /* @__PURE__ */ jsx13("div", { className: "we-runtime-settings-card__row-control", children: item.control })
               ] })
             },
             item.key
@@ -21510,7 +21681,7 @@ var PropertyPanelView = React13.forwardRef(
         ]
       }
     );
-    const settingsToolbarButton = /* @__PURE__ */ jsx12(
+    const settingsToolbarButton = /* @__PURE__ */ jsx13(
       Popover2,
       {
         trigger: "click",
@@ -21526,11 +21697,11 @@ var PropertyPanelView = React13.forwardRef(
         },
         content: settingsCardContent,
         getPopupContainer: resolveRuntimePopupContainer,
-        children: /* @__PURE__ */ jsx12("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx12(
+        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
           AgentToolbarIconButton,
           {
             title: "\u8BBE\u7F6E",
-            icon: /* @__PURE__ */ jsx12(SettingOutlined, {}),
+            icon: /* @__PURE__ */ jsx13(SettingOutlined, {}),
             awake: agentShellAwake,
             disabled: actionBusy
           }
@@ -21538,11 +21709,11 @@ var PropertyPanelView = React13.forwardRef(
       }
     );
     const selectionModeToolbarTitle = `${selectionModeActive ? "\u5173\u95ED\u9009\u62E9\u5143\u7D20" : "\u5F00\u542F\u9009\u62E9\u5143\u7D20"}\uFF08${SELECTION_MODE_TOGGLE_SHORTCUT_LABEL}\uFF09`;
-    const selectionModeToolbarButton = selectionModeAvailable ? /* @__PURE__ */ jsx12(
+    const selectionModeToolbarButton = selectionModeAvailable ? /* @__PURE__ */ jsx13(
       AgentToolbarIconButton,
       {
         title: selectionModeToolbarTitle,
-        icon: /* @__PURE__ */ jsx12(SelectOutlined, {}),
+        icon: /* @__PURE__ */ jsx13(SelectOutlined, {}),
         ariaLabel: selectionModeActive ? "\u5173\u95ED\u9009\u62E9\u5143\u7D20" : "\u5F00\u542F\u9009\u62E9\u5143\u7D20",
         awake: agentShellAwake,
         active: selectionModeActive,
@@ -21550,11 +21721,11 @@ var PropertyPanelView = React13.forwardRef(
         onClick: toggleSelectionMode
       }
     ) : null;
-    const markdownSourceEditorToolbarButton = options.markdownSourceEditorAvailable ? /* @__PURE__ */ jsx12(
+    const markdownSourceEditorToolbarButton = options.markdownSourceEditorAvailable ? /* @__PURE__ */ jsx13(
       AgentToolbarIconButton,
       {
         title: markdownSourceEditorOpen ? "\u9690\u85CF Markdown \u539F\u6587" : "\u663E\u793A Markdown \u539F\u6587",
-        icon: /* @__PURE__ */ jsx12(FileTextOutlined2, {}),
+        icon: /* @__PURE__ */ jsx13(FileTextOutlined2, {}),
         ariaLabel: markdownSourceEditorOpen ? "\u9690\u85CF Markdown \u539F\u6587" : "\u663E\u793A Markdown \u539F\u6587",
         awake: agentShellAwake,
         active: markdownSourceEditorOpen,
@@ -21583,11 +21754,11 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     ) : null;
-    const closeToolbarButton = /* @__PURE__ */ jsx12(
+    const closeToolbarButton = /* @__PURE__ */ jsx13(
       AgentToolbarIconButton,
       {
         title: options.onRequestFullExit ? "\u9000\u51FA\u6279\u6CE8" : "\u5173\u95ED\u5DE5\u5177\u680F",
-        icon: /* @__PURE__ */ jsx12(CloseToolIcon, {}),
+        icon: /* @__PURE__ */ jsx13(CloseToolIcon, {}),
         ariaLabel: options.onRequestFullExit ? "\u9000\u51FA\u6279\u6CE8" : "\u5173\u95ED\u5DE5\u5177\u680F",
         awake: agentShellAwake,
         disabled: actionBusy,
@@ -21600,7 +21771,7 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     );
-    const propertyPanelEmptyState = /* @__PURE__ */ jsxs11(
+    const propertyPanelEmptyState = /* @__PURE__ */ jsxs12(
       "div",
       {
         className: "we-runtime-prop-panel__empty-state",
@@ -21611,7 +21782,7 @@ var PropertyPanelView = React13.forwardRef(
           gap: 8
         },
         children: [
-          /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsx13(
             Typography2.Text,
             {
               style: {
@@ -21622,12 +21793,12 @@ var PropertyPanelView = React13.forwardRef(
               children: "\u6682\u65F6\u6CA1\u6709\u9700\u8981\u5904\u7406\u7684\u8BBE\u8BA1\u51B3\u7B56\u3002\u53EF\u4EE5\u5148\u751F\u6210\u591A\u4E2A\u8BBE\u8BA1\u65B9\u6848\uFF0C\u518D\u8FDB\u884C\u5BF9\u6BD4\u548C\u51B3\u7B56\u3002"
             }
           ),
-          showCopyPromptAction ? /* @__PURE__ */ jsx12(
+          showCopyPromptAction ? /* @__PURE__ */ jsx13(
             Button5,
             {
               type: "default",
               size: "small",
-              icon: /* @__PURE__ */ jsx12(CopyOutlined2, {}),
+              icon: /* @__PURE__ */ jsx13(CopyOutlined2, {}),
               onClick: () => {
                 void handleCopyGlobalPanelPrompt();
               },
@@ -21638,11 +21809,11 @@ var PropertyPanelView = React13.forwardRef(
         ]
       }
     );
-    const propertyPanelToggleButton = showPropertyPanelToolbarButton ? /* @__PURE__ */ jsx12(
+    const propertyPanelToggleButton = showPropertyPanelToolbarButton ? /* @__PURE__ */ jsx13(
       AgentToolbarIconButton,
       {
         title: propertyPanelOpen ? "\u5173\u95ED\u8BBE\u8BA1\u51B3\u7B56" : "\u6253\u5F00\u8BBE\u8BA1\u51B3\u7B56",
-        icon: /* @__PURE__ */ jsx12(SlidersOutlined, {}),
+        icon: /* @__PURE__ */ jsx13(SlidersOutlined, {}),
         ariaLabel: "\u8BBE\u8BA1\u51B3\u7B56",
         awake: agentShellAwake,
         active: propertyPanelOpen,
@@ -22004,22 +22175,22 @@ var PropertyPanelView = React13.forwardRef(
         toolMinimized
       ]
     );
-    const pageConfigPanelHeader = showExpandedPanel ? /* @__PURE__ */ jsxs11(
+    const pageConfigPanelHeader = showExpandedPanel ? /* @__PURE__ */ jsxs12(
       "div",
       {
         ref: pagePanelHeaderRef,
         className: "we-runtime-page-config-panel__header we-runtime-prop-panel__drag-handle",
         children: [
-          /* @__PURE__ */ jsxs11("div", { className: "we-runtime-prop-panel__header-title-group", children: [
-            /* @__PURE__ */ jsx12("span", { className: "we-runtime-prop-panel__header-title", children: "\u8BBE\u8BA1\u51B3\u7B56" }),
-            /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsxs12("div", { className: "we-runtime-prop-panel__header-title-group", children: [
+            /* @__PURE__ */ jsx13("span", { className: "we-runtime-prop-panel__header-title", children: "\u8BBE\u8BA1\u51B3\u7B56" }),
+            /* @__PURE__ */ jsx13(
               Tooltip6,
               {
                 title: PROPERTY_PANEL_HELP_TOOLTIP,
                 placement: "bottomRight",
                 arrow: { pointAtCenter: true },
                 getPopupContainer: resolveRuntimePopupContainer,
-                children: /* @__PURE__ */ jsx12(
+                children: /* @__PURE__ */ jsx13(
                   Button5,
                   {
                     type: "text",
@@ -22027,18 +22198,18 @@ var PropertyPanelView = React13.forwardRef(
                     className: "we-runtime-prop-panel__header-action we-runtime-prop-panel__header-help",
                     "aria-label": "\u8BBE\u8BA1\u51B3\u7B56\u8BF4\u660E",
                     title: "\u8BBE\u8BA1\u51B3\u7B56\u8BF4\u660E",
-                    icon: /* @__PURE__ */ jsx12(QuestionCircleOutlined, {})
+                    icon: /* @__PURE__ */ jsx13(QuestionCircleOutlined, {})
                   }
                 )
               }
             )
           ] }),
-          /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsx13(
             "div",
             {
               className: "we-runtime-prop-panel__header-actions",
               onPointerDownCapture: (event) => event.stopPropagation(),
-              children: /* @__PURE__ */ jsx12(
+              children: /* @__PURE__ */ jsx13(
                 Button5,
                 {
                   type: "text",
@@ -22046,7 +22217,7 @@ var PropertyPanelView = React13.forwardRef(
                   className: "we-runtime-prop-panel__header-action",
                   "aria-label": "\u590D\u5236\u63D0\u793A\u8BCD",
                   title: "\u590D\u5236\u63D0\u793A\u8BCD",
-                  icon: /* @__PURE__ */ jsx12(CopyOutlined2, {}),
+                  icon: /* @__PURE__ */ jsx13(CopyOutlined2, {}),
                   onClick: () => {
                     void handleCopyGlobalPanelPrompt();
                   }
@@ -22057,7 +22228,7 @@ var PropertyPanelView = React13.forwardRef(
         ]
       }
     ) : null;
-    const expandedToolbar = /* @__PURE__ */ jsx12(
+    const expandedToolbar = /* @__PURE__ */ jsx13(
       AgentToolbarShell,
       {
         awake: agentShellAwake,
@@ -22069,7 +22240,7 @@ var PropertyPanelView = React13.forwardRef(
           maxWidth: "calc(100% - 8px)",
           margin: 0
         },
-        children: /* @__PURE__ */ jsx12(
+        children: /* @__PURE__ */ jsx13(
           "div",
           {
             style: {
@@ -22080,9 +22251,9 @@ var PropertyPanelView = React13.forwardRef(
               width: "auto",
               minWidth: 0
             },
-            children: /* @__PURE__ */ jsxs11(Space2, { size: 4, style: { minWidth: 0, flex: "0 0 auto" }, children: [
+            children: /* @__PURE__ */ jsxs12(Space2, { size: 4, style: { minWidth: 0, flex: "0 0 auto" }, children: [
               selectionModeToolbarButton,
-              compactToolbar ? toolbarExtraContent : /* @__PURE__ */ jsxs11(Fragment5, { children: [
+              compactToolbar ? toolbarExtraContent : /* @__PURE__ */ jsxs12(Fragment6, { children: [
                 markdownSourceEditorToolbarButton,
                 hostSurfaceVisibilityToolbarButton ?? agentExecutionToolbarButton,
                 copyToolbarButton,
@@ -22097,7 +22268,7 @@ var PropertyPanelView = React13.forwardRef(
         )
       }
     );
-    const minimizedToolbar = /* @__PURE__ */ jsxs11(
+    const minimizedToolbar = /* @__PURE__ */ jsxs12(
       "button",
       {
         className: "we-runtime-prop-panel__minimized-trigger we-runtime-prop-panel__drag-handle",
@@ -22126,7 +22297,7 @@ var PropertyPanelView = React13.forwardRef(
           transition: "opacity 220ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 220ms ease"
         },
         children: [
-          /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsx13(
             "span",
             {
               "aria-hidden": "true",
@@ -22139,7 +22310,7 @@ var PropertyPanelView = React13.forwardRef(
               }
             }
           ),
-          /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsx13(
             "span",
             {
               "aria-hidden": "true",
@@ -22152,7 +22323,7 @@ var PropertyPanelView = React13.forwardRef(
               }
             }
           ),
-          /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsx13(
             "span",
             {
               style: {
@@ -22166,10 +22337,10 @@ var PropertyPanelView = React13.forwardRef(
                 color: EDITOR_CHROME.textSecondary,
                 transition: "background-color 220ms ease, color 220ms ease, transform 220ms ease"
               },
-              children: /* @__PURE__ */ jsx12(AgentSparkleIcon, {})
+              children: /* @__PURE__ */ jsx13(AgentSparkleIcon, {})
             }
           ),
-          modifiedCount > 0 ? /* @__PURE__ */ jsx12(
+          modifiedCount > 0 ? /* @__PURE__ */ jsx13(
             "span",
             {
               style: {
@@ -22207,7 +22378,7 @@ var PropertyPanelView = React13.forwardRef(
         bottom: "auto"
       } : { right: PROPERTY_PANEL_RIGHT, top: PROPERTY_PANEL_TOP }
     };
-    const pageConfigPanel = showExpandedPanel ? /* @__PURE__ */ jsxs11(
+    const pageConfigPanel = showExpandedPanel ? /* @__PURE__ */ jsxs12(
       "div",
       {
         ref: pagePanelRef,
@@ -22226,19 +22397,19 @@ var PropertyPanelView = React13.forwardRef(
         onPointerLeave: () => onHoverSelectionSuppressedChange(false),
         children: [
           pageConfigPanelHeader,
-          /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsx13(
             "div",
             {
               ref: pagePanelBodyRef,
               className: "we-runtime-page-config-panel__body",
               style: pageConfigPanelBodyStyle,
               "aria-hidden": false,
-              children: /* @__PURE__ */ jsx12(
+              children: /* @__PURE__ */ jsx13(
                 "div",
                 {
                   onPointerDownCapture: (event) => event.stopPropagation(),
                   style: { display: "flex", flexDirection: "column", gap: 10 },
-                  children: hasPageTweakEntries ? /* @__PURE__ */ jsx12(
+                  children: hasPageTweakEntries ? /* @__PURE__ */ jsx13(
                     ReactPageTweakPanel,
                     {
                       entries: pageTweakEntries,
@@ -22266,8 +22437,8 @@ var PropertyPanelView = React13.forwardRef(
         ]
       }
     ) : null;
-    return /* @__PURE__ */ jsxs11(Fragment5, { children: [
-      /* @__PURE__ */ jsxs11(
+    return /* @__PURE__ */ jsxs12(Fragment6, { children: [
+      /* @__PURE__ */ jsxs12(
         "div",
         {
           ref: rootRef,
@@ -22292,9 +22463,9 @@ var PropertyPanelView = React13.forwardRef(
           },
           onPointerLeave: () => onHoverSelectionSuppressedChange(false),
           children: [
-            /* @__PURE__ */ jsx12("style", { nonce: resolveCspNonce(), children: PROPERTY_PANEL_LOCAL_STYLES }),
+            /* @__PURE__ */ jsx13("style", { nonce: resolveCspNonce(), children: PROPERTY_PANEL_LOCAL_STYLES }),
             isHostToolbarMode ? null : toolMinimized ? minimizedToolbar : expandedToolbar,
-            /* @__PURE__ */ jsx12(
+            /* @__PURE__ */ jsx13(
               Modal2,
               {
                 title: "\u8BED\u97F3\u5FEB\u6377\u952E",
@@ -22304,8 +22475,8 @@ var PropertyPanelView = React13.forwardRef(
                 maskClosable: true,
                 onCancel: closeShortcutDialog,
                 footer: [
-                  /* @__PURE__ */ jsx12(Button5, { onClick: closeShortcutDialog, children: "\u53D6\u6D88" }, "cancel"),
-                  /* @__PURE__ */ jsx12(
+                  /* @__PURE__ */ jsx13(Button5, { onClick: closeShortcutDialog, children: "\u53D6\u6D88" }, "cancel"),
+                  /* @__PURE__ */ jsx13(
                     Button5,
                     {
                       type: "primary",
@@ -22316,8 +22487,8 @@ var PropertyPanelView = React13.forwardRef(
                     "save"
                   )
                 ],
-                children: /* @__PURE__ */ jsxs11("div", { style: { display: "flex", flexDirection: "column", gap: 16 }, children: [
-                  /* @__PURE__ */ jsxs11(
+                children: /* @__PURE__ */ jsxs12("div", { style: { display: "flex", flexDirection: "column", gap: 16 }, children: [
+                  /* @__PURE__ */ jsxs12(
                     "div",
                     {
                       style: {
@@ -22328,8 +22499,8 @@ var PropertyPanelView = React13.forwardRef(
                         padding: "12px 0"
                       },
                       children: [
-                        /* @__PURE__ */ jsxs11("div", { children: [
-                          /* @__PURE__ */ jsx12(
+                        /* @__PURE__ */ jsxs12("div", { children: [
+                          /* @__PURE__ */ jsx13(
                             "div",
                             {
                               style: {
@@ -22340,9 +22511,9 @@ var PropertyPanelView = React13.forwardRef(
                               children: "\u542F\u7528\u8BED\u97F3\u5FEB\u6377\u952E"
                             }
                           ),
-                          /* @__PURE__ */ jsx12("div", { style: shortcutCaptureHintStyle, children: "\u5F00\u542F\u540E\u624D\u4F1A\u54CD\u5E94\u957F\u6309\u4FEE\u9970\u952E\u548C\u9F20\u6807\u4E2D\u952E\u3002" })
+                          /* @__PURE__ */ jsx13("div", { style: shortcutCaptureHintStyle, children: "\u5F00\u542F\u540E\u624D\u4F1A\u54CD\u5E94\u957F\u6309\u4FEE\u9970\u952E\u548C\u9F20\u6807\u4E2D\u952E\u3002" })
                         ] }),
-                        /* @__PURE__ */ jsx12(
+                        /* @__PURE__ */ jsx13(
                           Switch2,
                           {
                             checked: shortcutDraft.enabled,
@@ -22357,7 +22528,7 @@ var PropertyPanelView = React13.forwardRef(
                       ]
                     }
                   ),
-                  /* @__PURE__ */ jsxs11(
+                  /* @__PURE__ */ jsxs12(
                     "div",
                     {
                       style: {
@@ -22370,8 +22541,8 @@ var PropertyPanelView = React13.forwardRef(
                         borderBottom: `1px solid ${EDITOR_CHROME.border}`
                       },
                       children: [
-                        /* @__PURE__ */ jsxs11("div", { children: [
-                          /* @__PURE__ */ jsx12(
+                        /* @__PURE__ */ jsxs12("div", { children: [
+                          /* @__PURE__ */ jsx13(
                             "div",
                             {
                               style: {
@@ -22382,9 +22553,9 @@ var PropertyPanelView = React13.forwardRef(
                               children: "\u542F\u7528\u9F20\u6807\u4E2D\u952E\u76D1\u542C"
                             }
                           ),
-                          /* @__PURE__ */ jsx12("div", { style: shortcutCaptureHintStyle, children: "\u9F20\u6807\u4E2D\u952E\u5355\u51FB\u4F1A\u76F4\u63A5\u8FDB\u5165\u6279\u6CE8\u6C14\u6CE1\u5361\u7247\u3002" })
+                          /* @__PURE__ */ jsx13("div", { style: shortcutCaptureHintStyle, children: "\u9F20\u6807\u4E2D\u952E\u5355\u51FB\u4F1A\u76F4\u63A5\u8FDB\u5165\u6279\u6CE8\u6C14\u6CE1\u5361\u7247\u3002" })
                         ] }),
-                        /* @__PURE__ */ jsx12(
+                        /* @__PURE__ */ jsx13(
                           Switch2,
                           {
                             checked: shortcutDraft.middleClickEnabled,
@@ -22399,7 +22570,7 @@ var PropertyPanelView = React13.forwardRef(
                       ]
                     }
                   ),
-                  /* @__PURE__ */ jsx12(
+                  /* @__PURE__ */ jsx13(
                     "div",
                     {
                       style: {
@@ -22407,7 +22578,7 @@ var PropertyPanelView = React13.forwardRef(
                         gridTemplateColumns: "1fr 1fr",
                         gap: 12
                       },
-                      children: [0, 1].map((index) => /* @__PURE__ */ jsx12(
+                      children: [0, 1].map((index) => /* @__PURE__ */ jsx13(
                         ShortcutCaptureCard,
                         {
                           ref: (node) => {
@@ -22448,34 +22619,34 @@ var PropertyPanelView = React13.forwardRef(
                       ))
                     }
                   ),
-                  /* @__PURE__ */ jsxs11("div", { style: shortcutCaptureHintStyle, children: [
+                  /* @__PURE__ */ jsxs12("div", { style: shortcutCaptureHintStyle, children: [
                     "\u4EC5\u652F\u6301 Shift / Alt / Ctrl / Command\uFF0C\u957F\u6309 ",
                     COMMENT_SHORTCUT_LONG_PRESS_MS,
                     "ms \u89E6\u53D1\u3002"
                   ] }),
-                  shortcutValidationError ? /* @__PURE__ */ jsx12("div", { style: { fontSize: 12, color: EDITOR_CHROME.textDanger }, children: shortcutValidationError }) : null
+                  shortcutValidationError ? /* @__PURE__ */ jsx13("div", { style: { fontSize: 12, color: EDITOR_CHROME.textDanger }, children: shortcutValidationError }) : null
                 ] })
               }
             ),
-            /* @__PURE__ */ jsx12(
+            /* @__PURE__ */ jsx13(
               Modal2,
               {
-                title: /* @__PURE__ */ jsxs11("div", { className: "we-runtime-directory-picker__title", children: [
-                  /* @__PURE__ */ jsx12("div", { children: "\u9009\u62E9 AI \u5DE5\u4F5C\u76EE\u5F55" }),
-                  /* @__PURE__ */ jsx12("div", { className: "we-runtime-directory-picker__description", children: "\u9009\u62E9\u6279\u6CE8\u548C AI \u6587\u4EF6\u64CD\u4F5C\u6240\u5728\u7684\u9879\u76EE\u76EE\u5F55\u3002" })
+                title: /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__title", children: [
+                  /* @__PURE__ */ jsx13("div", { children: "\u9009\u62E9 AI \u5DE5\u4F5C\u76EE\u5F55" }),
+                  /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__description", children: "\u9009\u62E9\u6279\u6CE8\u548C AI \u6587\u4EF6\u64CD\u4F5C\u6240\u5728\u7684\u9879\u76EE\u76EE\u5F55\u3002" })
                 ] }),
                 open: directoryPickerOpen,
                 centered: true,
                 width: 720,
                 className: "we-runtime-directory-picker-modal",
                 getContainer: false,
-                closeIcon: /* @__PURE__ */ jsx12(
+                closeIcon: /* @__PURE__ */ jsx13(
                   Tooltip6,
                   {
                     title: "\u5173\u95ED\u76EE\u5F55\u9009\u62E9\u5668",
                     placement: "bottomRight",
                     getPopupContainer: resolveRuntimePopupContainer,
-                    children: /* @__PURE__ */ jsx12(CloseOutlined3, { "aria-label": "\u5173\u95ED\u76EE\u5F55\u9009\u62E9\u5668" })
+                    children: /* @__PURE__ */ jsx13(CloseOutlined3, { "aria-label": "\u5173\u95ED\u76EE\u5F55\u9009\u62E9\u5668" })
                   }
                 ),
                 keyboard: !directoryPickerBusy && !directoryPickerRecentOpen,
@@ -22487,7 +22658,7 @@ var PropertyPanelView = React13.forwardRef(
                   }
                 },
                 footer: [
-                  /* @__PURE__ */ jsx12(
+                  /* @__PURE__ */ jsx13(
                     Button5,
                     {
                       disabled: directoryPickerBusy,
@@ -22496,7 +22667,7 @@ var PropertyPanelView = React13.forwardRef(
                     },
                     "cancel"
                   ),
-                  /* @__PURE__ */ jsx12(
+                  /* @__PURE__ */ jsx13(
                     Button5,
                     {
                       type: "primary",
@@ -22510,7 +22681,7 @@ var PropertyPanelView = React13.forwardRef(
                     "select"
                   )
                 ],
-                children: /* @__PURE__ */ jsxs11(
+                children: /* @__PURE__ */ jsxs12(
                   "div",
                   {
                     className: "we-runtime-directory-picker",
@@ -22521,7 +22692,7 @@ var PropertyPanelView = React13.forwardRef(
                       }
                     },
                     children: [
-                      /* @__PURE__ */ jsxs11(
+                      /* @__PURE__ */ jsxs12(
                         "form",
                         {
                           className: "we-runtime-directory-picker__path-row",
@@ -22531,13 +22702,13 @@ var PropertyPanelView = React13.forwardRef(
                             handleDirectoryPickerPathSubmit();
                           },
                           children: [
-                            /* @__PURE__ */ jsxs11(
+                            /* @__PURE__ */ jsxs12(
                               "div",
                               {
                                 ref: directoryPickerPathFieldRef,
                                 className: "we-runtime-directory-picker__path-field",
                                 children: [
-                                  /* @__PURE__ */ jsx12(
+                                  /* @__PURE__ */ jsx13(
                                     Input5,
                                     {
                                       size: "large",
@@ -22566,7 +22737,7 @@ var PropertyPanelView = React13.forwardRef(
                                       onKeyDown: handleDirectoryPickerPathKeyDown
                                     }
                                   ),
-                                  directoryPickerRecentOpen ? /* @__PURE__ */ jsxs11(
+                                  directoryPickerRecentOpen ? /* @__PURE__ */ jsxs12(
                                     "div",
                                     {
                                       id: "we-runtime-directory-picker-recent-list",
@@ -22574,10 +22745,10 @@ var PropertyPanelView = React13.forwardRef(
                                       "aria-label": "\u6700\u8FD1\u9879\u76EE",
                                       className: "we-runtime-directory-picker__recent-list",
                                       children: [
-                                        /* @__PURE__ */ jsx12("div", { className: "we-runtime-directory-picker__recent-heading", children: "\u6700\u8FD1\u9879\u76EE" }),
+                                        /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__recent-heading", children: "\u6700\u8FD1\u9879\u76EE" }),
                                         filteredDirectoryPickerRecentWorkspaces.length > 0 ? filteredDirectoryPickerRecentWorkspaces.map((workspace, index) => {
                                           const workspaceName = getAiExecutionRecentWorkspaceName(workspace.path);
-                                          return /* @__PURE__ */ jsxs11(
+                                          return /* @__PURE__ */ jsxs12(
                                             "div",
                                             {
                                               id: `we-runtime-directory-picker-recent-${index}`,
@@ -22586,7 +22757,7 @@ var PropertyPanelView = React13.forwardRef(
                                               className: `we-runtime-directory-picker__recent-item${index === directoryPickerRecentActiveIndex ? " we-runtime-directory-picker__recent-item--active" : ""}`,
                                               onPointerMove: () => setDirectoryPickerRecentActiveIndex(index),
                                               children: [
-                                                /* @__PURE__ */ jsxs11(
+                                                /* @__PURE__ */ jsxs12(
                                                   "button",
                                                   {
                                                     type: "button",
@@ -22594,10 +22765,10 @@ var PropertyPanelView = React13.forwardRef(
                                                     onMouseDown: (event) => event.preventDefault(),
                                                     onClick: () => handleDirectoryPickerRecentBrowse(workspace.path),
                                                     children: [
-                                                      /* @__PURE__ */ jsx12(HistoryOutlined, { "aria-hidden": "true" }),
-                                                      /* @__PURE__ */ jsxs11("span", { className: "we-runtime-directory-picker__recent-copy", children: [
-                                                        /* @__PURE__ */ jsx12("span", { className: "we-runtime-directory-picker__recent-name", children: workspaceName }),
-                                                        /* @__PURE__ */ jsx12(
+                                                      /* @__PURE__ */ jsx13(HistoryOutlined, { "aria-hidden": "true" }),
+                                                      /* @__PURE__ */ jsxs12("span", { className: "we-runtime-directory-picker__recent-copy", children: [
+                                                        /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__recent-name", children: workspaceName }),
+                                                        /* @__PURE__ */ jsx13(
                                                           "span",
                                                           {
                                                             className: "we-runtime-directory-picker__recent-path",
@@ -22609,20 +22780,20 @@ var PropertyPanelView = React13.forwardRef(
                                                     ]
                                                   }
                                                 ),
-                                                /* @__PURE__ */ jsx12(
+                                                /* @__PURE__ */ jsx13(
                                                   Tooltip6,
                                                   {
                                                     title: "\u4ECE\u6700\u8FD1\u9879\u76EE\u4E2D\u79FB\u9664",
                                                     placement: "left",
                                                     getPopupContainer: resolveRuntimePopupContainer,
-                                                    children: /* @__PURE__ */ jsx12(
+                                                    children: /* @__PURE__ */ jsx13(
                                                       Button5,
                                                       {
                                                         type: "text",
                                                         size: "small",
                                                         className: "we-runtime-directory-picker__recent-remove",
                                                         "aria-label": `\u4ECE\u6700\u8FD1\u9879\u76EE\u4E2D\u79FB\u9664\uFF1A${workspaceName}`,
-                                                        icon: /* @__PURE__ */ jsx12(DeleteOutlined4, {}),
+                                                        icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
                                                         onMouseDown: (event) => event.preventDefault(),
                                                         onClick: (event) => {
                                                           event.stopPropagation();
@@ -22636,14 +22807,14 @@ var PropertyPanelView = React13.forwardRef(
                                             },
                                             workspace.path
                                           );
-                                        }) : /* @__PURE__ */ jsx12("div", { className: "we-runtime-directory-picker__recent-empty", children: "\u6CA1\u6709\u5339\u914D\u7684\u6700\u8FD1\u9879\u76EE" })
+                                        }) : /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__recent-empty", children: "\u6CA1\u6709\u5339\u914D\u7684\u6700\u8FD1\u9879\u76EE" })
                                       ]
                                     }
                                   ) : null
                                 ]
                               }
                             ),
-                            /* @__PURE__ */ jsx12(
+                            /* @__PURE__ */ jsx13(
                               Button5,
                               {
                                 size: "large",
@@ -22656,25 +22827,25 @@ var PropertyPanelView = React13.forwardRef(
                           ]
                         }
                       ),
-                      /* @__PURE__ */ jsxs11("div", { className: "we-runtime-directory-picker__location", children: [
-                        /* @__PURE__ */ jsx12("span", { className: "we-runtime-directory-picker__location-label", children: "\u4F4D\u7F6E" }),
-                        /* @__PURE__ */ jsx12("span", { className: "we-runtime-directory-picker__divider" }),
-                        /* @__PURE__ */ jsx12(
+                      /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__location", children: [
+                        /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__location-label", children: "\u4F4D\u7F6E" }),
+                        /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__divider" }),
+                        /* @__PURE__ */ jsx13(
                           "div",
                           {
                             ref: directoryPickerBreadcrumbRef,
                             role: "navigation",
                             "aria-label": "\u76EE\u5F55\u8DEF\u5F84",
                             className: "we-runtime-directory-picker__breadcrumbs",
-                            children: directoryPickerBreadcrumbs.map((breadcrumb, index) => /* @__PURE__ */ jsxs11(React13.Fragment, { children: [
-                              index > 0 ? /* @__PURE__ */ jsx12(
+                            children: directoryPickerBreadcrumbs.map((breadcrumb, index) => /* @__PURE__ */ jsxs12(React13.Fragment, { children: [
+                              index > 0 ? /* @__PURE__ */ jsx13(
                                 RightOutlined,
                                 {
                                   className: "we-runtime-directory-picker__breadcrumb-separator",
                                   "aria-hidden": "true"
                                 }
                               ) : null,
-                              /* @__PURE__ */ jsx12(
+                              /* @__PURE__ */ jsx13(
                                 Button5,
                                 {
                                   type: "text",
@@ -22691,21 +22862,21 @@ var PropertyPanelView = React13.forwardRef(
                             ] }, breadcrumb.path))
                           }
                         ),
-                        /* @__PURE__ */ jsx12("span", { className: "we-runtime-directory-picker__divider" }),
-                        /* @__PURE__ */ jsxs11("div", { className: "we-runtime-directory-picker__location-actions", children: [
-                          /* @__PURE__ */ jsx12(
+                        /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__divider" }),
+                        /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__location-actions", children: [
+                          /* @__PURE__ */ jsx13(
                             Tooltip6,
                             {
                               title: "\u8FD4\u56DE\u4E3B\u76EE\u5F55",
                               placement: "bottomRight",
                               getPopupContainer: resolveRuntimePopupContainer,
-                              children: /* @__PURE__ */ jsx12(
+                              children: /* @__PURE__ */ jsx13(
                                 Button5,
                                 {
                                   type: "text",
                                   size: "small",
                                   "aria-label": "\u8FD4\u56DE\u4E3B\u76EE\u5F55",
-                                  icon: /* @__PURE__ */ jsx12(HomeOutlined, {}),
+                                  icon: /* @__PURE__ */ jsx13(HomeOutlined, {}),
                                   disabled: directoryPickerBusy || !directoryPickerState?.home,
                                   onClick: () => {
                                     void browseAiExecutionDirectories(directoryPickerState?.home);
@@ -22714,19 +22885,19 @@ var PropertyPanelView = React13.forwardRef(
                               )
                             }
                           ),
-                          /* @__PURE__ */ jsx12(
+                          /* @__PURE__ */ jsx13(
                             Tooltip6,
                             {
                               title: "\u8FD4\u56DE\u4E0A\u4E00\u7EA7",
                               placement: "bottomRight",
                               getPopupContainer: resolveRuntimePopupContainer,
-                              children: /* @__PURE__ */ jsx12(
+                              children: /* @__PURE__ */ jsx13(
                                 Button5,
                                 {
                                   type: "text",
                                   size: "small",
                                   "aria-label": "\u8FD4\u56DE\u4E0A\u4E00\u7EA7",
-                                  icon: /* @__PURE__ */ jsx12(ArrowUpOutlined, {}),
+                                  icon: /* @__PURE__ */ jsx13(ArrowUpOutlined2, {}),
                                   disabled: directoryPickerBusy || !directoryPickerState?.parent,
                                   onClick: () => {
                                     void browseAiExecutionDirectories(
@@ -22739,15 +22910,15 @@ var PropertyPanelView = React13.forwardRef(
                           )
                         ] })
                       ] }),
-                      directoryPickerRecentError ? /* @__PURE__ */ jsxs11("div", { className: "we-runtime-directory-picker__recent-error", role: "status", children: [
+                      directoryPickerRecentError ? /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__recent-error", role: "status", children: [
                         "\u6700\u8FD1\u9879\u76EE\u6682\u4E0D\u53EF\u7528\uFF1A",
                         directoryPickerRecentError
                       ] }) : null,
-                      directoryPickerError ? /* @__PURE__ */ jsx12("div", { className: "we-runtime-directory-picker__error", role: "alert", children: directoryPickerError }) : null,
-                      /* @__PURE__ */ jsx12("div", { className: "we-runtime-directory-picker__list", children: directoryPickerBusy ? /* @__PURE__ */ jsxs11("div", { className: "we-runtime-directory-picker__empty", children: [
-                        /* @__PURE__ */ jsx12(ReloadOutlined, { spin: true }),
-                        /* @__PURE__ */ jsx12("span", { children: "\u6B63\u5728\u8BFB\u53D6\u76EE\u5F55..." })
-                      ] }) : directoryPickerState?.directories.length ? directoryPickerState.directories.map((directory) => /* @__PURE__ */ jsxs11(
+                      directoryPickerError ? /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__error", role: "alert", children: directoryPickerError }) : null,
+                      /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__list", children: directoryPickerBusy ? /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__empty", children: [
+                        /* @__PURE__ */ jsx13(ReloadOutlined, { spin: true }),
+                        /* @__PURE__ */ jsx13("span", { children: "\u6B63\u5728\u8BFB\u53D6\u76EE\u5F55..." })
+                      ] }) : directoryPickerState?.directories.length ? directoryPickerState.directories.map((directory) => /* @__PURE__ */ jsxs12(
                         "button",
                         {
                           type: "button",
@@ -22757,9 +22928,9 @@ var PropertyPanelView = React13.forwardRef(
                             void browseAiExecutionDirectories(directory.path);
                           },
                           children: [
-                            /* @__PURE__ */ jsx12(FolderOpenOutlined, { "aria-hidden": "true" }),
-                            /* @__PURE__ */ jsx12("span", { className: "we-runtime-directory-picker__row-name", children: directory.name }),
-                            /* @__PURE__ */ jsx12(
+                            /* @__PURE__ */ jsx13(FolderOpenOutlined, { "aria-hidden": "true" }),
+                            /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__row-name", children: directory.name }),
+                            /* @__PURE__ */ jsx13(
                               RightOutlined,
                               {
                                 className: "we-runtime-directory-picker__row-arrow",
@@ -22769,13 +22940,13 @@ var PropertyPanelView = React13.forwardRef(
                           ]
                         },
                         directory.path
-                      )) : /* @__PURE__ */ jsx12("div", { className: "we-runtime-directory-picker__empty", children: "\u5F53\u524D\u76EE\u5F55\u6CA1\u6709\u53EF\u8FDB\u5165\u7684\u5B50\u76EE\u5F55\uFF0C\u4F60\u4ECD\u53EF\u4EE5\u9009\u62E9\u5B83\u4F5C\u4E3A AI \u5DE5\u4F5C\u76EE\u5F55\u3002" }) })
+                      )) : /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__empty", children: "\u5F53\u524D\u76EE\u5F55\u6CA1\u6709\u53EF\u8FDB\u5165\u7684\u5B50\u76EE\u5F55\uFF0C\u4F60\u4ECD\u53EF\u4EE5\u9009\u62E9\u5B83\u4F5C\u4E3A AI \u5DE5\u4F5C\u76EE\u5F55\u3002" }) })
                     ]
                   }
                 )
               }
             ),
-            /* @__PURE__ */ jsx12(
+            /* @__PURE__ */ jsx13(
               Modal2,
               {
                 title: "\u5FEB\u6377\u952E",
@@ -22786,7 +22957,7 @@ var PropertyPanelView = React13.forwardRef(
                 maskClosable: true,
                 onCancel: () => setKeyboardShortcutsDialogOpen(false),
                 footer: [
-                  /* @__PURE__ */ jsx12(
+                  /* @__PURE__ */ jsx13(
                     Button5,
                     {
                       type: "primary",
@@ -22796,7 +22967,7 @@ var PropertyPanelView = React13.forwardRef(
                     "close"
                   )
                 ],
-                children: /* @__PURE__ */ jsx12("div", { style: { display: "flex", flexDirection: "column", gap: 0 }, children: [
+                children: /* @__PURE__ */ jsx13("div", { style: { display: "flex", flexDirection: "column", gap: 0 }, children: [
                   {
                     keys: [`${navigator.platform?.includes("Mac") ? "\u2318" : "Ctrl"} + Enter`, "Esc"],
                     label: "\u4FDD\u5B58\u5E76\u5173\u95ED\u6C14\u6CE1\u5361\u7247",
@@ -22826,7 +22997,7 @@ var PropertyPanelView = React13.forwardRef(
                       desc: "\u7126\u70B9\u4E0D\u5728\u8F93\u5165\u6846\u6216\u6587\u672C\u7F16\u8F91\u533A\u65F6\uFF0C\u5220\u9664\u5DF2\u9009\u5143\u7D20\u5E76\u5728\u7236\u7EA7\u521B\u5EFA\u53EF\u6062\u590D\u6279\u6CE8"
                     }
                   ] : []
-                ].map((item) => /* @__PURE__ */ jsxs11(
+                ].map((item) => /* @__PURE__ */ jsxs12(
                   "div",
                   {
                     style: {
@@ -22838,8 +23009,8 @@ var PropertyPanelView = React13.forwardRef(
                       borderBottom: `1px solid ${EDITOR_CHROME.border}`
                     },
                     children: [
-                      /* @__PURE__ */ jsxs11("div", { style: { flex: 1, minWidth: 0 }, children: [
-                        /* @__PURE__ */ jsx12(
+                      /* @__PURE__ */ jsxs12("div", { style: { flex: 1, minWidth: 0 }, children: [
+                        /* @__PURE__ */ jsx13(
                           "div",
                           {
                             style: {
@@ -22850,7 +23021,7 @@ var PropertyPanelView = React13.forwardRef(
                             children: item.label
                           }
                         ),
-                        /* @__PURE__ */ jsx12(
+                        /* @__PURE__ */ jsx13(
                           "div",
                           {
                             style: {
@@ -22862,7 +23033,7 @@ var PropertyPanelView = React13.forwardRef(
                           }
                         )
                       ] }),
-                      /* @__PURE__ */ jsx12(
+                      /* @__PURE__ */ jsx13(
                         "div",
                         {
                           style: {
@@ -22872,7 +23043,7 @@ var PropertyPanelView = React13.forwardRef(
                             alignItems: "center",
                             paddingTop: 2
                           },
-                          children: item.keys.map((key) => /* @__PURE__ */ jsx12(
+                          children: item.keys.map((key) => /* @__PURE__ */ jsx13(
                             "kbd",
                             {
                               style: {
@@ -24227,7 +24398,7 @@ function writeEditableText(element, value) {
 }
 
 // src/ui/runtime/runtime-shell.tsx
-import { jsx as jsx13, jsxs as jsxs12 } from "react/jsx-runtime";
+import { jsx as jsx14, jsxs as jsxs13 } from "react/jsx-runtime";
 function normalizeRuntimeUiSettings(settings, interactionProfile) {
   const normalized = applyMobileSettingsOverride(
     applyInteractionProfileToUiSettings(sanitizeWebEditorUiSettings(settings), interactionProfile)
@@ -25333,9 +25504,9 @@ function WebEditorUiApp(props) {
     inlineTextEditing,
     propertyPanelOptions
   ]);
-  return /* @__PURE__ */ jsxs12("div", { style: panelContainerStyle, children: [
-    /* @__PURE__ */ jsx13("style", { nonce: resolveCspNonce(), children: WEB_EDITOR_POPUP_ROOT_STYLES }),
-    /* @__PURE__ */ jsx13(
+  return /* @__PURE__ */ jsxs13("div", { style: panelContainerStyle, children: [
+    /* @__PURE__ */ jsx14("style", { nonce: resolveCspNonce(), children: WEB_EDITOR_POPUP_ROOT_STYLES }),
+    /* @__PURE__ */ jsx14(
       ElementAgentTaskOverlays,
       {
         tasks: blockingLayerOpen ? [] : taskStateProvider.getVisibleTasks(),
@@ -25344,7 +25515,7 @@ function WebEditorUiApp(props) {
         renderTick: taskRenderTick
       }
     ),
-    breadcrumbsOptions ? /* @__PURE__ */ jsx13(
+    breadcrumbsOptions ? /* @__PURE__ */ jsx14(
       PromptCardView,
       {
         ref: breadcrumbsRef,
@@ -25391,6 +25562,7 @@ function WebEditorUiApp(props) {
         canExportSelectionToDesignTool: propertyPanelOptions?.canExportSelectionToDesignTool,
         onExportSelectionToDesignTool: propertyPanelOptions?.onExportSelectionToDesignTool,
         onDocumentComponent: propertyPanelOptions?.onDocumentComponent,
+        onGenerateComponentStates: propertyPanelOptions?.onGenerateComponentStates,
         getExportSelectionToDesignToolBlockReason: propertyPanelOptions?.getExportSelectionToDesignToolBlockReason,
         onHoverSelectionSuppressedChange: selectionGuards.handlePromptHoverSelectionSuppressedChange,
         onSelectionInteractionLockChange: selectionGuards.handlePromptSelectionInteractionLockChange,
@@ -25436,7 +25608,7 @@ function WebEditorUiApp(props) {
         onDeleteCurrentAnnotationNode: handleDeleteCurrentAnnotationNode
       }
     ) : null,
-    propertyPanelOptions && propertyPanelVisible ? /* @__PURE__ */ jsx13(
+    propertyPanelOptions && propertyPanelVisible ? /* @__PURE__ */ jsx14(
       PropertyPanelView,
       {
         ref: propertyPanelRef,
@@ -25530,7 +25702,7 @@ function createQueuedBridge(getApi) {
 }
 
 // src/ui/runtime/create-web-editor-ui-runtime.tsx
-import { jsx as jsx14, jsxs as jsxs13 } from "react/jsx-runtime";
+import { jsx as jsx15, jsxs as jsxs14 } from "react/jsx-runtime";
 function subscribeDeferredHostToolbarState(options) {
   const current = options.getCurrent();
   if (current) {
@@ -25668,7 +25840,7 @@ function createWebEditorUiRuntime(options) {
       propertyPanelBridge?.flush();
       breadcrumbsBridge?.flush();
     });
-    return /* @__PURE__ */ jsx14(StyleProvider, { cache: styleCache, container: options.shadowRoot, children: /* @__PURE__ */ jsx14(
+    return /* @__PURE__ */ jsx15(StyleProvider, { cache: styleCache, container: options.shadowRoot, children: /* @__PURE__ */ jsx15(
       ConfigProvider,
       {
         componentSize: "small",
@@ -25678,7 +25850,7 @@ function createWebEditorUiRuntime(options) {
           popupContainerRef.current ?? options.container
         ),
         theme: createRuntimeAntdTheme(themeMode),
-        children: /* @__PURE__ */ jsx14(App2, { children: /* @__PURE__ */ jsxs13(
+        children: /* @__PURE__ */ jsx15(App2, { children: /* @__PURE__ */ jsxs14(
           "div",
           {
             style: {
@@ -25688,7 +25860,7 @@ function createWebEditorUiRuntime(options) {
               ...createEditorChromeCssVars(themeMode)
             },
             children: [
-              /* @__PURE__ */ jsx14(
+              /* @__PURE__ */ jsx15(
                 WebEditorUiApp,
                 {
                   propertyPanelOptions: options.propertyPanelOptions,
@@ -25702,14 +25874,14 @@ function createWebEditorUiRuntime(options) {
                   onThemeModeChange: setThemeMode
                 }
               ),
-              /* @__PURE__ */ jsx14("div", { ref: popupContainerRef, ...{ [WEB_EDITOR_POPUP_ROOT_ATTR]: "true" } })
+              /* @__PURE__ */ jsx15("div", { ref: popupContainerRef, ...{ [WEB_EDITOR_POPUP_ROOT_ATTR]: "true" } })
             ]
           }
         ) })
       }
     ) });
   }
-  root.render(/* @__PURE__ */ jsx14(RuntimeMount, {}));
+  root.render(/* @__PURE__ */ jsx15(RuntimeMount, {}));
   return {
     propertyPanel: propertyPanelBridge ? {
       setTarget(element) {
@@ -31552,7 +31724,7 @@ function createDocumentComponentAction(options) {
     if (capturing) return;
     const selected = options.getSelectedElements();
     if (selected.length !== 1 || selected[0] !== element || !element.isConnected) {
-      options.toast("warning", "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668\u540E\u5F15\u5165\u8BF4\u660E\u3002");
+      options.toast("warning", options.purpose === "component-states" ? "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668\u540E\u751F\u6210\u72B6\u6001\u539F\u578B\u3002" : "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668\u540E\u5F15\u5165\u8BF4\u660E\u3002");
       return;
     }
     capturing = true;
@@ -31572,12 +31744,34 @@ function createDocumentComponentAction(options) {
         },
         source: { ...source, title: source.title.trim() || "\u5F53\u524D\u9875\u9762" }
       });
-      if (!handled) throw new Error("\u672A\u80FD\u6253\u5F00\u5F15\u5165\u8BF4\u660E\uFF0C\u8BF7\u8FD4\u56DE\u9879\u76EE\u9875\u9762\u91CD\u8BD5\u3002");
+      if (!handled) throw new Error(options.purpose === "component-states" ? "\u672A\u80FD\u6253\u5F00\u72B6\u6001\u751F\u6210\u7A97\u53E3\uFF0C\u8BF7\u5904\u7406\u5F53\u524D\u4EFB\u52A1\u6216\u8FD4\u56DE\u9879\u76EE\u9875\u9762\u91CD\u8BD5\u3002" : "\u672A\u80FD\u6253\u5F00\u5F15\u5165\u8BF4\u660E\uFF0C\u8BF7\u8FD4\u56DE\u9879\u76EE\u9875\u9762\u91CD\u8BD5\u3002");
       options.onAccepted?.(element);
     } catch (error) {
       options.toast("error", error instanceof Error ? error.message : "\u7EC4\u4EF6\u622A\u56FE\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u3002");
     } finally {
       capturing = false;
+    }
+  };
+}
+function createComponentStatesAction(options) {
+  let busy = false;
+  return async (element, note) => {
+    if (busy) return;
+    if (!note.trim()) {
+      options.toast("warning", "\u8BF7\u586B\u5199\u9700\u8981\u751F\u6210\u7684\u72B6\u6001\u53CA\u53D8\u5316\u8981\u6C42");
+      return;
+    }
+    busy = true;
+    try {
+      const sourceHtml = (element.outerHTML || "").slice(0, 6e4);
+      await createDocumentComponentAction({ ...options, purpose: "component-states", deliver: (capture) => options.deliver({
+        capture,
+        title: `${capture.component.name.replace(/\s*\[prd:[^\]]+\]/gu, "").slice(0, 80)} \u72B6\u6001\u8BF4\u660E`,
+        layout: "overview",
+        sourceHtml
+      }) })(element, note);
+    } finally {
+      busy = false;
     }
   };
 }
@@ -33327,6 +33521,16 @@ ${externalSection}` : promptWithSkills;
             }
             return services.summaries.getSaveRunPromptForElementBlockReason(element);
           },
+          onGenerateComponentStates: options.ui.onGenerateComponentStates ? createComponentStatesAction({
+            getSelectedElements: () => getSelectedElements(state2),
+            deliver: options.ui.onGenerateComponentStates,
+            getSelector: (element) => services.changes.getMetaForElement(element)?.locator.selectors[0] || generateCssSelector(element),
+            capture: (element, name) => captureElementScreenshot(element, name, {
+              fallbackBackgroundColor: "#ffffff",
+              isEditorUi: (node) => Boolean(state2.shadowHost?.isOverlayElement(node))
+            }),
+            toast: (tone, message) => services.feedback.toast(tone, message)
+          }) : void 0,
           onDocumentComponent: options.ui.onDocumentComponent ? createDocumentComponentAction({
             getSelectedElements: () => getSelectedElements(state2),
             deliver: options.ui.onDocumentComponent,

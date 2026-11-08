@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useEffect, useState } from 'react';
 import { QRCode } from 'antd';
 import { Check, Clipboard, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
@@ -254,10 +255,7 @@ export default function LocalPublishDialog({
                 <DialogTitle className="sr-only">发布</DialogTitle>
                 <div className="px-5 pb-5 pt-5 sm:px-6 sm:pb-6">
                     {loadingLatest ? (
-                        <div className="flex min-h-[150px] items-center justify-center gap-2 text-xs text-muted-foreground">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            正在读取已有发布地址…
-                        </div>
+                        <PageSkeleton variant="form" label="正在读取已有发布地址" />
                     ) : null}
                     {!loadingLatest ? renderCurrentLink() : null}
                     {!loadingLatest && mode === 'realtime' && currentRealtime ? (
