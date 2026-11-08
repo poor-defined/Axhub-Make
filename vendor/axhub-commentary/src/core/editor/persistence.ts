@@ -1904,7 +1904,7 @@ export function createPersistenceService(options: {
       };
     } catch (error) {
       console.warn('[Commentary] Failed to read prototype comments:', error);
-      return { document: null, deletedElementKeys: [], observedTombstones: [] };
+      throw error;
     }
   }
 

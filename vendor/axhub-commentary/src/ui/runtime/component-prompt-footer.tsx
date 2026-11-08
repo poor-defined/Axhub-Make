@@ -14,12 +14,15 @@ type ComponentPromptFooterProps = {
   onSend: () => void;
   shortcut: string;
   leadingActions?: React.ReactNode;
+  onSave?: () => void;
+  saveDisabled?: boolean;
+  saving?: boolean;
 };
 
 export function ComponentPromptFooter(props: ComponentPromptFooterProps): React.ReactElement {
   const { newPrototype, loading } = props;
-  const actionDisabled = props.disabled || loading;
-  const destinationDisabled = props.selectedElementCount !== 1 || loading;
+  const actionDisabled = props.disabled || loading || props.saving;
+  const destinationDisabled = props.selectedElementCount !== 1 || loading || props.saving;
   const explanation = props.selectedElementCount !== 1
     ? '选择一个组件后，可生成独立状态页'
     : newPrototype ? '在独立页面展示组件的不同状态' : '调整当前选中的组件';
@@ -50,9 +53,15 @@ export function ComponentPromptFooter(props: ComponentPromptFooterProps): React.
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 10, borderTop: `1px solid ${EDITOR_CHROME.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>{props.leadingActions}</div>
         <div style={{ flex: 1 }} />
+        {props.onSave ? (
+          <button type="button" aria-label="暂存批注" disabled={props.saveDisabled || loading || props.saving} aria-busy={props.saving}
+            onClick={props.onSave} style={{ minHeight: 34, padding: '7px 10px', border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 8, background: EDITOR_CHROME.surface, color: EDITOR_CHROME.textSecondary, fontFamily: 'inherit', fontSize: 12, whiteSpace: 'nowrap', cursor: props.saveDisabled || loading || props.saving ? 'not-allowed' : 'pointer' }}>
+            {props.saving ? '暂存中…' : '暂存批注'}
+          </button>
+        ) : null}
         {props.actionVisible ? (
           <>
-            <span aria-hidden="true" style={{ color: EDITOR_CHROME.textMuted, fontSize: 10, whiteSpace: 'nowrap' }}>{props.shortcut}</span>
+            {!props.onSave ? <span aria-hidden="true" style={{ color: EDITOR_CHROME.textMuted, fontSize: 10, whiteSpace: 'nowrap' }}>{props.shortcut}</span> : null}
             <button
               type="button"
               data-we-component-prompt-submit="true"

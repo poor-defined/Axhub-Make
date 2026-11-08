@@ -64,6 +64,12 @@ const SHADOW_HOST_FOCUS_TRAP_SELECTORS = [
   'dialog[open]',
 ].join(', ');
 
+/** Toolbar portals live in the annotation runtime's shadow tree, outside our host. */
+export function isEditorPortalElement(node: unknown): boolean {
+  return typeof Element !== 'undefined' && node instanceof Element
+    && Boolean(node.closest('[data-we-right-entry-slot="true"]'));
+}
+
 function getDefaultMountPoint(): HTMLElement {
   return (document.documentElement ?? document.body) as HTMLElement;
 }
@@ -909,6 +915,7 @@ export function mountShadowHost(_options: ShadowHostOptions = {}): ShadowHostMan
 
   // Helper: check if a node is part of the editor
   const isOverlayElement = (node: unknown): boolean => {
+    if (isEditorPortalElement(node)) return true;
     if (!(node instanceof Node)) return false;
     if (node === host) return true;
 

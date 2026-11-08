@@ -24,3 +24,15 @@ it('separates the output choice and primary action, updates the destination expl
   expect(view.root.findByType('input').props.disabled).toBe(true);
   await act(async () => view.unmount());
 });
+it('saves a draft independently of sending and exposes save progress', async () => {
+  const save = vi.fn(), send = vi.fn(); let view!: ReactTestRenderer;
+  const props = { newPrototypeAvailable: false, newPrototype: false, onNewPrototypeChange: vi.fn(), selectedElementCount: 1, actionVisible: true, disabled: false, loading: false, actionTitle: '发送修改', onSend: send, shortcut: '⌘ Enter', onSave: save, saveDisabled: false, saving: false };
+  await act(async () => { view = create(React.createElement(ComponentPromptFooter, props)); });
+  const button = () => view.root.findByProps({ 'aria-label': '暂存批注' });
+  await act(async () => button().props.onClick());
+  expect(save).toHaveBeenCalledTimes(1); expect(send).not.toHaveBeenCalled();
+  await act(async () => view.update(React.createElement(ComponentPromptFooter, { ...props, saving: true })));
+  expect(button().props.disabled).toBe(true);
+  expect(button().props['aria-busy']).toBe(true);
+  await act(async () => view.unmount());
+});

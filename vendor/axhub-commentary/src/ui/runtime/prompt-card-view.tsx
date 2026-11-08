@@ -28,7 +28,7 @@ import {
   isAgentPromptActionVisible,
   triggerAgentPromptAction,
 } from '../agent-prompt-action';
-import { executePromptCardCurrentElementAction, executePromptCardDocumentAction, resolveComponentPrototypeDestination, resolvePromptSubmitShortcut } from './prompt-card-actions';
+import { executePromptCardCurrentElementAction, executePromptCardDocumentAction, executePromptCardSaveAction, resolveComponentPrototypeDestination, resolvePromptSubmitShortcut } from './prompt-card-actions';
 import { ComponentPromptFooter } from './component-prompt-footer';
 import { resolvePromptCardCloseActionTitle } from './prompt-card-shortcut-label';
 import { CloseToolIcon, AgentSparkleIcon, IconActionButton } from './action-buttons';
@@ -369,6 +369,9 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       pinnedToTopRight = false,
       onPinnedToTopRightChange,
       propertyPanelOpen = false,
+      commentListOpen = false,
+      onCommentSaved,
+      onPersistComments,
       anchorRect,
       uiMode,
       interactionProfile,
@@ -449,6 +452,8 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
     const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
     const [promptCardSize, setPromptCardSize] = React.useState<PromptCardSize | null>(null);
     const [sendingCurrentElementPrompt, setSendingCurrentElementPrompt] = React.useState(false);
+    const [savingComment, setSavingComment] = React.useState(false);
+    const savingCommentRef = React.useRef(false);
     const [refreshKey, setRefreshKey] = React.useState(0);
     const [selectedSkills, setSelectedSkills] = React.useState<PromptCardSkill[]>([]);
     const [promptDismissed, setPromptDismissed] = React.useState(false);
@@ -712,11 +717,11 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
         cardHeight: promptCardSize?.height ?? PROMPT_CARD_ESTIMATED_HEIGHT,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
-        propertyPanelEnabled: propertyPanelEnabled && (!pinnedToTopRight || propertyPanelOpen),
+        propertyPanelEnabled: (commentListOpen && window.innerWidth > 760) || (propertyPanelEnabled && (!pinnedToTopRight || propertyPanelOpen)),
         pinnedToTopRight,
         safePaddingPx: SAFE_PADDING_PX,
-        propertyPanelWidth: PROPERTY_PANEL_WIDTH,
-        propertyPanelRight: PROPERTY_PANEL_RIGHT,
+        propertyPanelWidth: commentListOpen && window.innerWidth > 760 ? 320 : PROPERTY_PANEL_WIDTH,
+        propertyPanelRight: commentListOpen && window.innerWidth > 760 ? 52 : PROPERTY_PANEL_RIGHT,
         anchorGapPx: ANCHOR_GAP_PX,
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -728,6 +733,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       propertyPanelEnabled,
       pinnedToTopRight,
       propertyPanelOpen,
+      commentListOpen,
       toolMinimized,
       uiMode,
       visualViewportKey,
@@ -856,6 +862,19 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       }
       onDismissSelection?.();
     }, [onConfirmNoteWithSelectedSkills, onDismissSelection]);
+
+    const handleSaveComment = React.useCallback(async () => {
+      if (savingCommentRef.current || !canEditNote) return;
+      savingCommentRef.current = true;
+      setSavingComment(true); setElementToolError('');
+      try {
+        await executePromptCardSaveAction({ onConfirmNote: onConfirmNoteWithSelectedSkills, onPersist: onPersistComments, onSaved: onCommentSaved });
+      } catch (error) {
+        setElementToolError(error instanceof Error ? error.message : '暂存失败，请重试');
+      } finally {
+        savingCommentRef.current = false; setSavingComment(false);
+      }
+    }, [canEditNote, onConfirmNoteWithSelectedSkills, onPersistComments, onCommentSaved]);
 
     const saveAndDismissPromptCard = React.useCallback(async () => {
       setSelectedSkills([]);
@@ -1112,7 +1131,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
     ]);
 
     const handleConfirmSendCurrentElementPrompt = React.useCallback(async () => {
-      if (sendingCurrentElementPrompt || (generateNewPrototype && selectedElementCount !== 1)) return;
+      if (savingCommentRef.current || sendingCurrentElementPrompt || (generateNewPrototype && selectedElementCount !== 1)) return;
       if (componentComposer && (hideCurrentElementExecutionAction || (!generateNewPrototype && (!currentElementPromptAction.visible || currentElementPromptAction.disabled)))) return;
       if (generateNewPrototype && !draftNote.trim()) return;
       const ready = generateNewPrototype || await wakeAgentForCurrentElementAction();
@@ -1546,7 +1565,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                 type="button"
                 data-we-document-component="true"
                 title={selectedElementCount !== 1 ? '请选择一个组件或容器' : '截图并将说明引入 PRD 文档'}
-                disabled={selectedElementCount !== 1}
+                disabled={selectedElementCount !== 1 || savingComment}
                 style={{ border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 6, background: 'transparent', color: EDITOR_CHROME.textSecondary, padding: '4px 8px', fontFamily: 'inherit', fontSize: 12, whiteSpace: 'nowrap', cursor: selectedElementCount === 1 ? 'pointer' : 'not-allowed' }}
                 onClick={() => {
                   void executePromptCardDocumentAction({currentTarget, note: draftNote,
@@ -2062,7 +2081,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
                   <Input.TextArea
                     className="we-runtime-prompt-card__textarea"
                     value={draftNote}
-                    disabled={!canEditNote}
+                    disabled={!canEditNote || savingComment}
                     readOnly={inlineTextEditing}
                     tabIndex={inlineTextEditing ? -1 : 0}
                     allowClear
@@ -2340,6 +2359,9 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
             loading={generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading}
             actionTitle={generateNewPrototype ? '生成所选组件的状态说明原型' : promptCardSendActionTitle}
             onSend={() => { void handleConfirmSendCurrentElementPrompt(); }}
+            onSave={() => { void handleSaveComment(); }}
+            saveDisabled={!canEditNote || !draftNote.trim() || sendingCurrentElementPrompt}
+            saving={savingComment}
             shortcut={/Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '') ? '⌘ Enter' : 'Ctrl Enter'}
             leadingActions={<>{appendContextAction}{clearEditsAction}</>}
           />

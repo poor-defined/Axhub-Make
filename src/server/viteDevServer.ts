@@ -34,6 +34,8 @@ type ViteServer = {
   middlewares: (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
   transformIndexHtml: (url: string, html: string) => Promise<string>;
   close: () => Promise<void>;
+  moduleGraph?: { invalidateAll: () => void };
+  ws?: { send: (message: { type: 'full-reload'; path: string }) => void };
 };
 
 const DEV_ENTRY_ASSET_SOURCE_MAP = new Map<string, string>([
@@ -416,6 +418,24 @@ export async function createViteDevMiddleware(
 
   let vite = await createEmbeddedViteServer();
   let recreatePromise: Promise<void> | null = null;
+  let commentaryReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  let closed = false;
+  const onCommentaryRebuild = (current: fs.Stats, previous: fs.Stats): void => {
+    if (closed || current.size === 0 || (current.mtimeMs === previous.mtimeMs && current.size === previous.size)) return;
+    if (commentaryReloadTimer) clearTimeout(commentaryReloadTimer);
+    commentaryReloadTimer = setTimeout(() => {
+      commentaryReloadTimer = null;
+      if (closed) return;
+      vite.moduleGraph?.invalidateAll();
+      vite.ws?.send({ type: 'full-reload', path: '*' });
+    }, 150);
+  };
+  // Keep bulk vendor sync excluded from Vite's watcher, but observe the one
+  // runtime entry that previews import. Atomic rebuilds otherwise leave its
+  // transformed module cached indefinitely, even after a browser refresh.
+  if (commentaryRuntimeAlias) {
+    fs.watchFile(commentaryRuntimeAlias, { interval: 500, persistent: false }, onCommentaryRebuild);
+  }
 
   async function recreateViteServer(): Promise<void> {
     if (recreatePromise) {
@@ -494,6 +514,9 @@ export async function createViteDevMiddleware(
     },
 
     async close() {
+      closed = true;
+      if (commentaryReloadTimer) clearTimeout(commentaryReloadTimer);
+      if (commentaryRuntimeAlias) fs.unwatchFile(commentaryRuntimeAlias, onCommentaryRebuild);
       try {
         await vite.close();
       } finally {

@@ -218,6 +218,9 @@ export interface PromptCardViewProps
   pinnedToTopRight?: boolean;
   onPinnedToTopRightChange?: (pinned: boolean) => void;
   propertyPanelOpen?: boolean;
+  commentListOpen?: boolean;
+  onCommentSaved?: () => void;
+  onPersistComments?: () => Promise<void>;
   anchorRect: ViewportRect | null;
   uiMode: CommentEntryMode;
   interactionProfile: WebEditorInteractionProfile;

@@ -92,6 +92,7 @@ export interface WebEditorV2UiOptions {
   getAcpUiConnected?: () => boolean;
   getAssistantPanelOpen?: () => boolean;
   onDocumentComponent?: (capture: import('../../web-editor-types').CommentaryDocumentComponentCapture) => Promise<boolean>;
+  commentListLoadingContent?: ReactNode;
   onGenerateComponentStates?: (request: import('../../web-editor-types').CommentaryComponentStatesRequest) => Promise<boolean>;
   onPrepareAxureExport?: (payload: unknown) => Promise<boolean>;
   onHostToolbarAction?: (
@@ -458,6 +459,7 @@ export function resolveWebEditorOptions(
       hideToolbarCloseAction: false,
       compactToolbar: false,
       toolbarExtraContent: null,
+      commentListLoadingContent: null,
       externalAnnotationMode: false,
       commenterName: '',
       onCommenterNameChange: undefined,

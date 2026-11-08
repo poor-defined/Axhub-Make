@@ -2114,6 +2114,7 @@ function resolveWebEditorOptions(options = {}) {
       hideToolbarCloseAction: false,
       compactToolbar: false,
       toolbarExtraContent: null,
+      commentListLoadingContent: null,
       externalAnnotationMode: false,
       commenterName: "",
       onCommenterNameChange: void 0,
@@ -8816,6 +8817,9 @@ var SHADOW_HOST_FOCUS_TRAP_SELECTORS = [
   '[aria-modal="true"]',
   "dialog[open]"
 ].join(", ");
+function isEditorPortalElement(node) {
+  return typeof Element !== "undefined" && node instanceof Element && Boolean(node.closest('[data-we-right-entry-slot="true"]'));
+}
 function getDefaultMountPoint() {
   return document.documentElement ?? document.body;
 }
@@ -9581,6 +9585,7 @@ function mountShadowHost(_options = {}) {
     disposer.listen(overlayRoot, eventType, stopPropagation);
   }
   const isOverlayElement2 = (node) => {
+    if (isEditorPortalElement(node)) return true;
     if (!(node instanceof Node)) return false;
     if (node === host) return true;
     const root = typeof node.getRootNode === "function" ? node.getRootNode() : null;
@@ -9611,13 +9616,13 @@ function mountShadowHost(_options = {}) {
 }
 
 // src/ui/runtime/create-web-editor-ui-runtime.tsx
-import React20 from "react";
+import React22 from "react";
 import { createRoot as createRoot2 } from "react-dom/client";
 import { App as App2, ConfigProvider } from "antd";
 import { StyleProvider, createCache } from "@ant-design/cssinjs";
 
 // src/ui/runtime/runtime-shell.tsx
-import React19 from "react";
+import React21 from "react";
 
 // src/ui/runtime/theme.ts
 var ANCHOR_GAP_PX = 12;
@@ -12923,6 +12928,11 @@ function getAgentPromptBubbleActionState(options) {
 function resolveComponentPrototypeDestination(options) {
   return options.requested && options.generatorAvailable && !options.externalAnnotationMode && options.interactionProfile !== "annotation" && options.interactionProfile !== "text-comment";
 }
+async function executePromptCardSaveAction(options) {
+  await options.onConfirmNote();
+  await options.onPersist?.();
+  options.onSaved?.();
+}
 function resolvePromptSubmitShortcut(options) {
   if (options.isComposing || options.key !== "Enter" || !(options.metaKey || options.ctrlKey)) return null;
   return options.componentComposer || options.generateNewPrototype ? "send" : "save";
@@ -12958,8 +12968,8 @@ import { ArrowUpOutlined, LoadingOutlined } from "@ant-design/icons";
 import { Fragment as Fragment3, jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
 function ComponentPromptFooter(props) {
   const { newPrototype, loading } = props;
-  const actionDisabled = props.disabled || loading;
-  const destinationDisabled = props.selectedElementCount !== 1 || loading;
+  const actionDisabled = props.disabled || loading || props.saving;
+  const destinationDisabled = props.selectedElementCount !== 1 || loading || props.saving;
   const explanation = props.selectedElementCount !== 1 ? "\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u540E\uFF0C\u53EF\u751F\u6210\u72EC\u7ACB\u72B6\u6001\u9875" : newPrototype ? "\u5728\u72EC\u7ACB\u9875\u9762\u5C55\u793A\u7EC4\u4EF6\u7684\u4E0D\u540C\u72B6\u6001" : "\u8C03\u6574\u5F53\u524D\u9009\u4E2D\u7684\u7EC4\u4EF6";
   return /* @__PURE__ */ jsxs3("div", { "data-we-component-prompt-footer": "true", style: { flexShrink: 0, padding: "0 12px 12px" }, children: [
     props.newPrototypeAvailable ? /* @__PURE__ */ jsxs3("div", { "data-we-component-states-option": "true", style: { padding: "0 0 10px" }, children: [
@@ -12991,8 +13001,20 @@ function ComponentPromptFooter(props) {
     /* @__PURE__ */ jsxs3("div", { style: { display: "flex", alignItems: "center", gap: 8, paddingTop: 10, borderTop: `1px solid ${EDITOR_CHROME.border}` }, children: [
       /* @__PURE__ */ jsx3("div", { style: { display: "flex", alignItems: "center", gap: 2 }, children: props.leadingActions }),
       /* @__PURE__ */ jsx3("div", { style: { flex: 1 } }),
+      props.onSave ? /* @__PURE__ */ jsx3(
+        "button",
+        {
+          type: "button",
+          "aria-label": "\u6682\u5B58\u6279\u6CE8",
+          disabled: props.saveDisabled || loading || props.saving,
+          "aria-busy": props.saving,
+          onClick: props.onSave,
+          style: { minHeight: 34, padding: "7px 10px", border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 8, background: EDITOR_CHROME.surface, color: EDITOR_CHROME.textSecondary, fontFamily: "inherit", fontSize: 12, whiteSpace: "nowrap", cursor: props.saveDisabled || loading || props.saving ? "not-allowed" : "pointer" },
+          children: props.saving ? "\u6682\u5B58\u4E2D\u2026" : "\u6682\u5B58\u6279\u6CE8"
+        }
+      ) : null,
       props.actionVisible ? /* @__PURE__ */ jsxs3(Fragment3, { children: [
-        /* @__PURE__ */ jsx3("span", { "aria-hidden": "true", style: { color: EDITOR_CHROME.textMuted, fontSize: 10, whiteSpace: "nowrap" }, children: props.shortcut }),
+        !props.onSave ? /* @__PURE__ */ jsx3("span", { "aria-hidden": "true", style: { color: EDITOR_CHROME.textMuted, fontSize: 10, whiteSpace: "nowrap" }, children: props.shortcut }) : null,
         /* @__PURE__ */ jsxs3(
           "button",
           {
@@ -16091,6 +16113,9 @@ var PromptCardView = React9.forwardRef(
       pinnedToTopRight = false,
       onPinnedToTopRightChange,
       propertyPanelOpen = false,
+      commentListOpen = false,
+      onCommentSaved,
+      onPersistComments,
       anchorRect,
       uiMode,
       interactionProfile,
@@ -16170,6 +16195,8 @@ var PromptCardView = React9.forwardRef(
     const [portalContainer, setPortalContainer] = React9.useState(null);
     const [promptCardSize, setPromptCardSize] = React9.useState(null);
     const [sendingCurrentElementPrompt, setSendingCurrentElementPrompt] = React9.useState(false);
+    const [savingComment, setSavingComment] = React9.useState(false);
+    const savingCommentRef = React9.useRef(false);
     const [refreshKey, setRefreshKey] = React9.useState(0);
     const [selectedSkills, setSelectedSkills] = React9.useState([]);
     const [promptDismissed, setPromptDismissed] = React9.useState(false);
@@ -16392,11 +16419,11 @@ var PromptCardView = React9.forwardRef(
         cardHeight: promptCardSize?.height ?? PROMPT_CARD_ESTIMATED_HEIGHT,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
-        propertyPanelEnabled: propertyPanelEnabled && (!pinnedToTopRight || propertyPanelOpen),
+        propertyPanelEnabled: commentListOpen && window.innerWidth > 760 || propertyPanelEnabled && (!pinnedToTopRight || propertyPanelOpen),
         pinnedToTopRight,
         safePaddingPx: SAFE_PADDING_PX,
-        propertyPanelWidth: PROPERTY_PANEL_WIDTH,
-        propertyPanelRight: PROPERTY_PANEL_RIGHT,
+        propertyPanelWidth: commentListOpen && window.innerWidth > 760 ? 320 : PROPERTY_PANEL_WIDTH,
+        propertyPanelRight: commentListOpen && window.innerWidth > 760 ? 52 : PROPERTY_PANEL_RIGHT,
         anchorGapPx: ANCHOR_GAP_PX
       });
     }, [
@@ -16407,6 +16434,7 @@ var PromptCardView = React9.forwardRef(
       propertyPanelEnabled,
       pinnedToTopRight,
       propertyPanelOpen,
+      commentListOpen,
       toolMinimized,
       uiMode,
       visualViewportKey
@@ -16507,6 +16535,20 @@ var PromptCardView = React9.forwardRef(
       }
       onDismissSelection?.();
     }, [onConfirmNoteWithSelectedSkills, onDismissSelection]);
+    const handleSaveComment = React9.useCallback(async () => {
+      if (savingCommentRef.current || !canEditNote) return;
+      savingCommentRef.current = true;
+      setSavingComment(true);
+      setElementToolError("");
+      try {
+        await executePromptCardSaveAction({ onConfirmNote: onConfirmNoteWithSelectedSkills, onPersist: onPersistComments, onSaved: onCommentSaved });
+      } catch (error) {
+        setElementToolError(error instanceof Error ? error.message : "\u6682\u5B58\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+      } finally {
+        savingCommentRef.current = false;
+        setSavingComment(false);
+      }
+    }, [canEditNote, onConfirmNoteWithSelectedSkills, onPersistComments, onCommentSaved]);
     const saveAndDismissPromptCard = React9.useCallback(async () => {
       setSelectedSkills([]);
       setPromptDismissed(true);
@@ -16737,7 +16779,7 @@ var PromptCardView = React9.forwardRef(
       onWakeAgent
     ]);
     const handleConfirmSendCurrentElementPrompt = React9.useCallback(async () => {
-      if (sendingCurrentElementPrompt || generateNewPrototype && selectedElementCount !== 1) return;
+      if (savingCommentRef.current || sendingCurrentElementPrompt || generateNewPrototype && selectedElementCount !== 1) return;
       if (componentComposer && (hideCurrentElementExecutionAction || !generateNewPrototype && (!currentElementPromptAction.visible || currentElementPromptAction.disabled))) return;
       if (generateNewPrototype && !draftNote.trim()) return;
       const ready = generateNewPrototype || await wakeAgentForCurrentElementAction();
@@ -17128,7 +17170,7 @@ var PromptCardView = React9.forwardRef(
                           type: "button",
                           "data-we-document-component": "true",
                           title: selectedElementCount !== 1 ? "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668" : "\u622A\u56FE\u5E76\u5C06\u8BF4\u660E\u5F15\u5165 PRD \u6587\u6863",
-                          disabled: selectedElementCount !== 1,
+                          disabled: selectedElementCount !== 1 || savingComment,
                           style: { border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 6, background: "transparent", color: EDITOR_CHROME.textSecondary, padding: "4px 8px", fontFamily: "inherit", fontSize: 12, whiteSpace: "nowrap", cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" },
                           onClick: () => {
                             void executePromptCardDocumentAction({
@@ -17692,7 +17734,7 @@ var PromptCardView = React9.forwardRef(
                                     {
                                       className: "we-runtime-prompt-card__textarea",
                                       value: draftNote,
-                                      disabled: !canEditNote,
+                                      disabled: !canEditNote || savingComment,
                                       readOnly: inlineTextEditing,
                                       tabIndex: inlineTextEditing ? -1 : 0,
                                       allowClear: true,
@@ -17980,6 +18022,11 @@ var PromptCardView = React9.forwardRef(
               onSend: () => {
                 void handleConfirmSendCurrentElementPrompt();
               },
+              onSave: () => {
+                void handleSaveComment();
+              },
+              saveDisabled: !canEditNote || !draftNote.trim() || sendingCurrentElementPrompt,
+              saving: savingComment,
               shortcut: /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? "") ? "\u2318 Enter" : "Ctrl Enter",
               leadingActions: /* @__PURE__ */ jsxs8(Fragment5, { children: [
                 appendContextAction,
@@ -24397,8 +24444,370 @@ function writeEditableText(element, value) {
   element.replaceChildren(...nodes);
 }
 
-// src/ui/runtime/runtime-shell.tsx
+// src/ui/runtime/comment-list-view.tsx
+import React19 from "react";
 import { jsx as jsx14, jsxs as jsxs13 } from "react/jsx-runtime";
+var actions = [
+  { action: "send", label: "\u53D1\u9001\u4FEE\u6539", available: "sendAvailable" },
+  { action: "generate", label: "\u751F\u6210\u539F\u578B", available: "generateAvailable" },
+  { action: "document", label: "\u5F15\u5165\u8BF4\u660E", available: "documentAvailable" }
+];
+var styles = `
+  .we-comment-list{position:fixed;right:52px;top:16px;bottom:16px;width:320px;max-width:calc(100vw - 64px);display:flex;flex-direction:column;pointer-events:auto;border:1px solid ${EDITOR_CHROME.border};border-radius:14px;background:${EDITOR_CHROME.surface};color:${EDITOR_CHROME.textPrimary};box-shadow:${EDITOR_CHROME.shadow};overflow:hidden;z-index:10020;font-size:12px;font-family:inherit}
+  .we-comment-list *{box-sizing:border-box}
+  .we-comment-list button{font-family:inherit;font-size:12px;cursor:pointer;color:inherit}
+  .we-comment-list button:disabled{cursor:not-allowed;opacity:.45}
+  .we-comment-list button:focus-visible,.we-comment-list input:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:2px}
+  .we-comment-list__header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px;border-bottom:1px solid ${EDITOR_CHROME.border}}
+  .we-comment-list__header h2{margin:0;font-size:14px;font-weight:600}
+  .we-comment-list__close{border:0;background:transparent;width:28px;height:28px;border-radius:6px;font-size:20px!important}
+  .we-comment-list__selection{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;color:${EDITOR_CHROME.textSecondary}}
+  .we-comment-list label{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .we-comment-list input{margin:0;accent-color:${EDITOR_CHROME.accent};width:15px;height:15px;flex-shrink:0}
+  .we-comment-list__body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 12px 12px}
+  .we-comment-list__item{padding:12px;margin-bottom:8px;border:1px solid ${EDITOR_CHROME.border};border-radius:9px;background:${EDITOR_CHROME.surfaceMuted}}
+  .we-comment-list__item[data-selected=true]{border-color:${EDITOR_CHROME.accent};background:${EDITOR_CHROME.accentSoft}}
+  .we-comment-list__item header{display:flex;align-items:center;gap:8px}
+  .we-comment-list__locate{padding:2px 0;border:0;background:transparent;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;font-weight:600}
+  .we-comment-list__note{margin:8px 0 0 23px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;color:${EDITOR_CHROME.textSecondary}}
+  .we-comment-list__hint{font-size:11px;line-height:1.6;color:${EDITOR_CHROME.textMuted};margin:8px 0 0}
+  .we-comment-list__empty{padding:44px 16px;text-align:center;line-height:1.8;color:${EDITOR_CHROME.textMuted}}
+  .we-comment-list__footer{padding:12px 16px;border-top:1px solid ${EDITOR_CHROME.border};flex-shrink:0}
+  .we-comment-list__actions{display:flex;gap:6px;flex-wrap:wrap}
+  .we-comment-list__action{flex:1;min-height:34px;white-space:nowrap;padding:6px 8px;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:7px;background:${EDITOR_CHROME.surface}}
+  .we-comment-list__action:first-child{background:${EDITOR_CHROME.accent};color:white;border-color:transparent}
+  .we-comment-list .ax-page-skeleton{--ax-sk-fill:${EDITOR_CHROME.surfaceInteractive};--ax-sk-shine:${EDITOR_CHROME.surfaceMuted}}
+  @media(max-width:760px){.we-comment-list{right:52px;top:8px;bottom:8px;width:320px;max-width:calc(100vw - 60px)}.we-comment-list[data-has-target=true]{bottom:52dvh}.we-comment-list__header{padding:10px 12px}.we-comment-list__selection{padding:8px 12px}.we-comment-list__footer{padding:8px 12px}.we-comment-list__hint{margin-top:4px}}
+`;
+function CommentListView(props) {
+  const [entries, setEntries] = React19.useState(() => {
+    try {
+      return props.getEntries();
+    } catch {
+      return [];
+    }
+  });
+  const [selected, setSelected] = React19.useState([]);
+  const [loadState, setLoadState] = React19.useState(() => props.getLoadState?.() ?? { status: "ready" });
+  const selectionRevisionRef = React19.useRef(loadState.revision);
+  const [busy, setBusy] = React19.useState(null);
+  const [error, setError] = React19.useState("");
+  const [readError, setReadError] = React19.useState("");
+  const [message, setMessage] = React19.useState("");
+  const busyRef = React19.useRef(false);
+  const mountedRef = React19.useRef(true);
+  React19.useEffect(() => {
+    mountedRef.current = true;
+    const refresh = () => {
+      try {
+        const state2 = props.getLoadState?.() ?? { status: "ready" };
+        if (selectionRevisionRef.current !== state2.revision) {
+          selectionRevisionRef.current = state2.revision;
+          setSelected([]);
+          setError("");
+          setMessage("");
+        }
+        setLoadState((previous) => previous.status === state2.status && previous.error === state2.error && previous.revision === state2.revision ? previous : state2);
+        const next = props.getEntries();
+        setEntries((previous) => previous.length === next.length && previous.every((entry, i) => {
+          const item = next[i];
+          return entry.id === item.id && entry.note === item.note && entry.label === item.label && entry.element === item.element && entry.disabledReason === item.disabledReason;
+        }) ? previous : next);
+        setSelected((previous) => previous.every((id) => next.some((entry) => entry.id === id)) ? previous : previous.filter((id) => next.some((entry) => entry.id === id)));
+        setReadError("");
+      } catch (cause) {
+        setReadError(cause instanceof Error ? cause.message : "\u6279\u6CE8\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+      }
+    };
+    refresh();
+    const timer = globalThis.setInterval(refresh, 500);
+    return () => {
+      mountedRef.current = false;
+      globalThis.clearInterval(timer);
+    };
+  }, [props.getEntries, props.getLoadState]);
+  React19.useEffect(() => () => props.onInteractionChange(false), [props.onInteractionChange]);
+  const available = entries.filter((entry) => entry.element && !entry.disabledReason);
+  const allSelected = available.length > 0 && available.every((entry) => selected.includes(entry.id));
+  const unavailableSelection = selected.some((id) => !available.some((entry) => entry.id === id));
+  const run = async (action) => {
+    const latest = props.getLoadState?.();
+    if (latest && (latest.status !== "ready" || latest.revision !== selectionRevisionRef.current)) {
+      setSelected([]);
+      setError("\u9875\u9762\u5DF2\u5207\u6362\u6216\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+      return;
+    }
+    if (busyRef.current || !selected.length || unavailableSelection || loadState.status !== "ready") return;
+    busyRef.current = true;
+    setBusy(action);
+    setError("");
+    setMessage("");
+    try {
+      await props.onRun(action, selected.slice());
+      if (mountedRef.current) setMessage(action === "send" ? "\u5DF2\u63D0\u4EA4\u6240\u9009\u6279\u6CE8\u7684\u4FEE\u6539" : action === "generate" ? "\u5DF2\u6253\u5F00\u539F\u578B\u751F\u6210\u7A97\u53E3" : "\u5DF2\u6253\u5F00\u5F15\u5165\u8BF4\u660E\u7A97\u53E3");
+    } catch (cause) {
+      if (mountedRef.current) setError(cause instanceof Error ? cause.message : "\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+    } finally {
+      busyRef.current = false;
+      if (mountedRef.current) setBusy(null);
+    }
+  };
+  return /* @__PURE__ */ jsxs13(
+    "aside",
+    {
+      className: "we-comment-list",
+      "data-has-target": props.hasTarget === true,
+      "data-we-selection-lock-root": "true",
+      "aria-label": "\u6279\u6CE8\u5217\u8868",
+      onPointerEnter: () => props.onInteractionChange(true),
+      onPointerLeave: () => props.onInteractionChange(false),
+      onFocusCapture: () => props.onInteractionChange(true),
+      onBlurCapture: (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) props.onInteractionChange(false);
+      },
+      children: [
+        /* @__PURE__ */ jsx14("style", { nonce: resolveCspNonce(), children: styles }),
+        /* @__PURE__ */ jsxs13("header", { className: "we-comment-list__header", children: [
+          /* @__PURE__ */ jsxs13("h2", { children: [
+            "\u6279\u6CE8\u5217\u8868 ",
+            /* @__PURE__ */ jsx14("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: entries.length })
+          ] }),
+          /* @__PURE__ */ jsx14("button", { className: "we-comment-list__close", "aria-label": "\u5173\u95ED\u6279\u6CE8\u5217\u8868", title: "\u5173\u95ED\u6279\u6CE8\u5217\u8868", onClick: props.onClose, children: "\xD7" })
+        ] }),
+        /* @__PURE__ */ jsxs13("div", { className: "we-comment-list__selection", children: [
+          /* @__PURE__ */ jsxs13("label", { children: [
+            /* @__PURE__ */ jsx14(
+              "input",
+              {
+                type: "checkbox",
+                "aria-label": "\u5168\u9009\u6279\u6CE8",
+                checked: allSelected,
+                disabled: loadState.status !== "ready" || Boolean(busy) || !available.length && !selected.length,
+                ref: (node) => {
+                  if (node) node.indeterminate = selected.length > 0 && !allSelected;
+                },
+                onChange: () => setSelected(allSelected ? [] : available.map((entry) => entry.id))
+              }
+            ),
+            "\u5168\u9009"
+          ] }),
+          /* @__PURE__ */ jsxs13("span", { "aria-live": "polite", children: [
+            "\u5DF2\u9009 ",
+            selected.length,
+            " \u6761"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx14("div", { className: "we-comment-list__body", children: loadState.status === "loading" ? props.loadingContent ?? /* @__PURE__ */ jsx14("div", { role: "status", "aria-label": "\u6B63\u5728\u52A0\u8F7D\u6279\u6CE8", "aria-busy": "true", children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ jsx14("div", { "aria-hidden": "true", style: { height: 72, marginBottom: 10, borderRadius: 9, background: EDITOR_CHROME.surfaceInteractive } }, i)) }) : loadState.status === "error" || readError ? /* @__PURE__ */ jsxs13("div", { children: [
+          /* @__PURE__ */ jsx14("p", { role: "alert", children: loadState.error || readError || "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" }),
+          props.onRetry ? /* @__PURE__ */ jsx14("button", { type: "button", "aria-label": "\u91CD\u8BD5\u52A0\u8F7D\u6279\u6CE8", className: "we-comment-list__action", onClick: async () => {
+            setLoadState({ status: "loading" });
+            setError("");
+            try {
+              await props.onRetry?.();
+              setLoadState(props.getLoadState?.() ?? { status: "ready" });
+            } catch (cause) {
+              setLoadState({ status: "error", error: cause instanceof Error ? cause.message : "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" });
+            }
+          }, children: "\u91CD\u65B0\u52A0\u8F7D" }) : null
+        ] }) : !entries.length ? /* @__PURE__ */ jsxs13("div", { className: "we-comment-list__empty", children: [
+          "\u6682\u65E0\u6279\u6CE8",
+          /* @__PURE__ */ jsx14("br", {}),
+          "\u9009\u62E9\u9875\u9762\u7EC4\u4EF6\u5E76\u6682\u5B58\u6279\u6CE8\u540E\uFF0C\u5C06\u663E\u793A\u5728\u8FD9\u91CC\u3002"
+        ] }) : entries.map((entry, index) => /* @__PURE__ */ jsxs13("article", { className: "we-comment-list__item", "data-selected": selected.includes(entry.id), children: [
+          /* @__PURE__ */ jsxs13("header", { children: [
+            /* @__PURE__ */ jsx14(
+              "input",
+              {
+                type: "checkbox",
+                "aria-label": `\u9009\u62E9\u6279\u6CE8 ${entry.label}`,
+                checked: selected.includes(entry.id),
+                disabled: Boolean(busy) || (Boolean(entry.disabledReason) || !entry.element) && !selected.includes(entry.id),
+                onChange: () => {
+                  setSelected((previous) => previous.includes(entry.id) ? previous.filter((id) => id !== entry.id) : [...previous, entry.id]);
+                  setError("");
+                  setMessage("");
+                }
+              }
+            ),
+            /* @__PURE__ */ jsxs13("button", { className: "we-comment-list__locate", title: `\u5B9A\u4F4D\u7EC4\u4EF6\uFF1A${entry.label}`, disabled: !entry.element || Boolean(busy), onClick: () => {
+              if (entry.element) props.onLocate?.(entry.element);
+            }, children: [
+              index + 1,
+              ". ",
+              entry.label
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx14("p", { className: "we-comment-list__note", children: entry.note || "\u5DF2\u4FDD\u5B58\u7EC4\u4EF6\u4FEE\u6539" }),
+          entry.disabledReason ? /* @__PURE__ */ jsx14("p", { className: "we-comment-list__hint", children: entry.disabledReason }) : null
+        ] }, entry.id)) }),
+        /* @__PURE__ */ jsxs13("footer", { className: "we-comment-list__footer", children: [
+          /* @__PURE__ */ jsx14("div", { className: "we-comment-list__actions", children: actions.map((item) => /* @__PURE__ */ jsx14(
+            "button",
+            {
+              className: "we-comment-list__action",
+              "aria-label": item.label,
+              "aria-busy": busy === item.action,
+              disabled: loadState.status !== "ready" || Boolean(busy) || !selected.length || unavailableSelection || !props[item.available] || Boolean(readError),
+              onClick: () => run(item.action),
+              children: busy === item.action ? "\u5904\u7406\u4E2D\u2026" : item.label
+            },
+            item.action
+          )) }),
+          /* @__PURE__ */ jsx14("p", { className: "we-comment-list__hint", children: "\u4E09\u4E2A\u52A8\u4F5C\u53EF\u5206\u522B\u6267\u884C\uFF0C\u6682\u5B58\u6279\u6CE8\u4F9B\u540E\u7EED\u7EE7\u7EED\u4F7F\u7528\u3002" }),
+          error ? /* @__PURE__ */ jsx14("p", { role: "alert", style: { color: EDITOR_CHROME.textDanger, marginBottom: 0 }, children: error }) : null,
+          message ? /* @__PURE__ */ jsx14("p", { role: "status", style: { color: EDITOR_CHROME.accent, marginBottom: 0 }, children: message }) : null
+        ] })
+      ]
+    }
+  );
+}
+
+// src/ui/runtime/right-entry.tsx
+import React20 from "react";
+import { createPortal as createPortal2 } from "react-dom";
+
+// src/ui/runtime/annotation-toolbar-bridge.ts
+function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction) {
+  let toolbar = null;
+  let mount = null;
+  let observedShadow = null;
+  let previousSelectionLock = null;
+  let closingPanels = false;
+  const handleNativeClick = (event) => {
+    if (!closingPanels && !event.composedPath().includes(mount)) onNativeAction();
+  };
+  const detach = () => {
+    toolbar?.removeEventListener("click", handleNativeClick, true);
+    if (previousSelectionLock === null) toolbar?.removeAttribute("data-we-selection-lock-root");
+    else toolbar?.setAttribute("data-we-selection-lock-root", previousSelectionLock);
+    mount?.remove();
+    toolbar = null;
+    mount = null;
+  };
+  const sync = () => {
+    const shadow = ownerDocument.getElementById("__axhub_annotation_host__")?.shadowRoot ?? null;
+    if (shadow !== observedShadow) {
+      observer.disconnect();
+      observer.observe(ownerDocument.documentElement, { childList: true, subtree: true });
+      if (shadow) observer.observe(shadow, { childList: true, subtree: true });
+      observedShadow = shadow;
+    }
+    const next = shadow?.querySelector(".axhub-annotation-edge-toolbar") ?? null;
+    if (next === toolbar && (!mount || toolbar?.contains(mount))) return;
+    detach();
+    toolbar = next;
+    if (toolbar) {
+      previousSelectionLock = toolbar.getAttribute("data-we-selection-lock-root");
+      toolbar.setAttribute("data-we-selection-lock-root", "true");
+      toolbar.addEventListener("click", handleNativeClick, true);
+      mount = ownerDocument.createElement("div");
+      mount.setAttribute("data-we-right-entry-slot", "true");
+      mount.setAttribute("data-we-selection-lock-root", "true");
+      mount.setAttribute("data-axhub-annotation-direct-action", "true");
+      mount.style.display = "contents";
+      toolbar.insertBefore(mount, toolbar.querySelector(".axhub-annotation-settings-trigger"));
+    }
+    onMountChange(mount);
+  };
+  const observer = new MutationObserver(sync);
+  observer.observe(ownerDocument.documentElement, { childList: true, subtree: true });
+  sync();
+  return {
+    closePanels() {
+      closingPanels = true;
+      try {
+        toolbar?.querySelectorAll(
+          '.axhub-annotation-edge-button[aria-pressed="true"], .axhub-annotation-edge-button[aria-expanded="true"]'
+        ).forEach((button) => button.click());
+      } finally {
+        closingPanels = false;
+      }
+    },
+    dispose() {
+      observer.disconnect();
+      detach();
+    }
+  };
+}
+
+// src/ui/runtime/right-entry.tsx
+import { jsx as jsx15, jsxs as jsxs14 } from "react/jsx-runtime";
+var styles2 = `
+  .we-right-entry{display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:auto}
+  .we-right-entry[data-standalone=true]{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:10020;padding:6px 4px;border:1px solid ${EDITOR_CHROME.borderStrong};border-right:0;border-radius:12px 0 0 12px;background:${EDITOR_CHROME.surface}}
+  .we-right-entry button{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;flex-shrink:0;border:0;border-radius:6px;background:transparent;color:${EDITOR_CHROME.textSecondary};cursor:pointer;touch-action:manipulation}
+  .we-right-entry button:hover{background:${EDITOR_CHROME.hoverSubtle}}
+  .we-right-entry button[aria-expanded=true]{background:${EDITOR_CHROME.accentSoft};color:${EDITOR_CHROME.accent}}
+  .we-right-entry button:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:1px}
+  @media(max-width:760px){.we-right-entry button{min-width:36px;min-height:36px}}
+  @media(prefers-reduced-motion:reduce){.we-right-entry,.we-right-entry button{transition:none}}
+`;
+function RightEntryActions(props) {
+  return /* @__PURE__ */ jsxs14(
+    "div",
+    {
+      className: "we-right-entry",
+      "data-we-right-entry": "true",
+      "data-standalone": props.standalone === true,
+      "data-we-selection-lock-root": "true",
+      "data-axhub-annotation-direct-action": "true",
+      role: "group",
+      "aria-label": "\u6279\u6CE8\u4E0E\u5FEB\u6377\u952E",
+      onPointerDown: (event) => event.stopPropagation(),
+      children: [
+        /* @__PURE__ */ jsx15("style", { nonce: resolveCspNonce(), children: styles2 }),
+        /* @__PURE__ */ jsx15(
+          "button",
+          {
+            type: "button",
+            "aria-label": "\u6279\u6CE8\u5217\u8868",
+            title: "\u6279\u6CE8\u5217\u8868",
+            "aria-expanded": props.open,
+            "data-we-comment-list-entry": "true",
+            onClick: props.onToggle,
+            children: /* @__PURE__ */ jsxs14("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
+              /* @__PURE__ */ jsx15("path", { d: "M8 5h12M8 12h12M8 19h12" }),
+              /* @__PURE__ */ jsx15("circle", { cx: "3", cy: "5", r: "1" }),
+              /* @__PURE__ */ jsx15("circle", { cx: "3", cy: "12", r: "1" }),
+              /* @__PURE__ */ jsx15("circle", { cx: "3", cy: "19", r: "1" })
+            ] })
+          }
+        ),
+        /* @__PURE__ */ jsx15("button", { type: "button", "aria-label": "\u5FEB\u6377\u952E", title: "\u5FEB\u6377\u952E", onClick: props.onShortcuts, children: /* @__PURE__ */ jsxs14("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
+          /* @__PURE__ */ jsx15("rect", { x: "2", y: "5", width: "20", height: "14", rx: "2" }),
+          /* @__PURE__ */ jsx15("path", { d: "M6 9h1m3 0h1m3 0h1m3 0h.1M6 12h1m3 0h1m3 0h1m3 0h.1M7 15h10" })
+        ] }) })
+      ]
+    }
+  );
+}
+function RightEntry(props) {
+  const [mount, setMount] = React20.useState(null);
+  const bridgeRef = React20.useRef(null);
+  const nativeActionRef = React20.useRef(props.onNativeAction);
+  nativeActionRef.current = props.onNativeAction;
+  React20.useEffect(() => {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
+    const bridge = connectAnnotationToolbar(document, setMount, () => nativeActionRef.current());
+    bridgeRef.current = bridge;
+    return () => {
+      bridge.dispose();
+      bridgeRef.current = null;
+    };
+  }, []);
+  React20.useEffect(() => {
+    if (props.open) bridgeRef.current?.closePanels();
+  }, [props.open, mount]);
+  const content = /* @__PURE__ */ jsx15(RightEntryActions, { ...props, standalone: !mount, onShortcuts: () => {
+    bridgeRef.current?.closePanels();
+    props.onNativeAction();
+    props.onShortcuts();
+  } });
+  return mount ? createPortal2(content, mount) : content;
+}
+
+// src/ui/runtime/runtime-shell.tsx
+import { jsx as jsx16, jsxs as jsxs15 } from "react/jsx-runtime";
 function normalizeRuntimeUiSettings(settings, interactionProfile) {
   const normalized = applyMobileSettingsOverride(
     applyInteractionProfileToUiSettings(sanitizeWebEditorUiSettings(settings), interactionProfile)
@@ -24501,51 +24910,52 @@ function WebEditorUiApp(props) {
     propertyPanelOptions?.getUiMode?.() ?? propertyPanelOptions?.initialUiMode ?? "bubble-card"
   );
   const interactionProfile = propertyPanelOptions?.interactionProfile ?? "design";
-  const [currentTarget, setCurrentTarget] = React19.useState(null);
-  const [anchorRect, setAnchorRect] = React19.useState(null);
-  const [uiMode, setUiMode] = React19.useState(initialUiMode);
-  const [toolMinimized, setToolMinimized] = React19.useState(false);
-  const [propertyPanelOpen, setPropertyPanelOpen] = React19.useState(initialPropertyPanelOpen);
-  const [bubbleStyleEditorOpen, setBubbleStyleEditorOpen] = React19.useState(false);
-  const [inlineTextEditing, setInlineTextEditing] = React19.useState(false);
-  const [inlineTextTarget, setInlineTextTarget] = React19.useState(null);
-  const [blockingLayerOpen, setBlockingLayerOpen] = React19.useState(false);
-  const [commentarySkillOptions, setCommentarySkillOptions] = React19.useState(() => normalizeRuntimeSkillOptions(propertyPanelOptions?.commentarySkillOptions));
+  const [currentTarget, setCurrentTarget] = React21.useState(null);
+  const [commentListOpen, setCommentListOpen] = React21.useState(false);
+  const [anchorRect, setAnchorRect] = React21.useState(null);
+  const [uiMode, setUiMode] = React21.useState(initialUiMode);
+  const [toolMinimized, setToolMinimized] = React21.useState(false);
+  const [propertyPanelOpen, setPropertyPanelOpen] = React21.useState(initialPropertyPanelOpen);
+  const [bubbleStyleEditorOpen, setBubbleStyleEditorOpen] = React21.useState(false);
+  const [inlineTextEditing, setInlineTextEditing] = React21.useState(false);
+  const [inlineTextTarget, setInlineTextTarget] = React21.useState(null);
+  const [blockingLayerOpen, setBlockingLayerOpen] = React21.useState(false);
+  const [commentarySkillOptions, setCommentarySkillOptions] = React21.useState(() => normalizeRuntimeSkillOptions(propertyPanelOptions?.commentarySkillOptions));
   const commentarySkillSelectionManaged = commentarySkillOptions.length > 0;
-  const [enabledCommentarySkillIds, setEnabledCommentarySkillIds] = React19.useState(
+  const [enabledCommentarySkillIds, setEnabledCommentarySkillIds] = React21.useState(
     () => resolveRuntimeSkillIds(
       propertyPanelOptions?.commentarySelectedSkillIds,
       propertyPanelOptions?.commentarySkillOptions,
       propertyPanelOptions?.commentarySkillSettingsConfigured === true
     )
   );
-  const [uiSettings, setUiSettings] = React19.useState(
+  const [uiSettings, setUiSettings] = React21.useState(
     () => normalizeRuntimeUiSettings(
       propertyPanelOptions?.getUiSettings?.() ?? DEFAULT_WEB_EDITOR_UI_SETTINGS,
       interactionProfile
     )
   );
-  const [agentVisualState, setAgentVisualState] = React19.useState(
+  const [agentVisualState, setAgentVisualState] = React21.useState(
     () => normalizeRuntimeUiSettings(
       propertyPanelOptions?.getUiSettings?.() ?? DEFAULT_WEB_EDITOR_UI_SETTINGS,
       interactionProfile
     ).agentAwake ? "awake" : "sleeping"
   );
-  const [noteState, setNoteState] = React19.useState({
+  const [noteState, setNoteState] = React21.useState({
     savedNote: "",
     draftNote: "",
     noteDirty: false,
     savedNoteMeta: { skillIds: [] }
   });
-  const [textState, setTextState] = React19.useState({
+  const [textState, setTextState] = React21.useState({
     savedText: "",
     draftText: "",
     textDirty: false
   });
-  const [imageState, setImageState] = React19.useState({
+  const [imageState, setImageState] = React21.useState({
     images: []
   });
-  const [annotationState, setAnnotationState] = React19.useState({
+  const [annotationState, setAnnotationState] = React21.useState({
     annotationEnabled: false,
     savedAnnotationMarkdown: "",
     annotationDraftMarkdown: "",
@@ -24553,49 +24963,56 @@ function WebEditorUiApp(props) {
     annotationLoading: false,
     annotationSaving: false
   });
-  const currentTargetRef = React19.useRef(null);
-  const inlineTextTargetRef = React19.useRef(null);
-  const uiModeRef = React19.useRef(initialUiMode);
-  const noteStateRef = React19.useRef(noteState);
-  const noteTargetElementsRef = React19.useRef([]);
-  const textStateRef = React19.useRef(textState);
-  const imageStateRef = React19.useRef(imageState);
-  const annotationStateRef = React19.useRef(annotationState);
+  const currentTargetRef = React21.useRef(null);
+  const inlineTextTargetRef = React21.useRef(null);
+  const uiModeRef = React21.useRef(initialUiMode);
+  const noteStateRef = React21.useRef(noteState);
+  const noteTargetElementsRef = React21.useRef([]);
+  const textStateRef = React21.useRef(textState);
+  const imageStateRef = React21.useRef(imageState);
+  const annotationStateRef = React21.useRef(annotationState);
   const latestPointerPositionRef = usePointerTracker();
   const selectionGuards = useSelectionModeGuards({
     propertyPanelOptions,
     initialSelectionModeActive,
     setToolMinimized
   });
-  const promptSelectionInteractionLockChangeRef = React19.useRef(
+  const commentListAvailable = Boolean(propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch && interactionProfile === "design" && !propertyPanelOptions.externalAnnotationMode);
+  React21.useEffect(() => {
+    if (commentListAvailable && selectionGuards.selectionModeActive) setCommentListOpen(true);
+    if (!commentListAvailable) setCommentListOpen(false);
+  }, [commentListAvailable, currentTarget, selectionGuards.selectionModeActive]);
+  const showCommentList = commentListAvailable && commentListOpen && !toolMinimized && !blockingLayerOpen;
+  const handleCommentSaved = React21.useCallback(() => setCommentListOpen(true), []);
+  const promptSelectionInteractionLockChangeRef = React21.useRef(
     selectionGuards.handlePromptSelectionInteractionLockChange
   );
-  const finishInlineTextEditing = React19.useCallback(() => {
+  const finishInlineTextEditing = React21.useCallback(() => {
     promptSelectionInteractionLockChangeRef.current(false);
     inlineTextTargetRef.current = null;
     setInlineTextTarget(null);
     setInlineTextEditing(false);
   }, []);
   useFeedbackBridge();
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     promptSelectionInteractionLockChangeRef.current = selectionGuards.handlePromptSelectionInteractionLockChange;
   }, [selectionGuards.handlePromptSelectionInteractionLockChange]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     noteStateRef.current = noteState;
   }, [noteState]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     textStateRef.current = textState;
   }, [textState]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     inlineTextTargetRef.current = inlineTextTarget;
   }, [inlineTextTarget]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     imageStateRef.current = imageState;
   }, [imageState]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     annotationStateRef.current = annotationState;
   }, [annotationState]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     if (!commentarySkillSelectionManaged) return;
     const configured = propertyPanelOptions?.commentarySkillSettingsConfigured === true;
     const nextSkillOptions = normalizeRuntimeSkillOptions(
@@ -24615,28 +25032,28 @@ function WebEditorUiApp(props) {
     propertyPanelOptions?.commentarySelectedSkillIds,
     propertyPanelOptions?.commentarySkillSettingsConfigured
   ]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     const nextUiMode = normalizeRuntimeUiMode(propertyPanelOptions?.getUiMode?.());
     if (!nextUiMode || uiModeRef.current === nextUiMode) return;
     uiModeRef.current = nextUiMode;
     setUiMode(nextUiMode);
   });
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     onThemeModeChange?.(uiSettings.darkMode ? "dark" : "light");
   }, [onThemeModeChange, uiSettings.darkMode]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     const nextVisualState = uiSettings.agentAwake ? "awake" : "sleeping";
     setAgentVisualState((prev) => prev === nextVisualState ? prev : nextVisualState);
   }, [uiSettings.agentAwake]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     selectionGuards.toolMinimizedRef.current = toolMinimized;
   }, [selectionGuards.toolMinimizedRef, toolMinimized]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     if (!propertyPanelVisible) {
       setPropertyPanelOpen(false);
     }
   }, [propertyPanelVisible]);
-  const taskStateProvider = React19.useMemo(
+  const taskStateProvider = React21.useMemo(
     () => ({
       getCurrentTask: (element) => propertyPanelOptions?.getElementAgentTaskState?.(element) ?? breadcrumbsOptions?.getElementAgentTaskState?.(element) ?? null,
       getVisibleTasks: () => propertyPanelOptions?.getVisibleElementAgentTaskStates?.() ?? breadcrumbsOptions?.getVisibleElementAgentTaskStates?.() ?? [],
@@ -24647,8 +25064,8 @@ function WebEditorUiApp(props) {
     }),
     [breadcrumbsOptions, propertyPanelOptions]
   );
-  const [taskRenderTick, setTaskRenderTick] = React19.useState(0);
-  React19.useEffect(() => {
+  const [taskRenderTick, setTaskRenderTick] = React21.useState(0);
+  React21.useEffect(() => {
     let previousSignature = "";
     const timerId = window.setInterval(() => {
       const tasks = taskStateProvider.getVisibleTasks();
@@ -24671,7 +25088,7 @@ function WebEditorUiApp(props) {
       window.clearInterval(timerId);
     };
   }, [taskStateProvider]);
-  const syncSavedNote = React19.useCallback(
+  const syncSavedNote = React21.useCallback(
     (element, resetDraft) => {
       const nextSavedNote = propertyPanelOptions?.getAiNote?.(element) ?? "";
       const nextSkillIds = propertyPanelOptions?.getAiNoteSkillIds?.(element) ?? [];
@@ -24704,7 +25121,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const syncSavedText = React19.useCallback(
+  const syncSavedText = React21.useCallback(
     (element, resetDraft) => {
       const canEditText2 = propertyPanelOptions?.canEditText?.(element) ?? false;
       const nextSavedText = canEditText2 ? propertyPanelOptions?.getTextValue?.(element) ?? "" : "";
@@ -24729,7 +25146,7 @@ function WebEditorUiApp(props) {
     [propertyPanelOptions]
   );
   const imageAttachmentsEnabled = propertyPanelOptions?.enableImageAttachments !== false;
-  const syncSavedImages = React19.useCallback(
+  const syncSavedImages = React21.useCallback(
     (element) => {
       if (!imageAttachmentsEnabled) {
         setImageState({ images: [] });
@@ -24744,7 +25161,7 @@ function WebEditorUiApp(props) {
     },
     [imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const syncSavedAnnotationMarkdown = React19.useCallback(
+  const syncSavedAnnotationMarkdown = React21.useCallback(
     (element, resetDraft) => {
       const canEditAnnotationMarkdown = Boolean(
         element && propertyPanelOptions?.canEditAnnotationMarkdown?.(element) && propertyPanelOptions?.onAnnotationMarkdownChange
@@ -24797,7 +25214,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const commitDraftNote = React19.useCallback(
+  const commitDraftNote = React21.useCallback(
     async (elementOverride, options2 = {}) => {
       const element = elementOverride ?? currentTargetRef.current;
       if (!propertyPanelOptions?.onAiNoteChange) return false;
@@ -24827,7 +25244,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const commitDraftText = React19.useCallback(
+  const commitDraftText = React21.useCallback(
     async (elementOverride) => {
       const element = elementOverride ?? inlineTextTargetRef.current ?? currentTargetRef.current;
       if (!element || !propertyPanelOptions?.onTextValueChange) return false;
@@ -24852,7 +25269,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const commitDraftAnnotationMarkdown = React19.useCallback(
+  const commitDraftAnnotationMarkdown = React21.useCallback(
     async (elementOverride, markdownOverride, options2 = {}) => {
       const element = elementOverride ?? currentTargetRef.current;
       if (!element || !propertyPanelOptions?.onAnnotationMarkdownChange) return false;
@@ -24901,7 +25318,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const handleTargetChange = React19.useCallback(
+  const handleTargetChange = React21.useCallback(
     (element) => {
       if (currentTargetRef.current === element) return;
       const previousTarget = currentTargetRef.current;
@@ -24938,10 +25355,10 @@ function WebEditorUiApp(props) {
       syncSavedText
     ]
   );
-  const handleAnchorRectChange = React19.useCallback((rect) => {
+  const handleAnchorRectChange = React21.useCallback((rect) => {
     setAnchorRect(rect);
   }, []);
-  const handleUiModeChange = React19.useCallback(
+  const handleUiModeChange = React21.useCallback(
     (mode) => {
       const normalizedMode = normalizeRuntimeUiMode(mode);
       if (uiModeRef.current === normalizedMode) return;
@@ -24954,13 +25371,13 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions, selectionGuards.toolMinimizedRef]
   );
-  const handleRefreshNoteState = React19.useCallback(() => {
+  const handleRefreshNoteState = React21.useCallback(() => {
     syncSavedNote(currentTargetRef.current, false);
     syncSavedText(inlineTextTargetRef.current ?? currentTargetRef.current, false);
     syncSavedImages(currentTargetRef.current);
     syncSavedAnnotationMarkdown(currentTargetRef.current, false);
   }, [syncSavedAnnotationMarkdown, syncSavedImages, syncSavedNote, syncSavedText]);
-  const handleUiSettingsChange = React19.useCallback(
+  const handleUiSettingsChange = React21.useCallback(
     (nextSettings) => {
       const sanitized = normalizeRuntimeUiSettings(nextSettings, interactionProfile);
       setUiSettings(sanitized);
@@ -24968,7 +25385,7 @@ function WebEditorUiApp(props) {
     },
     [interactionProfile, propertyPanelOptions]
   );
-  const handleAgentVisualStateChange = React19.useCallback(
+  const handleAgentVisualStateChange = React21.useCallback(
     (nextState) => {
       setAgentVisualState(nextState);
       setUiSettings((prev) => {
@@ -24993,11 +25410,11 @@ function WebEditorUiApp(props) {
   const currentTaskRunning = currentAgentTask?.status === "pending" || currentAgentTask?.status === "created";
   const canEditNote = propertyPanelOptions?.canEditAiNote?.(currentTarget) ?? Boolean(propertyPanelOptions?.onAiNoteChange);
   const canClearCurrentElementEdits = propertyPanelOptions?.canClearCurrentElementEdits?.(currentTarget) ?? Boolean(propertyPanelOptions?.onClearCurrentElementEdits);
-  const annotationDocumentEditUrl = React19.useMemo(() => {
+  const annotationDocumentEditUrl = React21.useMemo(() => {
     const resolver = breadcrumbsOptions?.getAnnotationDocumentEditUrl ?? propertyPanelOptions?.getAnnotationDocumentEditUrl;
     return String(resolver?.(currentTarget) ?? "").trim();
   }, [breadcrumbsOptions, currentTarget, propertyPanelOptions]);
-  const canStartInlineTextEditing = React19.useCallback(
+  const canStartInlineTextEditing = React21.useCallback(
     (element) => {
       if (!element || !element.isConnected) return false;
       if (!propertyPanelOptions?.onTextValueChange) return false;
@@ -25010,7 +25427,7 @@ function WebEditorUiApp(props) {
   );
   const activeTextTarget = inlineTextTarget ?? currentTarget;
   const canEditText = canStartInlineTextEditing(activeTextTarget);
-  const handleDraftChange = React19.useCallback((value) => {
+  const handleDraftChange = React21.useCallback((value) => {
     const prev = noteStateRef.current;
     if (!isPromptTextChangeAllowed(prev.draftNote, value)) {
       notifyRuntimeMessage("warning", PROMPT_TEXT_LIMIT_MESSAGE);
@@ -25024,7 +25441,7 @@ function WebEditorUiApp(props) {
     noteStateRef.current = nextState;
     setNoteState(nextState);
   }, []);
-  const handleCancelNote = React19.useCallback(() => {
+  const handleCancelNote = React21.useCallback(() => {
     const prev = noteStateRef.current;
     const nextState = {
       ...prev,
@@ -25034,13 +25451,13 @@ function WebEditorUiApp(props) {
     noteStateRef.current = nextState;
     setNoteState(nextState);
   }, []);
-  const handleConfirmNote = React19.useCallback(
+  const handleConfirmNote = React21.useCallback(
     async (options2 = {}) => {
       await commitDraftNote(void 0, options2);
     },
     [commitDraftNote]
   );
-  const handleTextDraftChange = React19.useCallback((value) => {
+  const handleTextDraftChange = React21.useCallback((value) => {
     const prev = textStateRef.current;
     const nextState = {
       ...prev,
@@ -25050,7 +25467,7 @@ function WebEditorUiApp(props) {
     textStateRef.current = nextState;
     setTextState(nextState);
   }, []);
-  const handleCancelText = React19.useCallback(() => {
+  const handleCancelText = React21.useCallback(() => {
     const prev = textStateRef.current;
     const nextState = {
       ...prev,
@@ -25060,10 +25477,10 @@ function WebEditorUiApp(props) {
     textStateRef.current = nextState;
     setTextState(nextState);
   }, []);
-  const handleConfirmText = React19.useCallback(async () => {
+  const handleConfirmText = React21.useCallback(async () => {
     await commitDraftText(inlineTextTargetRef.current);
   }, [commitDraftText]);
-  const handleAnnotationDraftChange = React19.useCallback((value) => {
+  const handleAnnotationDraftChange = React21.useCallback((value) => {
     const prev = annotationStateRef.current;
     const nextState = {
       ...prev,
@@ -25073,16 +25490,16 @@ function WebEditorUiApp(props) {
     annotationStateRef.current = nextState;
     setAnnotationState(nextState);
   }, []);
-  const handleClearAnnotationMarkdown = React19.useCallback(() => {
+  const handleClearAnnotationMarkdown = React21.useCallback(() => {
     void commitDraftAnnotationMarkdown(void 0, "", { force: true });
   }, [commitDraftAnnotationMarkdown]);
-  const handleConfirmAnnotationMarkdown = React19.useCallback(
+  const handleConfirmAnnotationMarkdown = React21.useCallback(
     async (markdownOverride) => {
       await commitDraftAnnotationMarkdown(void 0, markdownOverride);
     },
     [commitDraftAnnotationMarkdown]
   );
-  const handleInlineTextEditingChange = React19.useCallback(
+  const handleInlineTextEditingChange = React21.useCallback(
     (editing, element) => {
       if (!editing) {
         finishInlineTextEditing();
@@ -25103,7 +25520,7 @@ function WebEditorUiApp(props) {
     },
     [canStartInlineTextEditing, finishInlineTextEditing, selectionGuards, syncSavedText]
   );
-  const handleImagesChange = React19.useCallback(
+  const handleImagesChange = React21.useCallback(
     async (images) => {
       const element = currentTargetRef.current;
       if (!imageAttachmentsEnabled) return;
@@ -25121,14 +25538,14 @@ function WebEditorUiApp(props) {
     },
     [imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const handleRemoveImage = React19.useCallback(
+  const handleRemoveImage = React21.useCallback(
     async (imageId) => {
       const nextImages = imageStateRef.current.images.filter((image) => image.id !== imageId);
       await handleImagesChange(nextImages);
     },
     [handleImagesChange]
   );
-  const applyImagesToElement = React19.useCallback(
+  const applyImagesToElement = React21.useCallback(
     async (element, incomingImages) => {
       if (!imageAttachmentsEnabled) {
         return { acceptedCount: 0, droppedCount: incomingImages.length };
@@ -25175,7 +25592,7 @@ function WebEditorUiApp(props) {
     },
     [imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const handleNotePasteCapture = React19.useCallback(
+  const handleNotePasteCapture = React21.useCallback(
     (event) => {
       const element = currentTargetRef.current;
       const clipboardItems = event.clipboardData?.items;
@@ -25243,7 +25660,7 @@ function WebEditorUiApp(props) {
     },
     [applyImagesToElement, imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const handleClearCurrentElementEdits = React19.useCallback(async () => {
+  const handleClearCurrentElementEdits = React21.useCallback(async () => {
     const element = currentTargetRef.current;
     if (!element || !propertyPanelOptions?.onClearCurrentElementEdits) return;
     if (!(propertyPanelOptions.canClearCurrentElementEdits?.(element) ?? true)) return;
@@ -25270,7 +25687,7 @@ function WebEditorUiApp(props) {
     syncSavedNote,
     syncSavedText
   ]);
-  const handleDeleteExternalComment = React19.useCallback(
+  const handleDeleteExternalComment = React21.useCallback(
     async (commentId) => {
       const element = currentTargetRef.current;
       if (!element || !propertyPanelOptions?.onDeleteExternalComment) return;
@@ -25281,7 +25698,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions, syncSavedNote]
   );
-  const handleDeleteCurrentAnnotationNode = React19.useCallback(async () => {
+  const handleDeleteCurrentAnnotationNode = React21.useCallback(async () => {
     const element = currentTargetRef.current;
     if (!element || !propertyPanelOptions?.onDeleteCurrentAnnotationNode) return;
     await propertyPanelOptions.onDeleteCurrentAnnotationNode(element);
@@ -25299,7 +25716,7 @@ function WebEditorUiApp(props) {
     syncSavedNote,
     syncSavedText
   ]);
-  const handleSendCurrentElementPromptToAgent = React19.useMemo(() => {
+  const handleSendCurrentElementPromptToAgent = React21.useMemo(() => {
     if (!propertyPanelOptions?.onSendCurrentElementPromptToAgent) {
       return void 0;
     }
@@ -25323,7 +25740,7 @@ function WebEditorUiApp(props) {
     selectionNeedsExplicitReactivateRef: selectionGuards.selectionNeedsExplicitReactivateRef,
     syncSelectionModeAvailability: selectionGuards.syncSelectionModeAvailability
   });
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     if (!inlineTextEditing) return;
     if (canEditText && activeTextTarget?.isConnected) return;
     const previousTextTarget = inlineTextTargetRef.current;
@@ -25339,7 +25756,7 @@ function WebEditorUiApp(props) {
     handleCancelText,
     inlineTextEditing
   ]);
-  React19.useEffect(() => {
+  React21.useEffect(() => {
     const editableElement = inlineTextEditing && canEditText && activeTextTarget instanceof HTMLElement ? activeTextTarget : null;
     propertyPanelOptions?.onInlineTextEditingElementChange?.(editableElement);
     if (!editableElement) {
@@ -25504,9 +25921,40 @@ function WebEditorUiApp(props) {
     inlineTextEditing,
     propertyPanelOptions
   ]);
-  return /* @__PURE__ */ jsxs13("div", { style: panelContainerStyle, children: [
-    /* @__PURE__ */ jsx14("style", { nonce: resolveCspNonce(), children: WEB_EDITOR_POPUP_ROOT_STYLES }),
-    /* @__PURE__ */ jsx14(
+  return /* @__PURE__ */ jsxs15("div", { style: panelContainerStyle, children: [
+    /* @__PURE__ */ jsx16("style", { nonce: resolveCspNonce(), children: WEB_EDITOR_POPUP_ROOT_STYLES }),
+    commentListAvailable && !toolMinimized && !blockingLayerOpen ? /* @__PURE__ */ jsx16(
+      RightEntry,
+      {
+        open: showCommentList,
+        onToggle: () => setCommentListOpen((open) => !open),
+        onNativeAction: () => setCommentListOpen(false),
+        onShortcuts: () => {
+          void propertyPanelRef.current?.runHostToolbarAction({ type: "open-keyboard-shortcuts" });
+        }
+      }
+    ) : null,
+    showCommentList && propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch ? /* @__PURE__ */ jsx16(
+      CommentListView,
+      {
+        getEntries: propertyPanelOptions.getCommentListEntries,
+        onRun: propertyPanelOptions.onRunCommentBatch,
+        getLoadState: propertyPanelOptions.getCommentListLoadState,
+        onRetry: propertyPanelOptions.onRetryCommentList,
+        loadingContent: propertyPanelOptions.commentListLoadingContent,
+        onClose: () => setCommentListOpen(false),
+        hasTarget: Boolean(currentTarget),
+        onLocate: (element) => {
+          selectionGuards.handlePromptHoverSelectionSuppressedChange(false);
+          propertyPanelOptions.onSelectComment?.(element);
+        },
+        onInteractionChange: selectionGuards.handlePromptHoverSelectionSuppressedChange,
+        sendAvailable: !propertyPanelOptions.hideExecutionControls && !propertyPanelOptions.hideCurrentElementExecutionAction,
+        generateAvailable: Boolean(propertyPanelOptions.onGenerateComponentStates),
+        documentAvailable: Boolean(propertyPanelOptions.onDocumentComponent)
+      }
+    ) : null,
+    /* @__PURE__ */ jsx16(
       ElementAgentTaskOverlays,
       {
         tasks: blockingLayerOpen ? [] : taskStateProvider.getVisibleTasks(),
@@ -25515,7 +25963,7 @@ function WebEditorUiApp(props) {
         renderTick: taskRenderTick
       }
     ),
-    breadcrumbsOptions ? /* @__PURE__ */ jsx14(
+    breadcrumbsOptions ? /* @__PURE__ */ jsx16(
       PromptCardView,
       {
         ref: breadcrumbsRef,
@@ -25524,6 +25972,9 @@ function WebEditorUiApp(props) {
         selectedElementCount: propertyPanelOptions?.getSelectedElements?.().length ?? (currentTarget ? 1 : 0),
         pinnedToTopRight: uiSettings.promptCardPinnedToTopRight,
         propertyPanelOpen,
+        commentListOpen: showCommentList,
+        onCommentSaved: handleCommentSaved,
+        onPersistComments: propertyPanelOptions?.onPersistComments,
         onPinnedToTopRightChange: (pinned) => handleUiSettingsChange({
           ...uiSettings,
           promptCardPinnedToTopRight: pinned
@@ -25608,7 +26059,7 @@ function WebEditorUiApp(props) {
         onDeleteCurrentAnnotationNode: handleDeleteCurrentAnnotationNode
       }
     ) : null,
-    propertyPanelOptions && propertyPanelVisible ? /* @__PURE__ */ jsx14(
+    propertyPanelOptions && propertyPanelVisible ? /* @__PURE__ */ jsx16(
       PropertyPanelView,
       {
         ref: propertyPanelRef,
@@ -25702,7 +26153,7 @@ function createQueuedBridge(getApi) {
 }
 
 // src/ui/runtime/create-web-editor-ui-runtime.tsx
-import { jsx as jsx15, jsxs as jsxs14 } from "react/jsx-runtime";
+import { jsx as jsx17, jsxs as jsxs16 } from "react/jsx-runtime";
 function subscribeDeferredHostToolbarState(options) {
   const current = options.getCurrent();
   if (current) {
@@ -25762,8 +26213,8 @@ function createWebEditorUiRuntime(options) {
   }
   options.container.append(host);
   const root = createRoot2(host);
-  const propertyPanelRef = React20.createRef();
-  const breadcrumbsRef = React20.createRef();
+  const propertyPanelRef = React22.createRef();
+  const breadcrumbsRef = React22.createRef();
   let disposed = false;
   const dispose = () => {
     if (disposed) return;
@@ -25830,17 +26281,17 @@ function createWebEditorUiRuntime(options) {
     annotationEnableTitle: "\u5F00\u542F\u9700\u6C42\u6807\u6CE8"
   });
   function RuntimeMount() {
-    const styleCache = React20.useMemo(() => createCache(), []);
-    const cspNonce = React20.useMemo(() => resolveCspNonce(), []);
-    const popupContainerRef = React20.useRef(null);
-    const [themeMode, setThemeMode] = React20.useState(
+    const styleCache = React22.useMemo(() => createCache(), []);
+    const cspNonce = React22.useMemo(() => resolveCspNonce(), []);
+    const popupContainerRef = React22.useRef(null);
+    const [themeMode, setThemeMode] = React22.useState(
       () => options.propertyPanelOptions?.getUiSettings?.()?.darkMode ? "dark" : "light"
     );
-    React20.useEffect(() => {
+    React22.useEffect(() => {
       propertyPanelBridge?.flush();
       breadcrumbsBridge?.flush();
     });
-    return /* @__PURE__ */ jsx15(StyleProvider, { cache: styleCache, container: options.shadowRoot, children: /* @__PURE__ */ jsx15(
+    return /* @__PURE__ */ jsx17(StyleProvider, { cache: styleCache, container: options.shadowRoot, children: /* @__PURE__ */ jsx17(
       ConfigProvider,
       {
         componentSize: "small",
@@ -25850,7 +26301,7 @@ function createWebEditorUiRuntime(options) {
           popupContainerRef.current ?? options.container
         ),
         theme: createRuntimeAntdTheme(themeMode),
-        children: /* @__PURE__ */ jsx15(App2, { children: /* @__PURE__ */ jsxs14(
+        children: /* @__PURE__ */ jsx17(App2, { children: /* @__PURE__ */ jsxs16(
           "div",
           {
             style: {
@@ -25860,7 +26311,7 @@ function createWebEditorUiRuntime(options) {
               ...createEditorChromeCssVars(themeMode)
             },
             children: [
-              /* @__PURE__ */ jsx15(
+              /* @__PURE__ */ jsx17(
                 WebEditorUiApp,
                 {
                   propertyPanelOptions: options.propertyPanelOptions,
@@ -25874,14 +26325,14 @@ function createWebEditorUiRuntime(options) {
                   onThemeModeChange: setThemeMode
                 }
               ),
-              /* @__PURE__ */ jsx15("div", { ref: popupContainerRef, ...{ [WEB_EDITOR_POPUP_ROOT_ATTR]: "true" } })
+              /* @__PURE__ */ jsx17("div", { ref: popupContainerRef, ...{ [WEB_EDITOR_POPUP_ROOT_ATTR]: "true" } })
             ]
           }
         ) })
       }
     ) });
   }
-  root.render(/* @__PURE__ */ jsx15(RuntimeMount, {}));
+  root.render(/* @__PURE__ */ jsx17(RuntimeMount, {}));
   return {
     propertyPanel: propertyPanelBridge ? {
       setTarget(element) {
@@ -27419,14 +27870,14 @@ function createHandlesController(options) {
     const topEdgeDelta = finalRect.top - s.startRect.top;
     renderSelectionRect(finalRect);
     setHud(`${Math.round(finalRect.width)} \xD7 ${Math.round(finalRect.height)}`);
-    const styles = {};
+    const styles3 = {};
     if (s.affectsWidth) {
       const widthCssPx = borderBoxToCssSize(
         nextWidthBorderBox,
         s.extras.horizontalExtras,
         s.extras.boxSizing
       );
-      styles.width = formatPx(widthCssPx);
+      styles3.width = formatPx(widthCssPx);
     }
     if (s.affectsHeight) {
       const heightCssPx = borderBoxToCssSize(
@@ -27434,34 +27885,34 @@ function createHandlesController(options) {
         s.extras.verticalExtras,
         s.extras.boxSizing
       );
-      styles.height = formatPx(heightCssPx);
+      styles3.height = formatPx(heightCssPx);
     }
     if (s.mode === "absolute" || s.mode === "fixed") {
       if (s.affectsWidth) {
-        styles.left = formatPx(s.startPosX + leftEdgeDelta);
-        styles.right = "";
+        styles3.left = formatPx(s.startPosX + leftEdgeDelta);
+        styles3.right = "";
       }
       if (s.affectsHeight) {
-        styles.top = formatPx(s.startPosY + topEdgeDelta);
-        styles.bottom = "";
+        styles3.top = formatPx(s.startPosY + topEdgeDelta);
+        styles3.bottom = "";
       }
     } else if (s.mode === "relative") {
       if (s.affectsWidth && s.hasWest) {
-        styles.left = formatPx(s.startPosX + leftEdgeDelta);
+        styles3.left = formatPx(s.startPosX + leftEdgeDelta);
       }
       if (s.affectsHeight && s.hasNorth) {
-        styles.top = formatPx(s.startPosY + topEdgeDelta);
+        styles3.top = formatPx(s.startPosY + topEdgeDelta);
       }
     } else {
       if (s.affectsWidth && s.hasWest) {
-        styles["margin-left"] = formatPx(s.startPosX + leftEdgeDelta);
+        styles3["margin-left"] = formatPx(s.startPosX + leftEdgeDelta);
       }
       if (s.affectsHeight && s.hasNorth) {
-        styles["margin-top"] = formatPx(s.startPosY + topEdgeDelta);
+        styles3["margin-top"] = formatPx(s.startPosY + topEdgeDelta);
       }
     }
     try {
-      tx.set(styles);
+      tx.set(styles3);
     } catch (error) {
       console.warn(`${WEB_EDITOR_V2_LOG_PREFIX} Resize preview apply failed:`, error);
       cancelSession("apply_failed");
@@ -29667,11 +30118,11 @@ function writeStyleValue(style, property, value) {
     style.setProperty(prop, v);
   }
 }
-function applyStylesSnapshot(element, styles) {
-  if (!styles) return;
+function applyStylesSnapshot(element, styles3) {
+  if (!styles3) return;
   const inlineStyle = getInlineStyle(element);
   if (!inlineStyle) return;
-  for (const [property, value] of Object.entries(styles)) {
+  for (const [property, value] of Object.entries(styles3)) {
     writeStyleValue(inlineStyle, property, value);
   }
 }
@@ -31776,6 +32227,101 @@ function createComponentStatesAction(options) {
   };
 }
 
+// src/core/editor/comment-batch.ts
+function createCommentBatchAction(options) {
+  let busy = false;
+  return async (action, ids) => {
+    if (busy) throw new Error("\u6B63\u5728\u5904\u7406\u6279\u6CE8\uFF0C\u8BF7\u7A0D\u5019");
+    const revision = options.getScopeRevision?.();
+    const assertCurrentScope = () => {
+      if (revision !== options.getScopeRevision?.()) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+    };
+    const selectedIds = Array.from(new Set(ids));
+    if (!selectedIds.length) throw new Error("\u8BF7\u9009\u62E9\u81F3\u5C11\u4E00\u6761\u6279\u6CE8");
+    const available = new Map(options.getEntries().map((entry) => [entry.id, entry]));
+    const entries = selectedIds.map((id) => {
+      const entry = available.get(id);
+      if (!entry?.element?.isConnected) throw new Error("\u6240\u9009\u6279\u6CE8\u7684\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+      if (entry.disabledReason) throw new Error(entry.disabledReason);
+      return { ...entry, element: entry.element };
+    });
+    busy = true;
+    try {
+      if (action === "send") {
+        if (!options.send) throw new Error("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u53D1\u9001\u4FEE\u6539");
+        await options.send(entries.map((entry) => entry.element));
+        return;
+      }
+      if (action === "document" && !options.document) throw new Error("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u5F15\u5165\u8BF4\u660E");
+      if (action === "generate" && !options.generate) throw new Error("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u751F\u6210\u539F\u578B");
+      const note = entries.map((entry, index) => `${index + 1}. ${entry.label}${entry.selector ? ` (${entry.selector})` : ""}
+${entry.note}`).join("\n\n");
+      if (note.length > 8e3) throw new Error("\u6240\u9009\u6279\u6CE8\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u51CF\u5C11\u9009\u62E9\u540E\u91CD\u8BD5");
+      const sourceHtml = entries.map((entry) => entry.element.outerHTML).join("\n");
+      if (action === "generate" && sourceHtml.length > 6e4) throw new Error("\u6240\u9009\u7EC4\u4EF6\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u51CF\u5C11\u9009\u62E9\u540E\u91CD\u8BD5");
+      const screenshots = [];
+      for (const entry of entries) {
+        assertCurrentScope();
+        if (!entry.element.isConnected) throw new Error("\u6240\u9009\u6279\u6CE8\u7684\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+        screenshots.push({ label: entry.label, screenshot: await options.capture(entry.element, "component") });
+      }
+      if (entries.some((entry) => !entry.element.isConnected)) throw new Error("\u6240\u9009\u6279\u6CE8\u7684\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+      assertCurrentScope();
+      const imageDataUrl = screenshots.length === 1 ? screenshots[0].screenshot.data : await (options.compose ?? composeCommentScreenshots)(screenshots);
+      assertCurrentScope();
+      const source = options.getSource();
+      const capture = {
+        imageDataUrl,
+        note,
+        component: {
+          name: entries.length === 1 ? entries[0].label.slice(0, 160) : `\u6240\u9009 ${entries.length} \u4E2A\u7EC4\u4EF6`,
+          text: entries.map((entry, index) => `${index + 1}. ${entry.label}
+${entry.element.textContent || ""}`).join("\n\n").slice(0, 2e4),
+          ...entries.length === 1 ? { selector: entries[0].selector } : {}
+        },
+        source: { ...source, title: source.title.trim() || "\u5F53\u524D\u9875\u9762" }
+      };
+      const handled = action === "document" ? await options.document(capture) : await options.generate({ capture, title: `${capture.component.name} \u72B6\u6001\u8BF4\u660E`, layout: "overview", sourceHtml });
+      if (!handled) throw new Error("\u672A\u80FD\u6253\u5F00\u6279\u6CE8\u64CD\u4F5C\uFF0C\u8BF7\u5148\u5904\u7406\u5F53\u524D\u4EFB\u52A1\u540E\u91CD\u8BD5");
+    } finally {
+      busy = false;
+    }
+  };
+}
+async function composeCommentScreenshots(items) {
+  const images = await Promise.all(items.map((item) => new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("\u7EC4\u4EF6\u622A\u56FE\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5"));
+    image.src = item.screenshot.data;
+  })));
+  const width = Math.min(1440, Math.max(320, ...images.map((image) => image.naturalWidth + 48)));
+  const heights = images.map((image) => image.naturalHeight * Math.min(1, (width - 48) / image.naturalWidth));
+  const height = heights.reduce((total, value) => total + value + 72, 24);
+  const scale = Math.min(1, 8192 / height);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(width * scale);
+  canvas.height = Math.ceil(height * scale);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("\u7EC4\u4EF6\u622A\u56FE\u5408\u5E76\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+  context.scale(scale, scale);
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, width, height);
+  context.fillStyle = "#18181b";
+  context.font = "16px sans-serif";
+  let y = 24;
+  images.forEach((image, index) => {
+    context.fillText(`${index + 1}. ${items[index].label.slice(0, 100)}`, 24, y + 20, width - 48);
+    y += 40;
+    const imageScale = Math.min(1, (width - 48) / image.naturalWidth);
+    context.drawImage(image, 24, y, image.naturalWidth * imageScale, heights[index]);
+    y += heights[index] + 32;
+  });
+  const result = canvas.toDataURL("image/png");
+  if (result.length > Math.ceil(8 * 1024 * 1024 * 4 / 3) + 100) throw new Error("\u7EC4\u4EF6\u622A\u56FE\u603B\u5927\u5C0F\u8FC7\u5927\uFF0C\u8BF7\u51CF\u5C11\u9009\u62E9\u540E\u91CD\u8BD5");
+  return result;
+}
+
 // src/core/editor/text-session.ts
 function normalizeTextForEditorInput(value) {
   return normalizeEditableText(value);
@@ -31987,6 +32533,22 @@ function createLifecycleService(deps) {
   let pendingCommentContextSync = false;
   let routeChangeCleanup = null;
   let interactionProfileRestartQueued = false;
+  let commentListLoadState = { status: "loading" };
+  let commentRestoreRevision = 0;
+  async function restoreCommentList() {
+    const revision = ++commentRestoreRevision;
+    commentListLoadState = { status: "loading", revision };
+    try {
+      const result = await services.persistence.restoreCachedChanges();
+      if (revision === commentRestoreRevision) commentListLoadState = { status: "ready", revision };
+      return result;
+    } catch (error) {
+      if (revision === commentRestoreRevision) commentListLoadState = { status: "error", revision, error: error instanceof Error ? error.message : "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" };
+      throw error;
+    } finally {
+      state2.propertyPanel?.refresh();
+    }
+  }
   const targetScreenshotCoordinator = createTargetScreenshotCoordinator({
     isEnabled: () => state2.uiSettings.captureTargetScreenshot && resolveActiveInteractionProfile() !== "text-comment",
     capture: (element, commentId) => captureTargetScreenshot(element, commentId, {
@@ -32055,9 +32617,9 @@ function createLifecycleService(deps) {
   function shouldDelegateAiActionToHost() {
     return typeof rawOptions.ui?.onHostToolbarAction === "function" && typeof options.ui.onHostToolbarAction === "function";
   }
-  function buildHostSendToAgentAction(element) {
+  function buildHostSendToAgentAction(element, explicitTargets) {
     const meta = services.changes.getMetaForElement(element ?? null);
-    const selection = getSelectionActionTargets(state2, element ?? null);
+    const selection = explicitTargets ?? getSelectionActionTargets(state2, element ?? null);
     const entries = selection.flatMap((target) => {
       const prompt = buildSaveRunPromptForAgentElement(target);
       const targetMeta = services.changes.getMetaForElement(target);
@@ -32066,6 +32628,7 @@ function createLifecycleService(deps) {
     const promptText = entries.map((entry) => entry.prompt).join("\n\n");
     return meta?.elementKey ? {
       type: "send-to-agent",
+      ...explicitTargets ? { preserveOnAutoClear: true } : {},
       ...meta.commentId ? { commentId: meta.commentId } : {},
       elementKey: meta.elementKey,
       locator: meta.locator,
@@ -32293,6 +32856,63 @@ ${externalSection}` : promptWithSkills;
       }
     }
     return elements;
+  }
+  function getCommentListEntries() {
+    return Array.from(state2.editMetaByKey.values()).filter((meta) => Boolean(meta.note.trim() || meta.images.length || meta.dirtySince !== null)).map((meta) => {
+      let element = null;
+      try {
+        element = locateElement(meta.locator);
+      } catch {
+      }
+      if (!element?.isConnected) element = null;
+      const disabledReason = !element ? "\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9" : meta.readOnly ? "\u6B64\u6279\u6CE8\u4E3A\u53EA\u8BFB" : services.agentBridge.isElementInteractionLocked(element) ? "\u6B64\u7EC4\u4EF6\u6B63\u5728\u5904\u7406\u4E2D\uFF0C\u8BF7\u7A0D\u5019" : void 0;
+      return {
+        id: meta.elementKey,
+        label: meta.label,
+        note: meta.note,
+        selector: meta.locator.selectors[0],
+        element,
+        disabledReason
+      };
+    });
+  }
+  const runCommentBatch = createCommentBatchAction({
+    getEntries: getCommentListEntries,
+    getScopeRevision: () => commentRestoreRevision,
+    send: async (elements) => {
+      if (shouldDelegateAiActionToHost()) {
+        const refs = elements.flatMap((element) => {
+          const meta = services.changes.getMetaForElement(element);
+          return meta ? [toExternalEditingTarget(meta)] : [];
+        });
+        const editingRun = beginHostExternalEditing(refs);
+        try {
+          const handled = await runHostAiAction(buildHostSendToAgentAction(elements[0], elements));
+          if (!handled) throw new Error(lastHostAiActionError || "\u5BBF\u4E3B\u6682\u672A\u5904\u7406 AI \u6267\u884C\u8BF7\u6C42\u3002");
+        } catch (error) {
+          markHostExternalEditingError(editingRun, error instanceof Error ? error.message : String(error));
+          throw error;
+        }
+      } else {
+        await services.agentBridge.handleSendPromptToAgentForElements(elements, buildSaveRunPromptForAgentElement);
+      }
+      state2.positionTracker?.forceUpdate(true);
+    },
+    document: options.ui.onDocumentComponent,
+    generate: options.ui.onGenerateComponentStates,
+    capture: (element, name) => captureElementScreenshot(element, name, {
+      fallbackBackgroundColor: "#ffffff",
+      isEditorUi: (node) => Boolean(state2.shadowHost?.isOverlayElement(node))
+    }),
+    getSource: () => ({ title: document.title, url: window.location.href })
+  });
+  async function persistComments() {
+    if (commentListLoadState.status !== "ready") throw new Error(commentListLoadState.error || "\u6279\u6CE8\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u7A0D\u5019");
+    services.persistence.flushPendingWrite();
+    await services.persistence.waitForPendingWrites();
+    if (services.persistence.getSaveStatus() === "unsaved") {
+      throw new Error("\u6279\u6CE8\u672A\u80FD\u4FDD\u5B58\uFF0C\u8BF7\u91CD\u8BD5\u6682\u5B58\u540E\u518D\u6267\u884C");
+    }
   }
   function resolvePromptTargetRefsFromEditHistory() {
     return Array.from(state2.editMetaByKey.values()).filter(
@@ -32992,7 +33612,7 @@ ${externalSection}` : promptWithSkills;
         state2.hoveredElement = null;
         state2.selectionAnchor = null;
         state2.pendingMarkerAnchors.clear();
-        void Promise.resolve(services.persistence.restoreCachedChanges()).then((deletedElementKeys) => {
+        void restoreCommentList().then((deletedElementKeys) => {
           services.agentBridge.discardDeletedElementStates?.(deletedElementKeys);
           services.conversationTaskMonitor?.reconcile();
           services.changes.renderChangeMarkers();
@@ -33143,7 +33763,7 @@ ${externalSection}` : promptWithSkills;
         },
         onApplyError: handleTransactionError
       });
-      void Promise.resolve(services.persistence.restoreCachedChanges()).then((deletedElementKeys) => {
+      void restoreCommentList().then((deletedElementKeys) => {
         services.agentBridge.discardDeletedElementStates?.(deletedElementKeys);
         services.agentBridge.rehydratePersistedAgentState();
         services.conversationTaskMonitor?.reconcile();
@@ -33412,6 +34032,27 @@ ${externalSection}` : promptWithSkills;
               state2.positionTracker?.forceUpdate(true);
             }
           },
+          getCommentListEntries,
+          getCommentListLoadState: () => commentListLoadState,
+          commentListLoadingContent: options.ui.commentListLoadingContent,
+          onRetryCommentList: async () => {
+            const deleted = await restoreCommentList();
+            services.agentBridge.discardDeletedElementStates?.(deleted);
+            services.agentBridge.rehydratePersistedAgentState();
+            services.conversationTaskMonitor?.reconcile();
+            services.changes.renderChangeMarkers();
+            onStatusChange?.();
+          },
+          onPersistComments: persistComments,
+          onRunCommentBatch: async (action, ids) => {
+            const revision = commentRestoreRevision;
+            await persistComments();
+            if (revision !== commentRestoreRevision) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+            await runCommentBatch(action, ids);
+          },
+          onSelectComment: (element) => {
+            void services.interaction.handleSelect(element, DEFAULT_MODIFIERS);
+          },
           onAbortAgentPrompt: async (element) => {
             if (shouldDelegateAiActionToHost()) {
               const locallyInterrupted = element === null ? await interruptVisibleTasksLocally() : false;
@@ -33593,7 +34234,7 @@ ${externalSection}` : promptWithSkills;
               externalComments: meta.externalComments
             } : null;
           },
-          canEditAiNote: (element) => getSelectionActionTargets(state2, element).every(
+          canEditAiNote: (element) => commentListLoadState.status === "ready" && getSelectionActionTargets(state2, element).every(
             (target) => !services.changes.getMetaForElement(target)?.readOnly && !services.agentBridge.isElementInteractionLocked(target)
           ),
           canClearCurrentElementEdits: (element) => !Boolean(services.changes.getMetaForElement(element)?.readOnly),
@@ -35676,7 +36317,7 @@ function createPersistenceService(options) {
       };
     } catch (error) {
       console.warn("[Commentary] Failed to read prototype comments:", error);
-      return { document: null, deletedElementKeys: [], observedTombstones: [] };
+      throw error;
     }
   }
   async function restoreCachedChanges() {
@@ -36887,7 +37528,7 @@ ${lines.join("\n")}
     for (const summary of summaries) {
       const meta = state2.editMetaByKey.get(summary.elementKey);
       const note = buildPromptNote(meta?.note ?? "", meta);
-      const actions = [...buildMetaActionLines(meta), ...buildSummaryActionLines(summary)];
+      const actions2 = [...buildMetaActionLines(meta), ...buildSummaryActionLines(summary)];
       const imageAssetPaths = collectPromptImageAssetPaths(meta?.images);
       const targetScreenshotAssetPath = collectPromptTargetScreenshotAssetPath(meta?.images);
       appendChangeItem(lines, {
@@ -36899,7 +37540,7 @@ ${lines.join("\n")}
         pageScope: currentPageScope,
         imageAssetPaths,
         targetScreenshotAssetPath,
-        actions,
+        actions: actions2,
         note
       });
       itemIndex += 1;
@@ -37035,7 +37676,7 @@ ${lines.join("\n")}
     for (const summary of summaries) {
       const meta = state2.editMetaByKey.get(summary.elementKey);
       const note = buildPromptNote(meta?.note ?? "", meta);
-      const actions = [...buildMetaActionLines(meta), ...buildSummaryActionLines(summary)];
+      const actions2 = [...buildMetaActionLines(meta), ...buildSummaryActionLines(summary)];
       const imageAssetPaths = collectPromptImageAssetPaths(meta?.images);
       const targetScreenshotAssetPath = collectPromptTargetScreenshotAssetPath(meta?.images);
       appendChangeItem(lines, {
@@ -37046,7 +37687,7 @@ ${lines.join("\n")}
         debugFileHint: includeDebugFileHint ? formatDebugSource(summary.debugSource) : "",
         imageAssetPaths,
         targetScreenshotAssetPath,
-        actions,
+        actions: actions2,
         note
       });
       itemIndex += 1;
@@ -37060,14 +37701,14 @@ ${lines.join("\n")}
           note: meta.note
         });
       } else {
-        const actions = [...meta.actions];
+        const actions2 = [...meta.actions];
         appendChangeItem(lines, {
           index: itemIndex,
           locator: meta.locator,
           fallbackLabel: meta.label,
           imageAssetPaths: meta.imageAssetPaths,
           targetScreenshotAssetPath: meta.targetScreenshotAssetPath,
-          actions,
+          actions: actions2,
           note: meta.note
         });
       }

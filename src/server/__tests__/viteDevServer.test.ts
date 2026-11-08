@@ -77,12 +77,42 @@ function createResponse() {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.resetModules();
   vi.restoreAllMocks();
   vi.doUnmock('vite');
 });
 
 describe('make-server Vite dev middleware', () => {
+  it('invalidates cached commentary and reloads preview clients after a runtime rebuild, with watcher cleanup', async () => {
+    vi.useFakeTimers();
+    const makeServerRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'axhub-vite-commentary-rebuild-'));
+    const runtimePath = path.join(makeServerRoot, 'vendor/axhub-commentary/dist/index.mjs');
+    fs.mkdirSync(path.dirname(runtimePath), { recursive: true });
+    fs.writeFileSync(runtimePath, 'export const version = 1;');
+    let onChange!: (current: fs.Stats, previous: fs.Stats) => void;
+    const watch = vi.spyOn(fs, 'watchFile').mockImplementation(((file: string, _options: unknown, callback: typeof onChange) => {
+      expect(file).toBe(runtimePath); onChange = callback;
+      return {} as fs.StatWatcher;
+    }) as typeof fs.watchFile);
+    const unwatch = vi.spyOn(fs, 'unwatchFile').mockImplementation(() => {});
+    const invalidateAll = vi.fn(), send = vi.fn();
+    vi.doMock('vite', () => ({ normalizePath, createServer: vi.fn(async () => ({
+      middlewares: vi.fn(), transformIndexHtml: vi.fn(), close: vi.fn(), moduleGraph: { invalidateAll }, ws: { send },
+    })) }));
+    try {
+      const { createViteDevMiddleware } = await import('../viteDevServer.ts');
+      const middleware = await createViteDevMiddleware(http.createServer(), makeServerRoot);
+      expect(watch).toHaveBeenCalledOnce();
+      onChange({ mtimeMs: 2, size: 30 } as fs.Stats, { mtimeMs: 1, size: 20 } as fs.Stats);
+      onChange({ mtimeMs: 3, size: 40 } as fs.Stats, { mtimeMs: 2, size: 30 } as fs.Stats);
+      await vi.advanceTimersByTimeAsync(500);
+      expect(invalidateAll).toHaveBeenCalledOnce();
+      expect(send).toHaveBeenCalledWith({ type: 'full-reload', path: '*' });
+      await middleware.close();
+      expect(unwatch).toHaveBeenCalledWith(runtimePath, onChange);
+    } finally { fs.rmSync(makeServerRoot, { recursive: true, force: true }); }
+  });
   it('removes stale embedded Vite cache directories before starting a new session', async () => {
     const makeServerRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'axhub-vite-dev-cache-'));
     const viteCacheRoot = path.join(makeServerRoot, 'node_modules', '.vite');

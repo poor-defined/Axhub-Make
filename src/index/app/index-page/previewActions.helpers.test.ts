@@ -201,6 +201,17 @@ describe('previewActions.helpers', () => {
     ]);
   });
 
+  it('preserves batch-list comments after sending so documentation and prototype actions remain available', () => {
+    const locator = { selectors: ['button'], fingerprint: 'button', path: [0] };
+    const targets = resolveAnnotationActionEditingTargets({
+      type: 'send-to-agent', elementKey: 'a', preserveOnAutoClear: true,
+      targets: [{ elementKey: 'a', locator, label: 'A' }, { elementKey: 'b', locator, label: 'B' }],
+    });
+    expect(targets).toHaveLength(2);
+    expect(targets.every(target => target.preserveOnAutoClear === true)).toBe(true);
+    expect(resolveAnnotationActionEditingTargets({ type: 'send-to-agent', elementKey: 'a', locator })[0].preserveOnAutoClear).toBeUndefined();
+  });
+
   it('does not reuse the primary comment identity for another selected element', () => {
     const locator = { selectors: ['button'], fingerprint: 'button', path: [0] };
     expect(resolveAnnotationActionEditingTargets({

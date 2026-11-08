@@ -1,7 +1,24 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { executePromptCardCurrentElementAction, executePromptCardDocumentAction, resolveComponentPrototypeDestination, resolvePromptSubmitShortcut } from '../../../vendor/axhub-commentary/src/ui/runtime/prompt-card-actions';
+import { executePromptCardCurrentElementAction, executePromptCardDocumentAction, executePromptCardSaveAction, resolveComponentPrototypeDestination, resolvePromptSubmitShortcut } from '../../../vendor/axhub-commentary/src/ui/runtime/prompt-card-actions';
 import { getAgentPromptBubbleActionState } from '../../../vendor/axhub-commentary/src/ui/agent-prompt-action';
+it('opens the saved list only after persistence succeeds and keeps failed saves retryable', async () => {
+  let complete!: () => void;
+  const save = vi.fn(() => new Promise<void>(resolve => { complete = resolve; }));
+  const open = vi.fn();
+  const pending = executePromptCardSaveAction({ onConfirmNote: save, onSaved: open });
+  expect(open).not.toHaveBeenCalled();
+  complete(); await pending; expect(open).toHaveBeenCalledTimes(1);
+  save.mockRejectedValueOnce(new Error('save failed'));
+  await expect(executePromptCardSaveAction({ onConfirmNote: save, onSaved: open })).rejects.toThrow('save failed');
+  expect(open).toHaveBeenCalledTimes(1);
+});
+it('waits for the durable comment write and propagates write failures before acknowledging a saved comment', async () => {
+  const save = vi.fn(async () => {}), open = vi.fn();
+  const persist = vi.fn(async () => { throw new Error('write conflict'); });
+  await expect(executePromptCardSaveAction({ onConfirmNote: save, onPersist: persist, onSaved: open })).rejects.toThrow('write conflict');
+  expect(save).toHaveBeenCalledOnce(); expect(open).not.toHaveBeenCalled();
+});
 it('submits component requests with Cmd/Ctrl+Enter while preserving annotation saves and IME input', () => {
   expect(resolvePromptSubmitShortcut({ key: 'Enter', metaKey: true, componentComposer: true })).toBe('send');
   expect(resolvePromptSubmitShortcut({ key: 'Enter', ctrlKey: true, generateNewPrototype: true })).toBe('send');

@@ -1,4 +1,6 @@
 import { withPrototypeWireframePolicy } from '../common/prototypeWireframePolicy';
+import { createElement } from 'react';
+import { PageSkeleton } from '../components/ui/page-skeleton';
 import type {
   CommentaryDebugState,
   CommentaryEditedSnapshot,
@@ -2018,6 +2020,7 @@ export const createWebEditorV2Controller = (
       const canDelegateHostToolbarActions = resolvedToolbarMode === 'host'
         && canUseParentHostToolbarBridge();
       const resolvedUi = {
+        commentListLoadingContent: createElement(PageSkeleton, { variant: 'list', label: '正在加载批注' }),
         breadcrumbs: true,
         propertyPanel: true,
         showCopyPromptAction: true,

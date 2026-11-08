@@ -8,6 +8,16 @@ export function resolveComponentPrototypeDestination(options: {
     && options.interactionProfile !== 'annotation' && options.interactionProfile !== 'text-comment';
 }
 
+export async function executePromptCardSaveAction(options: {
+  onConfirmNote: () => Promise<void>;
+  onPersist?: () => Promise<void>;
+  onSaved?: () => void;
+}): Promise<void> {
+  await options.onConfirmNote();
+  await options.onPersist?.();
+  options.onSaved?.();
+}
+
 export function resolvePromptSubmitShortcut(options: {
   key: string;
   metaKey?: boolean;

@@ -52,6 +52,8 @@ import {
   type WebEditorUiSettings,
   sanitizeWebEditorUiSettings,
 } from '../../core/editor/ui-settings';
+import { CommentListView } from './comment-list-view';
+import { RightEntry } from './right-entry';
 
 function normalizeRuntimeUiSettings(
   settings: unknown,
@@ -202,6 +204,7 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
   const interactionProfile = propertyPanelOptions?.interactionProfile ?? 'design';
 
   const [currentTarget, setCurrentTarget] = React.useState<Element | null>(null);
+  const [commentListOpen, setCommentListOpen] = React.useState(false);
   const [anchorRect, setAnchorRect] = React.useState<ViewportRect | null>(null);
   const [uiMode, setUiMode] = React.useState<CommentEntryMode>(initialUiMode);
   const [toolMinimized, setToolMinimized] = React.useState(false);
@@ -273,6 +276,14 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
     initialSelectionModeActive,
     setToolMinimized,
   });
+  const commentListAvailable = Boolean(propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch
+    && interactionProfile === 'design' && !propertyPanelOptions.externalAnnotationMode);
+  React.useEffect(() => {
+    if (commentListAvailable && selectionGuards.selectionModeActive) setCommentListOpen(true);
+    if (!commentListAvailable) setCommentListOpen(false);
+  }, [commentListAvailable, currentTarget, selectionGuards.selectionModeActive]);
+  const showCommentList = commentListAvailable && commentListOpen && !toolMinimized && !blockingLayerOpen;
+  const handleCommentSaved = React.useCallback(() => setCommentListOpen(true), []);
   const promptSelectionInteractionLockChangeRef = React.useRef(
     selectionGuards.handlePromptSelectionInteractionLockChange,
   );
@@ -1378,6 +1389,25 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
   return (
     <div style={panelContainerStyle}>
       <style nonce={resolveCspNonce()}>{WEB_EDITOR_POPUP_ROOT_STYLES}</style>
+      {commentListAvailable && !toolMinimized && !blockingLayerOpen ? (
+        <RightEntry open={showCommentList} onToggle={() => setCommentListOpen(open => !open)}
+          onNativeAction={() => setCommentListOpen(false)}
+          onShortcuts={() => { void propertyPanelRef.current?.runHostToolbarAction({ type: 'open-keyboard-shortcuts' }); }} />
+      ) : null}
+      {showCommentList && propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch ? (
+        <CommentListView getEntries={propertyPanelOptions.getCommentListEntries} onRun={propertyPanelOptions.onRunCommentBatch}
+          getLoadState={propertyPanelOptions.getCommentListLoadState} onRetry={propertyPanelOptions.onRetryCommentList}
+          loadingContent={propertyPanelOptions.commentListLoadingContent}
+          onClose={() => setCommentListOpen(false)} hasTarget={Boolean(currentTarget)}
+          onLocate={element => {
+            selectionGuards.handlePromptHoverSelectionSuppressedChange(false);
+            propertyPanelOptions.onSelectComment?.(element);
+          }}
+          onInteractionChange={selectionGuards.handlePromptHoverSelectionSuppressedChange}
+          sendAvailable={!propertyPanelOptions.hideExecutionControls && !propertyPanelOptions.hideCurrentElementExecutionAction}
+          generateAvailable={Boolean(propertyPanelOptions.onGenerateComponentStates)}
+          documentAvailable={Boolean(propertyPanelOptions.onDocumentComponent)} />
+      ) : null}
       <ElementAgentTaskOverlays
         tasks={blockingLayerOpen ? [] : taskStateProvider.getVisibleTasks()}
         subscribeSessionActivity={propertyPanelOptions?.subscribeSessionActivity}
@@ -1392,6 +1422,9 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
           selectedElementCount={propertyPanelOptions?.getSelectedElements?.().length ?? (currentTarget ? 1 : 0)}
           pinnedToTopRight={uiSettings.promptCardPinnedToTopRight}
           propertyPanelOpen={propertyPanelOpen}
+          commentListOpen={showCommentList}
+          onCommentSaved={handleCommentSaved}
+          onPersistComments={propertyPanelOptions?.onPersistComments}
           onPinnedToTopRightChange={(pinned) => handleUiSettingsChange({
             ...uiSettings,
             promptCardPinnedToTopRight: pinned,

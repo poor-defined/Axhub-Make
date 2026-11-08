@@ -797,6 +797,8 @@ export type CommentaryHostToolbarAction =
   | { type: 'wake-agent' }
   | ({
       type: 'send-to-agent';
+      /** Keep list-owned comments available for other independent batch actions. */
+      preserveOnAutoClear?: boolean;
       /** Real persisted comment identity; execution hosts must not infer a prompt-only task. */
       commentId?: string;
       elementKey?: WebEditorElementKey;

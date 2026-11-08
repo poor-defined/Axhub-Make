@@ -81,6 +81,14 @@ export interface PropertyPanelOptions {
   onSendPromptToAgent?: (element?: Element | null) => void | Promise<void>;
   /** Send the current element's prompt to Agent without including other elements */
   onSendCurrentElementPromptToAgent?: (element: Element) => void | Promise<void>;
+  /** Page-scoped saved annotations, independent of the active canvas selection. */
+  getCommentListEntries?: () => import('../../core/editor/comment-batch').CommentListEntry[];
+  onSelectComment?: (element: Element) => void;
+  onPersistComments?: () => Promise<void>;
+  getCommentListLoadState?: () => import('../../core/editor/comment-batch').CommentListLoadState;
+  onRetryCommentList?: () => Promise<void>;
+  commentListLoadingContent?: import('react').ReactNode;
+  onRunCommentBatch?: (action: import('../../core/editor/comment-batch').CommentBatchAction, ids: readonly string[]) => Promise<void>;
   /** Interrupt the active Agent execution for the current element */
   onAbortAgentPrompt?: (element?: Element | null) => void | Promise<void>;
   /** Wake Agent after the host confirms the backend is ready */

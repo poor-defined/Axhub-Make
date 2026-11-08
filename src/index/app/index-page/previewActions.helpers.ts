@@ -474,6 +474,7 @@ export function resolveAnnotationActionEditingTargets(
     modifiedElements: readonly CommentaryModifiedElementSummary[] = [],
 ): Array<{
     commentId?: string;
+    preserveOnAutoClear?: boolean;
     elementKey: string;
     targetRef: { locator: ElementLocator | null; label: string };
 }> {
@@ -484,6 +485,7 @@ export function resolveAnnotationActionEditingTargets(
                 if (!String(member?.elementKey || '').trim()) continue;
                 const [target] = resolveAnnotationActionEditingTargets({
                     type: 'send-to-agent',
+                    ...(action.preserveOnAutoClear === true ? { preserveOnAutoClear: true } : {}),
                     ...member,
                 }, modifiedElements);
                 if (target && !members.has(target.elementKey)) members.set(target.elementKey, target);
@@ -497,6 +499,7 @@ export function resolveAnnotationActionEditingTargets(
                     String(item?.elementKey || '').trim() === elementKey
                 ))?.commentId || '').trim();
             return [{
+                ...(action.preserveOnAutoClear === true ? { preserveOnAutoClear: true } : {}),
                 ...(commentId
                     ? { commentId }
                     : {}),

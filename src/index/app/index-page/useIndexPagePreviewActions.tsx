@@ -234,13 +234,14 @@ function getAnnotationActionPromptText(
 function buildAnnotationDirectRunEditingTargets(
     pane: PreviewPane,
     iframe: HTMLIFrameElement | null | undefined,
-    targets: Array<Pick<AnnotationDirectRunEditingTarget, 'commentId' | 'elementKey' | 'targetRef'>>,
+    targets: Array<Pick<AnnotationDirectRunEditingTarget, 'commentId' | 'elementKey' | 'targetRef' | 'preserveOnAutoClear'>>,
 ): AnnotationDirectRunEditingTarget[] {
     const uniqueTargets = new Map<string, AnnotationDirectRunEditingTarget>();
     for (const target of targets) {
         const elementKey = String(target?.elementKey || '').trim();
         if (!elementKey || uniqueTargets.has(elementKey)) continue;
         uniqueTargets.set(elementKey, {
+            ...(target.preserveOnAutoClear === true ? { preserveOnAutoClear: true } : {}),
             ...(String(target.commentId || '').trim()
                 ? { commentId: String(target.commentId).trim() }
                 : {}),

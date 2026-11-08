@@ -1076,6 +1076,7 @@ describe('createWebEditorV2Controller', () => {
       expect.objectContaining({
         mobileMode: true,
         ui: {
+          commentListLoadingContent: expect.objectContaining({ props: { variant: 'list', label: '正在加载批注' } }),
           breadcrumbs: true,
           getAssistantPanelOpen: expect.any(Function),
           getAnnotationEnableAvailable: expect.any(Function),
@@ -3970,6 +3971,7 @@ describe('createWebEditorV2Controller', () => {
             '.claude/skills/handle-comments/SKILL.md',
             '.workbuddy/skills/handle-comments/SKILL.md',
           ].join('\n'),
+          commentListLoadingContent: expect.objectContaining({ props: { variant: 'list', label: '正在加载批注' } }),
         },
       }),
     );
