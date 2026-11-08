@@ -38,6 +38,880 @@ var WEB_EDITOR_V1_ACTIONS = {
   APPLY: "web_editor_apply"
 };
 
+// src/ui/runtime/comment-list-view.tsx
+import React from "react";
+
+// src/ui/csp-nonce.ts
+function resolveCspNonce(ownerDocument) {
+  const documentRef = ownerDocument ?? (typeof document !== "undefined" ? document : null);
+  if (!documentRef) return void 0;
+  const metaNonce = typeof documentRef.querySelector === "function" ? documentRef.querySelector('meta[name="csp-nonce"], meta[property="csp-nonce"]')?.getAttribute("content")?.trim() : void 0;
+  if (metaNonce) return metaNonce;
+  if (typeof documentRef.querySelectorAll === "function") {
+    for (const element of Array.from(documentRef.querySelectorAll("style"))) {
+      const nonce = element.nonce?.trim();
+      if (nonce) return nonce;
+    }
+  }
+  if (typeof documentRef.querySelectorAll === "function") {
+    for (const element of Array.from(documentRef.querySelectorAll("script"))) {
+      const nonce = element.nonce?.trim();
+      if (nonce) return nonce;
+    }
+  }
+  return void 0;
+}
+
+// src/ui/runtime/theme.ts
+var ANCHOR_GAP_PX = 12;
+var SAFE_PADDING_PX = 12;
+var PAGE_CONFIG_PANEL_MIN_WIDTH = 232;
+var PAGE_CONFIG_PANEL_MAX_WIDTH = 360;
+var PAGE_CONFIG_PANEL_WIDTH = 248;
+var PROPERTY_PANEL_WIDTH = PAGE_CONFIG_PANEL_WIDTH;
+var PROPERTY_PANEL_RADIUS = 20;
+var PROPERTY_PANEL_TOP = 24;
+var PROPERTY_PANEL_RIGHT = 16;
+var TOOLBAR_BOTTOM = 24;
+var PROPERTY_PANEL_EXPANDED_HEIGHT_PX = PROPERTY_PANEL_TOP + TOOLBAR_BOTTOM;
+var PROPERTY_PANEL_EXPANDED_HEIGHT = `calc(100vh - ${PROPERTY_PANEL_TOP + TOOLBAR_BOTTOM}px)`;
+var PROMPT_CARD_WIDTH = 280;
+var PROMPT_CARD_ESTIMATED_HEIGHT = 104;
+var TEXT_INPUT_PLACEHOLDER = "\u7F16\u8F91\u5F53\u524D\u6587\u672C";
+var FLOATING_CLAMP_MARGIN = 16;
+var POPUP_LAYER_Z_INDEX = 10040;
+var HEADER_HORIZONTAL_PADDING = 10;
+var HEADER_VERTICAL_PADDING = 8;
+var HEADER_CONTROL_SIZE = 28;
+var COMPACT_TOOL_SIZE = 44;
+var COMPACT_TOOLBAR_WIDTH = 251;
+var COMPACT_TOOLBAR_HEIGHT = 44;
+var WEB_EDITOR_POPUP_ROOT_ATTR = "data-we-popup-root";
+var ACTION_ICON_SIZE = 15;
+var ACTION_ICON_STROKE = 1.8;
+var ACTION_BUTTON_SIZE = 28;
+var WEB_EDITOR_V2_PASTE_DEBUG_KEY = "__WEB_EDITOR_V2_PASTE_DEBUG__";
+var BRAND_PRIMARY = "#008F5D";
+var BRAND_PRIMARY_HOVER = "#00A36A";
+var BRAND_PRIMARY_ACTIVE = "#007A4F";
+var BRAND_PRIMARY_SOFT = "rgba(0, 143, 93, 0.16)";
+var BRAND_PRIMARY_RING = "rgba(0, 143, 93, 0.28)";
+var BRAND_PRIMARY_SHADOW = "rgba(0, 143, 93, 0.28)";
+var BRAND_ACCENT = "#00D68F";
+var SLEEPING_ICON = "#A1A1AA";
+var SLEEPING_ICON_STRONG = "#71717A";
+var WEB_EDITOR_PARENT_PASTE_BRIDGE_CLEANUP_KEY = "__webEditorV2ParentPasteBridgeCleanup__";
+var LIGHT_EDITOR_CHROME = {
+  accent: BRAND_PRIMARY,
+  accentBright: BRAND_ACCENT,
+  accentHover: BRAND_PRIMARY_HOVER,
+  accentActive: BRAND_PRIMARY_ACTIVE,
+  accentSoft: BRAND_PRIMARY_SOFT,
+  accentRing: BRAND_PRIMARY_RING,
+  surface: "#FFFFFF",
+  surfaceElevated: "#FFFFFF",
+  surfaceMuted: "#FAFAFA",
+  surfaceInteractive: "#F4F4F5",
+  surfaceOverlay: "rgba(255, 255, 255, 0.96)",
+  border: "rgba(39, 39, 42, 0.10)",
+  borderStrong: "rgba(39, 39, 42, 0.16)",
+  divider: "rgba(228, 228, 231, 0.95)",
+  textPrimary: "#18181B",
+  textSecondary: "#3F3F46",
+  textMuted: "#A1A1AA",
+  textSleeping: "#A1A1AA",
+  textSleepingStrong: "#71717A",
+  textDanger: "#DC2626",
+  hoverSubtle: "rgba(244, 244, 245, 1)",
+  hoverGhost: "rgba(15, 23, 42, 0.035)",
+  toolbarShellBorder: "rgba(228, 228, 231, 0.80)",
+  toolbarShellInset: "inset 0 1px 0 rgba(255, 255, 255, 0.88)",
+  toolbarGlow: "0 0 20px -5px rgba(0, 143, 93, 0.20)",
+  shadow: "0 24px 60px rgba(15, 23, 42, 0.14), 0 8px 24px rgba(15, 23, 42, 0.08)",
+  shadowCompact: "0 10px 28px rgba(15, 23, 42, 0.10), 0 2px 8px rgba(15, 23, 42, 0.06)",
+  overlayCloseBackground: "rgba(255, 255, 255, 0.94)"
+};
+var DARK_EDITOR_CHROME = {
+  accent: BRAND_PRIMARY,
+  accentBright: BRAND_ACCENT,
+  accentHover: BRAND_PRIMARY_HOVER,
+  accentActive: BRAND_PRIMARY_ACTIVE,
+  accentSoft: BRAND_PRIMARY_SOFT,
+  accentRing: BRAND_PRIMARY_RING,
+  surface: "#121212",
+  surfaceElevated: "#161616",
+  surfaceMuted: "#18181B",
+  surfaceInteractive: "#27272A",
+  surfaceOverlay: "rgba(18, 18, 18, 0.96)",
+  border: "rgba(255, 255, 255, 0.08)",
+  borderStrong: "rgba(255, 255, 255, 0.12)",
+  divider: "rgba(39, 39, 42, 0.95)",
+  textPrimary: "rgba(255, 255, 255, 0.94)",
+  textSecondary: "#D4D4D8",
+  textMuted: "#A1A1AA",
+  textSleeping: SLEEPING_ICON,
+  textSleepingStrong: SLEEPING_ICON_STRONG,
+  textDanger: "#ff7875",
+  hoverSubtle: "rgba(39, 39, 42, 0.80)",
+  hoverGhost: "rgba(255, 255, 255, 0.04)",
+  toolbarShellBorder: "rgba(39, 39, 42, 0.82)",
+  toolbarShellInset: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
+  toolbarGlow: "0 0 20px -5px rgba(0, 143, 93, 0.15)",
+  shadow: "0 18px 48px rgba(0, 0, 0, 0.42), 0 4px 18px rgba(0, 0, 0, 0.28)",
+  shadowCompact: "0 10px 28px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.20)",
+  overlayCloseBackground: "rgba(18, 18, 18, 0.92)"
+};
+function cssVar(name) {
+  return `var(${name})`;
+}
+var EDITOR_CHROME = {
+  accent: cssVar("--we-editor-accent"),
+  accentBright: cssVar("--we-editor-accent-bright"),
+  accentHover: cssVar("--we-editor-accent-hover"),
+  accentActive: cssVar("--we-editor-accent-active"),
+  accentSoft: cssVar("--we-editor-accent-soft"),
+  accentRing: cssVar("--we-editor-accent-ring"),
+  surface: cssVar("--we-editor-surface"),
+  surfaceElevated: cssVar("--we-editor-surface-elevated"),
+  surfaceMuted: cssVar("--we-editor-surface-muted"),
+  surfaceInteractive: cssVar("--we-editor-surface-interactive"),
+  surfaceOverlay: cssVar("--we-editor-surface-overlay"),
+  border: cssVar("--we-editor-border"),
+  borderStrong: cssVar("--we-editor-border-strong"),
+  divider: cssVar("--we-editor-divider"),
+  textPrimary: cssVar("--we-editor-text-primary"),
+  textSecondary: cssVar("--we-editor-text-secondary"),
+  textMuted: cssVar("--we-editor-text-muted"),
+  textSleeping: cssVar("--we-editor-text-sleeping"),
+  textSleepingStrong: cssVar("--we-editor-text-sleeping-strong"),
+  textDanger: cssVar("--we-editor-text-danger"),
+  hoverSubtle: cssVar("--we-editor-hover-subtle"),
+  hoverGhost: cssVar("--we-editor-hover-ghost"),
+  toolbarShellBorder: cssVar("--we-editor-toolbar-shell-border"),
+  toolbarShellInset: cssVar("--we-editor-toolbar-shell-inset"),
+  toolbarGlow: cssVar("--we-editor-toolbar-glow"),
+  shadow: cssVar("--we-editor-shadow"),
+  shadowCompact: cssVar("--we-editor-shadow-compact"),
+  overlayCloseBackground: cssVar("--we-editor-overlay-close-background")
+};
+function getEditorChromeValues(mode) {
+  return mode === "dark" ? DARK_EDITOR_CHROME : LIGHT_EDITOR_CHROME;
+}
+function createEditorChromeCssVars(mode) {
+  const chrome = getEditorChromeValues(mode);
+  return {
+    ["--we-editor-accent"]: chrome.accent,
+    ["--we-editor-accent-bright"]: chrome.accentBright,
+    ["--we-editor-accent-hover"]: chrome.accentHover,
+    ["--we-editor-accent-active"]: chrome.accentActive,
+    ["--we-editor-accent-soft"]: chrome.accentSoft,
+    ["--we-editor-accent-ring"]: chrome.accentRing,
+    ["--we-editor-surface"]: chrome.surface,
+    ["--we-editor-surface-elevated"]: chrome.surfaceElevated,
+    ["--we-editor-surface-muted"]: chrome.surfaceMuted,
+    ["--we-editor-surface-interactive"]: chrome.surfaceInteractive,
+    ["--we-editor-surface-overlay"]: chrome.surfaceOverlay,
+    ["--we-editor-border"]: chrome.border,
+    ["--we-editor-border-strong"]: chrome.borderStrong,
+    ["--we-editor-divider"]: chrome.divider,
+    ["--we-editor-text-primary"]: chrome.textPrimary,
+    ["--we-editor-text-secondary"]: chrome.textSecondary,
+    ["--we-editor-text-muted"]: chrome.textMuted,
+    ["--we-editor-text-sleeping"]: chrome.textSleeping,
+    ["--we-editor-text-sleeping-strong"]: chrome.textSleepingStrong,
+    ["--we-editor-text-danger"]: chrome.textDanger,
+    ["--we-editor-hover-subtle"]: chrome.hoverSubtle,
+    ["--we-editor-hover-ghost"]: chrome.hoverGhost,
+    ["--we-editor-toolbar-shell-border"]: chrome.toolbarShellBorder,
+    ["--we-editor-toolbar-shell-inset"]: chrome.toolbarShellInset,
+    ["--we-editor-toolbar-glow"]: chrome.toolbarGlow,
+    ["--we-editor-shadow"]: chrome.shadow,
+    ["--we-editor-shadow-compact"]: chrome.shadowCompact,
+    ["--we-editor-overlay-close-background"]: chrome.overlayCloseBackground
+  };
+}
+function createRuntimeAntdTheme(mode) {
+  const chrome = getEditorChromeValues(mode);
+  return {
+    token: {
+      colorPrimary: chrome.accent,
+      colorInfo: chrome.accent,
+      colorSuccess: chrome.accent,
+      colorLink: chrome.accent,
+      colorPrimaryHover: chrome.accentHover,
+      colorPrimaryActive: chrome.accentActive,
+      colorPrimaryBorder: chrome.accent,
+      colorPrimaryBorderHover: chrome.accentHover,
+      colorPrimaryBg: chrome.accentSoft,
+      colorPrimaryBgHover: "rgba(0, 143, 93, 0.22)",
+      borderRadius: 8,
+      fontSize: 11,
+      fontSizeSM: 11,
+      colorBgBase: chrome.surface,
+      colorBgContainer: chrome.surfaceElevated,
+      colorBgElevated: chrome.surfaceElevated,
+      colorFill: mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.06)",
+      colorFillSecondary: chrome.surfaceMuted,
+      colorFillTertiary: chrome.surfaceInteractive,
+      colorText: chrome.textPrimary,
+      colorTextSecondary: chrome.textSecondary,
+      colorTextTertiary: chrome.textMuted,
+      colorBorder: chrome.border,
+      colorBorderSecondary: chrome.borderStrong,
+      colorTextPlaceholder: chrome.textMuted,
+      colorSplit: chrome.border,
+      boxShadowSecondary: chrome.shadow,
+      colorIcon: chrome.textSecondary,
+      colorIconHover: chrome.textPrimary,
+      controlOutline: chrome.accentSoft,
+      controlOutlineWidth: 2,
+      controlHeight: 32,
+      controlHeightSM: 28
+    },
+    components: {
+      Button: {
+        borderRadius: 12,
+        paddingInlineSM: 8,
+        controlHeightSM: 28,
+        defaultShadow: "none",
+        primaryShadow: "none",
+        dangerShadow: "none",
+        textTextColor: chrome.textPrimary,
+        textHoverBg: chrome.hoverSubtle,
+        defaultBg: chrome.surfaceMuted,
+        defaultColor: chrome.textPrimary,
+        defaultBorderColor: chrome.border,
+        defaultHoverBg: chrome.surfaceInteractive,
+        defaultHoverColor: chrome.textPrimary,
+        defaultHoverBorderColor: chrome.borderStrong
+      },
+      Collapse: {
+        contentBg: "transparent",
+        headerBg: "transparent",
+        borderlessContentBg: "transparent",
+        contentPadding: "0 0 8px",
+        borderlessContentPadding: "0 0 8px"
+      },
+      Input: {
+        colorBgContainer: chrome.surfaceMuted,
+        activeBg: chrome.surfaceInteractive,
+        hoverBg: chrome.surfaceInteractive,
+        activeBorderColor: chrome.accent,
+        hoverBorderColor: chrome.borderStrong,
+        activeShadow: `0 0 0 2px ${chrome.accentSoft}`
+      },
+      InputNumber: {
+        colorBgContainer: chrome.surfaceMuted,
+        activeBg: chrome.surfaceInteractive,
+        hoverBg: chrome.surfaceInteractive,
+        activeBorderColor: chrome.accent,
+        hoverBorderColor: chrome.borderStrong,
+        activeShadow: `0 0 0 2px ${chrome.accentSoft}`
+      },
+      Select: {
+        optionSelectedBg: chrome.accentSoft,
+        optionActiveBg: chrome.hoverSubtle,
+        selectorBg: chrome.surfaceMuted,
+        activeBorderColor: chrome.accent,
+        hoverBorderColor: chrome.borderStrong
+      },
+      Slider: {
+        colorPrimary: chrome.accent,
+        handleSize: 8,
+        railBg: mode === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(15, 23, 42, 0.12)",
+        railHoverBg: mode === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(15, 23, 42, 0.18)",
+        trackBg: chrome.accent,
+        trackHoverBg: chrome.accentHover
+      },
+      ColorPicker: {
+        colorPrimary: chrome.accent
+      },
+      Dropdown: {
+        colorBgElevated: chrome.surfaceElevated,
+        colorText: chrome.textPrimary,
+        colorTextDescription: chrome.textSecondary,
+        controlItemBgHover: chrome.hoverSubtle,
+        controlItemBgActive: chrome.accentSoft,
+        borderRadiusLG: 16
+      },
+      Modal: {
+        contentBg: chrome.surfaceElevated,
+        headerBg: chrome.surfaceElevated,
+        titleColor: chrome.textPrimary,
+        titleFontSize: 14,
+        borderRadiusLG: 18
+      },
+      Tooltip: {
+        colorBgSpotlight: mode === "dark" ? "#050608" : "#0F172A",
+        colorTextLightSolid: "#FFFFFF"
+      },
+      Popover: {
+        colorBgElevated: chrome.surfaceElevated,
+        colorText: chrome.textPrimary
+      }
+    }
+  };
+}
+
+// src/comment-cleanup.ts
+function clearLegacyComponentComments(document2) {
+  if (document2.kind !== "prototype-edit-comments") return { document: document2, changed: false };
+  const imageOwners = new Set(document2.images.map((image) => image.commentId));
+  const preservedImageOwners = /* @__PURE__ */ new Set();
+  const comments = [];
+  let changed = false;
+  for (const entry of document2.comments) {
+    const protectedRecord = entry.componentComment === true || typeof entry.purpose === "string" && Boolean(entry.purpose.trim()) || typeof entry.elementKey === "string" && /^(text-comment::|annotation-panel:)/u.test(entry.elementKey) || entry.author || entry.voiceCreateOperationId || entry.voiceElementKey || entry.voiceTargetRef || entry.linkedAnnotationId || Array.isArray(entry.externalComments) && entry.externalComments.length > 0;
+    if (protectedRecord) {
+      comments.push(entry);
+      preservedImageOwners.add(entry.id);
+      continue;
+    }
+    if (Number(entry.deletedAt) > 0) {
+      comments.push(entry);
+      continue;
+    }
+    if (entry.textChange || entry.styleChanges || entry.tweak) {
+      const { comment: _comment, skillIds: _skillIds, ...edit } = entry;
+      comments.push(edit);
+      changed || (changed = entry.comment !== void 0 || entry.skillIds !== void 0 || imageOwners.has(entry.id));
+    } else {
+      changed = true;
+    }
+  }
+  const images = document2.images.filter((image) => preservedImageOwners.has(image.commentId));
+  changed || (changed = images.length !== document2.images.length);
+  return changed ? { document: { ...document2, comments, images }, changed } : { document: document2, changed: false };
+}
+
+// src/core/editor/component-comments.ts
+var COMMENT_PURPOSES = [
+  { id: "generate-prototype", label: "\u751F\u6210\u65B0\u539F\u578B", action: "generate", hint: "\u63CF\u8FF0\u7EC4\u4EF6\u7684\u4E0D\u540C\u72B6\u6001\uFF0C\u5728\u72EC\u7ACB\u539F\u578B\u4E2D\u751F\u6210\u3002" },
+  { id: "modify-prototype", label: "\u4FEE\u6539\u539F\u578B", action: "send", hint: "\u63CF\u8FF0\u8981\u8C03\u6574\u7684\u5185\u5BB9\uFF0C\u4FEE\u6539\u5F53\u524D\u539F\u578B\u4E2D\u7684\u7EC4\u4EF6\u3002" },
+  { id: "document-component", label: "\u5F15\u5165\u8BF4\u660E", action: "document", hint: "\u63CF\u8FF0\u7EC4\u4EF6\u7684\u8BF4\u660E\u8981\u6C42\uFF0C\u5C06\u622A\u56FE\u4E0E\u8BF4\u660E\u5F15\u5165 PRD\u3002" }
+];
+function isComponentCommentPurpose(value) {
+  return COMMENT_PURPOSES.some((item) => item.id === value);
+}
+function transitionComponentComment(record, state2, task) {
+  if (record.entry.deletedAt) return false;
+  if (state2 !== "editing" && record.entry.requestId && task?.requestId !== record.entry.requestId) return false;
+  record.entry = {
+    ...record.entry,
+    state: state2,
+    provider: task?.provider ?? record.entry.provider,
+    sessionId: task?.sessionId ?? record.entry.sessionId,
+    requestId: task?.requestId ?? record.entry.requestId,
+    updatedAt: Date.now(),
+    code: state2 === "error" ? task?.code : null,
+    message: state2 === "error" ? task?.error || "\u6267\u884C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" : state2 === "completed" ? "\u4FEE\u6539\u5B8C\u6210" : state2 === "editing" ? "AI \u7F16\u8F91\u4E2D" : null
+  };
+  return true;
+}
+var newId = () => globalThis.crypto?.randomUUID?.() ?? `comment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+var emptyDraft = () => ({ token: newId(), id: newId(), note: "", skillIds: [], images: [], revision: 0 });
+var cloneDraft = (draft) => ({ ...draft, skillIds: draft.skillIds.slice(), images: draft.images.map((image) => ({ ...image })) });
+function createComponentCommentStore(options) {
+  const drafts = /* @__PURE__ */ new Map();
+  const saving = /* @__PURE__ */ new Set();
+  let deleting = false;
+  const keyFor = (target, purpose) => JSON.stringify([options.getScope(), target.elementKey, purpose]);
+  function getDraft(target, purpose) {
+    const key = keyFor(target, purpose);
+    if (!drafts.has(key)) drafts.set(key, emptyDraft());
+    return cloneDraft(drafts.get(key));
+  }
+  function updateDraft(target, purpose, patch) {
+    const current = getDraft(target, purpose);
+    drafts.set(keyFor(target, purpose), cloneDraft({ ...current, ...patch, revision: current.revision + 1 }));
+  }
+  async function saveDraft(target, purpose) {
+    const key = keyFor(target, purpose);
+    if (saving.has(key) || deleting) throw new Error("\u6B63\u5728\u6682\u5B58\u6216\u5220\u9664\u6279\u6CE8\uFF0C\u8BF7\u7A0D\u5019");
+    const draft = getDraft(target, purpose);
+    if (draft.note.length > 8e3) throw new Error("\u6279\u6CE8\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u7F29\u77ED\u540E\u91CD\u8BD5");
+    const previous = options.records.get(draft.id);
+    if (previous?.entry.deletedAt) throw new Error("\u6B64\u6279\u6CE8\u5DF2\u5220\u9664\uFF0C\u8BF7\u65B0\u589E\u6279\u6CE8");
+    const scope = options.getScope();
+    const now = Date.now();
+    const entry = {
+      ...previous?.entry,
+      ...target,
+      id: draft.id,
+      componentComment: true,
+      purpose,
+      ...options.getPageScope ? { pageScope: options.getPageScope() } : {},
+      state: "idle",
+      provider: null,
+      requestId: null,
+      sessionId: null,
+      message: null,
+      code: null,
+      comment: draft.note.trim(),
+      skillIds: draft.skillIds.slice(),
+      createdAt: previous?.entry.createdAt ?? now,
+      updatedAt: now
+    };
+    const record = { entry, images: draft.images.map((image) => ({ ...image })) };
+    saving.add(key);
+    options.records.set(entry.id, record);
+    try {
+      await options.persist();
+      if (drafts.get(key)?.token !== draft.token) return { ...entry };
+      if (drafts.get(key)?.revision === draft.revision) drafts.set(key, emptyDraft());
+      else {
+        const newer = drafts.get(key);
+        drafts.set(key, { ...newer, token: newId(), id: newId(), editingCommentId: void 0 });
+      }
+      return { ...entry };
+    } catch (error) {
+      if (options.getScope() === scope && options.records.get(entry.id) === record) {
+        if (previous) options.records.set(entry.id, previous);
+        else options.records.delete(entry.id);
+        options.onRollback?.();
+      }
+      throw error;
+    } finally {
+      saving.delete(key);
+    }
+  }
+  function edit(id) {
+    const record = options.records.get(id);
+    if (!record || record.entry.deletedAt || !isComponentCommentPurpose(record.entry.purpose)) throw new Error("\u6B64\u6279\u6CE8\u4E0D\u5B58\u5728\u6216\u7528\u9014\u6682\u4E0D\u652F\u6301");
+    if (record.entry.state === "editing") throw new Error("\u6279\u6CE8\u6B63\u5728\u6267\u884C\uFF0C\u8BF7\u7A0D\u5019");
+    const target = { elementKey: record.entry.elementKey, label: record.entry.label || "", locator: record.entry.locator };
+    drafts.set(keyFor(target, record.entry.purpose), {
+      token: newId(),
+      id,
+      note: record.entry.comment || "",
+      skillIds: record.entry.skillIds?.slice() ?? [],
+      images: record.images.map((image) => ({ ...image })),
+      editingCommentId: id,
+      revision: 0
+    });
+    return record.entry.purpose;
+  }
+  function startNew(target, purpose) {
+    drafts.set(keyFor(target, purpose), emptyDraft());
+  }
+  async function remove(id) {
+    if (!options.records.has(id) || options.records.get(id).entry.deletedAt) return;
+    await removeMany([id]);
+  }
+  async function removeMany(ids) {
+    if (deleting || saving.size) throw new Error("\u6B63\u5728\u4FDD\u5B58\u6279\u6CE8\uFF0C\u8BF7\u7A0D\u5019");
+    const unique = [...new Set(ids)];
+    if (!unique.length) return;
+    const scope = options.getScope();
+    const changes = unique.map((id) => {
+      const previous = options.records.get(id);
+      if (!previous || previous.entry.deletedAt) throw new Error("\u6279\u6CE8\u5DF2\u53D8\u66F4\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+      if (previous.entry.state === "editing") throw new Error("\u6279\u6CE8\u6B63\u5728\u6267\u884C\uFF0C\u8BF7\u7A0D\u5019");
+      return { id, previous, tombstone: { ...previous, entry: { ...previous.entry, deletedAt: Date.now() } } };
+    });
+    deleting = true;
+    for (const change of changes) options.records.set(change.id, change.tombstone);
+    try {
+      await options.persist();
+    } catch (error) {
+      if (options.getScope() === scope) for (const change of changes) {
+        if (options.records.get(change.id) === change.tombstone) options.records.set(change.id, change.previous);
+      }
+      if (options.getScope() === scope) options.onRollback?.();
+      throw error;
+    } finally {
+      deleting = false;
+    }
+  }
+  return { getDraft, updateDraft, saveDraft, edit, startNew, remove, removeMany };
+}
+
+// src/ui/runtime/comment-list-view.tsx
+import { jsx, jsxs } from "react/jsx-runtime";
+var actions = [
+  { action: "send", label: "\u53D1\u9001\u4FEE\u6539", available: "sendAvailable" },
+  { action: "generate", label: "\u751F\u6210\u539F\u578B", available: "generateAvailable" },
+  { action: "document", label: "\u5F15\u5165\u8BF4\u660E", available: "documentAvailable" }
+];
+var styles = `
+  .we-comment-list{position:fixed;right:52px;top:16px;bottom:16px;width:320px;max-width:calc(100vw - 64px);display:flex;flex-direction:column;pointer-events:auto;border:1px solid ${EDITOR_CHROME.border};border-radius:14px;background:${EDITOR_CHROME.surface};color:${EDITOR_CHROME.textPrimary};box-shadow:${EDITOR_CHROME.shadow};overflow:hidden;z-index:10020;font-size:12px;font-family:inherit}
+  .we-comment-list *{box-sizing:border-box}
+  .we-comment-list[hidden]{display:none}
+  .we-comment-list[data-hosted=true]{position:absolute;inset:0;width:100%;max-width:100%;border-radius:0;box-shadow:none}
+  @media(min-width:761px){.we-comment-list[data-pinned=true]{right:0;top:0;bottom:0;border-radius:0;box-shadow:none}}
+  .we-comment-list button{font-family:inherit;font-size:12px;cursor:pointer;color:inherit}
+  .we-comment-list button:disabled{cursor:not-allowed;opacity:.45}
+  .we-comment-list button:focus-visible,.we-comment-list input:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:2px}
+  .we-comment-list__header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px;border-bottom:1px solid ${EDITOR_CHROME.border}}
+  .we-comment-list__header h2{margin:0;font-size:14px;font-weight:600}
+  .we-comment-list__close{border:0;background:transparent;width:28px;height:28px;border-radius:6px;font-size:20px!important}
+  .we-comment-list__selection{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;color:${EDITOR_CHROME.textSecondary}}
+  .we-comment-list label{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .we-comment-list input{margin:0;accent-color:${EDITOR_CHROME.accent};width:15px;height:15px;flex-shrink:0}
+  .we-comment-list__body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 12px 12px}
+  .we-comment-list__item{padding:12px;margin-bottom:8px;border:1px solid ${EDITOR_CHROME.border};border-radius:9px;background:${EDITOR_CHROME.surfaceMuted}}
+  .we-comment-list__item[data-selected=true]{border-color:${EDITOR_CHROME.accent};background:${EDITOR_CHROME.accentSoft}}
+  .we-comment-list__item header{display:flex;align-items:center;gap:8px}
+  .we-comment-list__locate{padding:2px 0;border:0;background:transparent;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;font-weight:600}
+  .we-comment-list__note{margin:8px 0 0 23px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;color:${EDITOR_CHROME.textSecondary}}
+  .we-comment-list__hint{font-size:11px;line-height:1.6;color:${EDITOR_CHROME.textMuted};margin:8px 0 0}
+  .we-comment-list__empty{padding:44px 16px;text-align:center;line-height:1.8;color:${EDITOR_CHROME.textMuted}}
+  .we-comment-list__footer{padding:12px 16px;border-top:1px solid ${EDITOR_CHROME.border};flex-shrink:0}
+  .we-comment-list__actions{display:flex;gap:6px;flex-wrap:wrap}
+  .we-comment-list__action{flex:1;min-height:34px;white-space:nowrap;padding:6px 8px;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:7px;background:${EDITOR_CHROME.surface}}
+  .we-comment-list__action:first-child{background:${EDITOR_CHROME.accent};color:white;border-color:transparent}
+  .we-comment-list .ax-page-skeleton{--ax-sk-fill:${EDITOR_CHROME.surfaceInteractive};--ax-sk-shine:${EDITOR_CHROME.surfaceMuted}}
+  @media(max-width:760px){.we-comment-list{right:52px;top:8px;bottom:8px;width:320px;max-width:calc(100vw - 60px)}.we-comment-list[data-has-target=true]{bottom:52dvh}.we-comment-list__header{padding:10px 12px}.we-comment-list__selection{padding:8px 12px}.we-comment-list__footer{padding:8px 12px}.we-comment-list__hint{margin-top:4px}}
+`;
+function CommentListView(props) {
+  const [filter, setFilter] = React.useState("all");
+  const [removingId, setRemovingId] = React.useState(null);
+  const [confirmIds, setConfirmIds] = React.useState([]);
+  const deletingRef = React.useRef(false);
+  const [entries, setEntries] = React.useState(() => {
+    try {
+      return props.getEntries();
+    } catch {
+      return [];
+    }
+  });
+  const [selected, setSelectedState] = React.useState(props.selectedIds ?? []);
+  const selectedRef = React.useRef(selected);
+  selectedRef.current = selected;
+  const setSelected = (value) => {
+    const next = typeof value === "function" ? value(selectedRef.current) : value;
+    if (next === selectedRef.current) return;
+    selectedRef.current = next;
+    setSelectedState(next);
+    props.onSelectionChange?.(next);
+  };
+  const selectedKey = JSON.stringify(props.selectedIds);
+  React.useEffect(() => {
+    if (props.selectedIds) {
+      selectedRef.current = props.selectedIds;
+      setSelectedState(props.selectedIds);
+    }
+  }, [selectedKey]);
+  const [loadState, setLoadState] = React.useState(() => props.getLoadState?.() ?? { status: "ready" });
+  const selectionRevisionRef = React.useRef(loadState.revision);
+  const [busy, setBusy] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const [readError, setReadError] = React.useState("");
+  const [message, setMessage] = React.useState("");
+  const busyRef = React.useRef(false);
+  const mountedRef = React.useRef(true);
+  React.useEffect(() => {
+    mountedRef.current = true;
+    const refresh = () => {
+      try {
+        const state2 = props.getLoadState?.() ?? { status: "ready" };
+        if (selectionRevisionRef.current !== state2.revision) {
+          selectionRevisionRef.current = state2.revision;
+          setSelected([]);
+          setConfirmIds([]);
+          setError("");
+          setMessage("");
+        }
+        setLoadState((previous) => previous.status === state2.status && previous.error === state2.error && previous.revision === state2.revision ? previous : state2);
+        if (deletingRef.current) return;
+        const next = props.getEntries();
+        setEntries((previous) => previous.length === next.length && previous.every((entry, i) => {
+          const item = next[i];
+          return entry.id === item.id && entry.note === item.note && entry.label === item.label && entry.element === item.element && entry.disabledReason === item.disabledReason && entry.purpose === item.purpose && entry.state === item.state;
+        }) ? previous : next);
+        if (!props.hidden) setSelected((previous) => previous.every((id) => next.some((entry) => entry.id === id)) ? previous : previous.filter((id) => next.some((entry) => entry.id === id)));
+        setReadError("");
+      } catch (cause) {
+        setReadError(cause instanceof Error ? cause.message : "\u6279\u6CE8\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+      }
+    };
+    refresh();
+    const timer = globalThis.setInterval(refresh, 500);
+    return () => {
+      mountedRef.current = false;
+      globalThis.clearInterval(timer);
+    };
+  }, [props.getEntries, props.getLoadState, props.hidden]);
+  React.useEffect(() => () => props.onInteractionChange(false), [props.onInteractionChange]);
+  React.useEffect(() => {
+    if (props.hidden) props.onInteractionChange(false);
+  }, [props.hidden, props.onInteractionChange]);
+  const purposeMode = Boolean(props.onEdit);
+  const visibleEntries = entries.filter((entry) => (!purposeMode || Boolean(entry.purpose)) && (filter === "all" || entry.purpose === filter));
+  const available = visibleEntries.filter((entry) => (entry.element || entry.locatable) && !entry.disabledReason && (!purposeMode || isComponentCommentPurpose(entry.purpose)));
+  const selectable = props.onRemoveMany ? visibleEntries.filter((entry) => entry.state !== "editing") : available;
+  const selectedEntries = entries.filter((entry) => selected.includes(entry.id));
+  const selectedPurpose = selectedEntries[0]?.purpose;
+  const selectedAction = COMMENT_PURPOSES.find((item) => item.id === selectedPurpose);
+  const mixedPurpose = selectedEntries.some((entry) => entry.purpose !== selectedPurpose);
+  const allSelected = selectable.length > 0 && selectable.every((entry) => selected.includes(entry.id));
+  const undeletableSelection = selected.some((id) => !selectable.some((entry) => entry.id === id));
+  const unavailableSelection = selected.some((id) => !available.some((entry) => entry.id === id));
+  const run = async (action) => {
+    const latest = props.getLoadState?.();
+    if (latest && (latest.status !== "ready" || latest.revision !== selectionRevisionRef.current)) {
+      setSelected([]);
+      setError("\u9875\u9762\u5DF2\u5207\u6362\u6216\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+      return;
+    }
+    if (busyRef.current || !selected.length || unavailableSelection || loadState.status !== "ready") return;
+    if (purposeMode && (mixedPurpose || !selectedAction || selectedAction.action !== action)) {
+      setError("\u8BF7\u9009\u62E9\u540C\u4E00\u7528\u9014\u7684\u6279\u6CE8\u540E\u53D1\u9001");
+      return;
+    }
+    busyRef.current = true;
+    setBusy(action);
+    setError("");
+    setMessage("");
+    try {
+      await props.onRun(action, selected.slice());
+      if (mountedRef.current) setMessage(action === "send" ? "\u5DF2\u63D0\u4EA4\u6240\u9009\u6279\u6CE8\u7684\u4FEE\u6539" : action === "generate" ? "\u5DF2\u6253\u5F00\u539F\u578B\u751F\u6210\u7A97\u53E3" : "\u5DF2\u6253\u5F00\u5F15\u5165\u8BF4\u660E\u7A97\u53E3");
+    } catch (cause) {
+      if (mountedRef.current) setError(cause instanceof Error ? cause.message : "\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+    } finally {
+      busyRef.current = false;
+      if (mountedRef.current) setBusy(null);
+    }
+  };
+  const removeIds = async (ids) => {
+    const latest = props.getLoadState?.();
+    if (latest && (latest.status !== "ready" || latest.revision !== selectionRevisionRef.current)) {
+      setSelected([]);
+      setConfirmIds([]);
+      setError("\u9875\u9762\u5DF2\u5207\u6362\u6216\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+      return;
+    }
+    if (busyRef.current || !ids.length || loadState.status !== "ready") return;
+    const revision = selectionRevisionRef.current;
+    const isCurrent = () => mountedRef.current && (props.getLoadState?.().revision ?? revision) === revision;
+    busyRef.current = true;
+    deletingRef.current = true;
+    setBusy("delete");
+    setRemovingId(ids.length === 1 ? ids[0] : null);
+    setError("");
+    setMessage("");
+    try {
+      if (props.onRemoveMany) await props.onRemoveMany(ids.slice());
+      else if (props.onRemove && ids.length === 1) await props.onRemove(ids[0]);
+      else throw new Error("\u6682\u4E0D\u652F\u6301\u5220\u9664\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5");
+      if (isCurrent()) {
+        setEntries(props.getEntries());
+        setSelected((previous) => previous.filter((id) => !ids.includes(id)));
+        setConfirmIds([]);
+        setMessage(`\u5DF2\u5220\u9664 ${ids.length} \u6761\u6279\u6CE8`);
+      }
+    } catch (cause) {
+      if (isCurrent()) setError(cause instanceof Error ? cause.message : "\u5220\u9664\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+    } finally {
+      busyRef.current = false;
+      deletingRef.current = false;
+      if (mountedRef.current) {
+        setBusy(null);
+        setRemovingId(null);
+      }
+    }
+  };
+  return /* @__PURE__ */ jsxs(
+    "aside",
+    {
+      className: "we-comment-list",
+      hidden: props.hidden,
+      "data-hosted": props.hosted === true,
+      "data-pinned": props.pinned === true,
+      "data-has-target": props.hasTarget === true,
+      "data-we-selection-lock-root": "true",
+      "aria-label": "\u6279\u6CE8\u5217\u8868",
+      onPointerEnter: () => props.onInteractionChange(true),
+      onPointerLeave: () => props.onInteractionChange(false),
+      onFocusCapture: () => props.onInteractionChange(true),
+      onBlurCapture: (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) props.onInteractionChange(false);
+      },
+      children: [
+        /* @__PURE__ */ jsx("style", { nonce: resolveCspNonce(), children: styles }),
+        /* @__PURE__ */ jsxs("header", { className: "we-comment-list__header", children: [
+          /* @__PURE__ */ jsxs("h2", { children: [
+            "\u6279\u6CE8\u5217\u8868 ",
+            /* @__PURE__ */ jsx("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: entries.length })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { style: { display: "flex", gap: 4 }, children: [
+            props.onPinnedChange ? /* @__PURE__ */ jsx("button", { type: "button", className: "we-comment-list__close", "aria-label": props.pinned ? "\u53D6\u6D88\u56FA\u5B9A\u6279\u6CE8\u5217\u8868" : "\u56FA\u5B9A\u6279\u6CE8\u5217\u8868\u5230\u53F3\u4FA7", title: props.pinned ? "\u53D6\u6D88\u56FA\u5B9A" : "\u56FA\u5B9A\u5230\u53F3\u4FA7", "aria-pressed": props.pinned === true, onClick: () => props.onPinnedChange?.(!props.pinned), style: { color: props.pinned ? EDITOR_CHROME.accent : void 0 }, children: /* @__PURE__ */ jsx("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: props.pinned ? "currentColor" : "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "m16 3 5 5-4 2-3 6-2-2-7 7-1-1 7-7-2-2 6-3z" }) }) }) : null,
+            /* @__PURE__ */ jsx("button", { className: "we-comment-list__close", "aria-label": "\u5173\u95ED\u6279\u6CE8\u5217\u8868", title: "\u5173\u95ED\u6279\u6CE8\u5217\u8868", onClick: props.onClose, children: "\xD7" })
+          ] })
+        ] }),
+        purposeMode ? /* @__PURE__ */ jsxs("label", { style: { padding: "10px 16px 0", fontSize: 11, color: EDITOR_CHROME.textSecondary }, children: [
+          "\u7528\u9014",
+          /* @__PURE__ */ jsxs(
+            "select",
+            {
+              "aria-label": "\u7B5B\u9009\u6279\u6CE8\u7528\u9014",
+              disabled: Boolean(busy),
+              value: filter,
+              onChange: (event) => {
+                setFilter(event.target.value);
+                setSelected([]);
+                setConfirmIds([]);
+                setError("");
+                setMessage("");
+              },
+              style: { flex: 1, minWidth: 0, padding: 6, background: EDITOR_CHROME.surface, color: EDITOR_CHROME.textPrimary, border: `1px solid ${EDITOR_CHROME.border}`, borderRadius: 6 },
+              children: [
+                /* @__PURE__ */ jsx("option", { value: "all", children: "\u5168\u90E8\u6279\u6CE8" }),
+                COMMENT_PURPOSES.map((item) => /* @__PURE__ */ jsx("option", { value: item.id, children: item.label }, item.id))
+              ]
+            }
+          )
+        ] }) : null,
+        /* @__PURE__ */ jsxs("div", { className: "we-comment-list__selection", children: [
+          /* @__PURE__ */ jsxs("label", { children: [
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "checkbox",
+                "aria-label": "\u5168\u9009\u6279\u6CE8",
+                checked: allSelected,
+                disabled: loadState.status !== "ready" || Boolean(busy) || !selectable.length && !selected.length,
+                ref: (node) => {
+                  if (node) node.indeterminate = selected.length > 0 && !allSelected;
+                },
+                onChange: () => {
+                  setSelected(allSelected ? [] : selectable.map((entry) => entry.id));
+                  setConfirmIds([]);
+                }
+              }
+            ),
+            "\u5168\u9009"
+          ] }),
+          /* @__PURE__ */ jsxs("span", { "aria-live": "polite", children: [
+            "\u5DF2\u9009 ",
+            selected.length,
+            " \u6761"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "we-comment-list__body", children: loadState.status === "loading" ? props.loadingContent ?? /* @__PURE__ */ jsx("div", { role: "status", "aria-label": "\u6B63\u5728\u52A0\u8F7D\u6279\u6CE8", "aria-busy": "true", children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ jsx("div", { "aria-hidden": "true", style: { height: 72, marginBottom: 10, borderRadius: 9, background: EDITOR_CHROME.surfaceInteractive } }, i)) }) : loadState.status === "error" || readError ? /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("p", { role: "alert", children: loadState.error || readError || "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" }),
+          props.onRetry ? /* @__PURE__ */ jsx("button", { type: "button", "aria-label": "\u91CD\u8BD5\u52A0\u8F7D\u6279\u6CE8", className: "we-comment-list__action", onClick: async () => {
+            setLoadState({ status: "loading" });
+            setError("");
+            try {
+              await props.onRetry?.();
+              setLoadState(props.getLoadState?.() ?? { status: "ready" });
+            } catch (cause) {
+              setLoadState({ status: "error", error: cause instanceof Error ? cause.message : "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" });
+            }
+          }, children: "\u91CD\u65B0\u52A0\u8F7D" }) : null
+        ] }) : !visibleEntries.length ? /* @__PURE__ */ jsxs("div", { className: "we-comment-list__empty", children: [
+          "\u6682\u65E0\u6279\u6CE8",
+          /* @__PURE__ */ jsx("br", {}),
+          "\u9009\u62E9\u9875\u9762\u7EC4\u4EF6\u5E76\u6682\u5B58\u6279\u6CE8\u540E\uFF0C\u5C06\u663E\u793A\u5728\u8FD9\u91CC\u3002"
+        ] }) : visibleEntries.map((entry, index) => /* @__PURE__ */ jsxs("article", { className: "we-comment-list__item", "data-selected": selected.includes(entry.id), children: [
+          /* @__PURE__ */ jsxs("header", { children: [
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "checkbox",
+                "aria-label": `\u9009\u62E9\u6279\u6CE8 ${entry.label}`,
+                checked: selected.includes(entry.id),
+                disabled: Boolean(busy) || loadState.status !== "ready" || !selectable.some((item) => item.id === entry.id) && !selected.includes(entry.id),
+                onChange: () => {
+                  setSelected((previous) => previous.includes(entry.id) ? previous.filter((id) => id !== entry.id) : [...previous, entry.id]);
+                  setConfirmIds([]);
+                  setError("");
+                  setMessage("");
+                }
+              }
+            ),
+            /* @__PURE__ */ jsxs("button", { className: "we-comment-list__locate", title: `\u5B9A\u4F4D\u7EC4\u4EF6\uFF1A${entry.label}`, disabled: !entry.element && !entry.locatable || Boolean(busy), onClick: async () => {
+              try {
+                if (props.onLocateEntry) await props.onLocateEntry(entry.id);
+                else if (entry.element) props.onLocate?.(entry.element);
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : "\u65E0\u6CD5\u5B9A\u4F4D\u7EC4\u4EF6");
+              }
+            }, children: [
+              index + 1,
+              ". ",
+              entry.label
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "we-comment-list__note", children: entry.note || (entry.purpose ? "\u672A\u586B\u5199\u6307\u793A" : "\u5DF2\u4FDD\u5B58\u7EC4\u4EF6\u4FEE\u6539") }),
+          purposeMode ? /* @__PURE__ */ jsxs("div", { style: { margin: "8px 0 0 23px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }, children: [
+            /* @__PURE__ */ jsx("span", { style: { fontSize: 10, color: EDITOR_CHROME.accent, padding: "2px 5px", background: EDITOR_CHROME.accentSoft, borderRadius: 4 }, children: COMMENT_PURPOSES.find((item) => item.id === entry.purpose)?.label || "\u6682\u4E0D\u652F\u6301\u7684\u7528\u9014" }),
+            /* @__PURE__ */ jsx("span", { style: { fontSize: 10, color: EDITOR_CHROME.textMuted }, children: entry.state === "editing" ? "\u6267\u884C\u4E2D" : entry.state === "completed" ? "\u5DF2\u5B8C\u6210" : entry.state === "error" ? "\u6267\u884C\u5931\u8D25" : "\u5DF2\u6682\u5B58" }),
+            isComponentCommentPurpose(entry.purpose) ? /* @__PURE__ */ jsx("button", { type: "button", "aria-label": `\u7F16\u8F91\u6279\u6CE8 ${entry.label}`, disabled: Boolean(busy) || Boolean(entry.disabledReason), onClick: async () => {
+              try {
+                await props.onEdit?.(entry.id);
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : "\u65E0\u6CD5\u7F16\u8F91\u6279\u6CE8");
+              }
+            }, style: { border: 0, background: "transparent", padding: 3, marginLeft: "auto", color: EDITOR_CHROME.textSecondary }, children: "\u7F16\u8F91" }) : null,
+            props.onRemove || props.onRemoveMany ? /* @__PURE__ */ jsx("button", { type: "button", "aria-label": `\u5220\u9664\u6279\u6CE8 ${entry.label}`, disabled: Boolean(busy) || loadState.status !== "ready" || entry.state === "editing", onClick: () => removeIds([entry.id]), style: { border: 0, background: "transparent", padding: 3, color: EDITOR_CHROME.textMuted }, children: removingId === entry.id ? "\u5220\u9664\u4E2D\u2026" : "\u5220\u9664" }) : null
+          ] }) : null,
+          entry.disabledReason ? /* @__PURE__ */ jsx("p", { className: "we-comment-list__hint", children: entry.disabledReason }) : null
+        ] }, entry.id)) }),
+        /* @__PURE__ */ jsxs("footer", { className: "we-comment-list__footer", children: [
+          /* @__PURE__ */ jsxs("div", { className: "we-comment-list__actions", children: [
+            purposeMode ? /* @__PURE__ */ jsx(
+              "button",
+              {
+                type: "button",
+                className: "we-comment-list__action",
+                "aria-label": "\u53D1\u9001\u6240\u9009\u6279\u6CE8",
+                "aria-busy": Boolean(busy),
+                disabled: loadState.status !== "ready" || Boolean(busy) || !selected.length || unavailableSelection || mixedPurpose || !selectedAction || Boolean(readError) || !props[actions.find((item) => item.action === selectedAction.action)?.available || "sendAvailable"],
+                onClick: () => {
+                  if (selectedAction) return run(selectedAction.action);
+                },
+                children: busy ? "\u5904\u7406\u4E2D\u2026" : selectedAction && !mixedPurpose ? `\u53D1\u9001 \xB7 ${selectedAction.label}` : "\u53D1\u9001"
+              }
+            ) : actions.map((item) => /* @__PURE__ */ jsx(
+              "button",
+              {
+                className: "we-comment-list__action",
+                "aria-label": item.label,
+                "aria-busy": busy === item.action,
+                disabled: loadState.status !== "ready" || Boolean(busy) || !selected.length || unavailableSelection || !props[item.available] || Boolean(readError),
+                onClick: () => run(item.action),
+                children: busy === item.action ? "\u5904\u7406\u4E2D\u2026" : item.label
+              },
+              item.action
+            )),
+            props.onRemoveMany ? /* @__PURE__ */ jsxs("button", { type: "button", className: "we-comment-list__action", "aria-label": "\u5220\u9664\u6240\u9009\u6279\u6CE8", disabled: !selected.length || Boolean(busy) || loadState.status !== "ready" || undeletableSelection || Boolean(readError), onClick: () => {
+              setConfirmIds(selected.slice());
+              setError("");
+            }, style: { color: EDITOR_CHROME.textDanger }, children: [
+              "\u5220\u9664",
+              selected.length ? ` (${selected.length})` : ""
+            ] }) : null
+          ] }),
+          confirmIds.length ? /* @__PURE__ */ jsxs("div", { role: "alertdialog", "aria-label": "\u786E\u8BA4\u5220\u9664\u6240\u9009\u6279\u6CE8", "aria-describedby": "we-comment-delete-description", style: { marginTop: 10 }, children: [
+            /* @__PURE__ */ jsxs("p", { id: "we-comment-delete-description", children: [
+              "\u5220\u9664\u8FD9 ",
+              confirmIds.length,
+              " \u6761\u6279\u6CE8\uFF1F\u5220\u9664\u540E\u65E0\u6CD5\u6062\u590D\u3002"
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "we-comment-list__actions", children: [
+              /* @__PURE__ */ jsx("button", { type: "button", className: "we-comment-list__action", "aria-label": "\u786E\u8BA4\u5220\u9664\u6279\u6CE8", disabled: Boolean(busy), onClick: () => removeIds(confirmIds), children: busy === "delete" ? "\u5220\u9664\u4E2D\u2026" : "\u786E\u8BA4\u5220\u9664" }),
+              /* @__PURE__ */ jsx("button", { type: "button", className: "we-comment-list__action", "aria-label": "\u53D6\u6D88\u5220\u9664\u6279\u6CE8", disabled: Boolean(busy), onClick: () => setConfirmIds([]), children: "\u53D6\u6D88" })
+            ] })
+          ] }) : null,
+          /* @__PURE__ */ jsx("p", { className: "we-comment-list__hint", children: purposeMode ? mixedPurpose ? "\u5DF2\u9009\u6279\u6CE8\u7528\u9014\u4E0D\u540C\uFF0C\u8BF7\u6309\u7528\u9014\u5206\u522B\u53D1\u9001\u3002" : "\u9009\u62E9\u540C\u4E00\u7528\u9014\u7684\u6279\u6CE8\uFF0C\u53EF\u4E00\u6B21\u53D1\u9001\u591A\u6761\u3002" : "\u4E09\u4E2A\u52A8\u4F5C\u53EF\u5206\u522B\u6267\u884C\uFF0C\u6682\u5B58\u6279\u6CE8\u4F9B\u540E\u7EED\u7EE7\u7EED\u4F7F\u7528\u3002" }),
+          error ? /* @__PURE__ */ jsx("p", { role: "alert", style: { color: EDITOR_CHROME.textDanger, marginBottom: 0 }, children: error }) : null,
+          message ? /* @__PURE__ */ jsx("p", { role: "status", style: { color: EDITOR_CHROME.accent, marginBottom: 0 }, children: message }) : null
+        ] })
+      ]
+    }
+  );
+}
+
+// src/ui/runtime/comment-list-dock-protocol.ts
+var COMMENT_LIST_DOCK_MESSAGE = "AXHUB_COMMENT_LIST_DOCK";
+function isCommentListDockState(value) {
+  if (!value || typeof value !== "object") return false;
+  const state2 = value;
+  return typeof state2.session === "string" && Boolean(state2.session) && typeof state2.scope === "string" && typeof state2.open === "boolean" && Array.isArray(state2.entries) && state2.entries.length <= 1e3 && state2.entries.every((entry) => typeof entry.id === "string" && typeof entry.label === "string" && typeof entry.note === "string" && (entry.disabledReason === void 0 || typeof entry.disabledReason === "string")) && Array.isArray(state2.selectedIds) && state2.selectedIds.length <= 1e3 && state2.selectedIds.every((id) => typeof id === "string") && ["loading", "error", "ready"].includes(state2.loadState?.status);
+}
+
 // src/acp-runtime-events.ts
 var DEFAULT_TERMINAL_STATUS_TIMEOUT_MS = 31e4;
 function normalizeText(value) {
@@ -1993,6 +2867,7 @@ var DEFAULT_WEB_EDITOR_UI_SETTINGS = {
   documentCommentMode: false,
   pageZoomEnabled: false,
   promptCardPinnedToTopRight: false,
+  commentListPinned: false,
   agentRunConcurrency: 5
 };
 var AGENT_PROVIDER_SET = /* @__PURE__ */ new Set([
@@ -2035,7 +2910,8 @@ function sanitizeWebEditorUiSettings(value) {
     captureTargetScreenshot: record.captureTargetScreenshot === void 0 ? DEFAULT_WEB_EDITOR_UI_SETTINGS.captureTargetScreenshot : Boolean(record.captureTargetScreenshot),
     documentCommentMode: Boolean(record.documentCommentMode),
     pageZoomEnabled: Boolean(record.pageZoomEnabled),
-    promptCardPinnedToTopRight: Boolean(record.promptCardPinnedToTopRight)
+    promptCardPinnedToTopRight: Boolean(record.promptCardPinnedToTopRight),
+    commentListPinned: Boolean(record.commentListPinned)
   };
 }
 function applyInteractionProfileToUiSettings(settings, profile) {
@@ -2115,6 +2991,7 @@ function resolveWebEditorOptions(options = {}) {
       compactToolbar: false,
       toolbarExtraContent: null,
       commentListLoadingContent: null,
+      commentListDockOrigin: "",
       externalAnnotationMode: false,
       commenterName: "",
       onCommenterNameChange: void 0,
@@ -2242,6 +3119,7 @@ function createEditorRuntimeState() {
     propertyPanelPosition: null,
     uiResizeCleanup: null,
     editMetaByKey: /* @__PURE__ */ new Map(),
+    componentCommentsById: /* @__PURE__ */ new Map(),
     deleteElementAnnotationsByTransactionId: /* @__PURE__ */ new Map(),
     processedEditTimestampsByKey: /* @__PURE__ */ new Map(),
     pendingMarkerAnchors: /* @__PURE__ */ new Map(),
@@ -2270,6 +3148,7 @@ function clearAnnotationBridgeSelection(state2) {
 function resetEditorTransientState(state2) {
   clearAnnotationBridgeSelection(state2);
   state2.editMetaByKey.clear();
+  state2.componentCommentsById?.clear();
   state2.deleteElementAnnotationsByTransactionId.clear();
   state2.processedEditTimestampsByKey.clear();
   state2.pendingMarkerAnchors.clear();
@@ -3672,7 +4551,7 @@ function createChangesService(options) {
 }
 
 // src/core/editor/feedback.ts
-import React from "react";
+import React2 from "react";
 import * as ReactDOMClient from "react-dom/client";
 import { App as AntApp, Button, Input, Modal } from "antd";
 
@@ -3701,12 +4580,12 @@ function flushWebEditorFeedbackMessages() {
 }
 
 // src/core/editor/feedback.ts
-var PromptDialogContent = React.forwardRef(
+var PromptDialogContent = React2.forwardRef(
   (props, ref) => {
-    const [value, setValue] = React.useState(props.defaultValue ?? "");
-    const [error, setError] = React.useState("");
-    const inputElementRef = React.useRef(null);
-    React.useImperativeHandle(ref, () => ({
+    const [value, setValue] = React2.useState(props.defaultValue ?? "");
+    const [error, setError] = React2.useState("");
+    const inputElementRef = React2.useRef(null);
+    React2.useImperativeHandle(ref, () => ({
       getValue: () => value,
       setError: (nextError) => {
         setError(nextError);
@@ -3726,7 +4605,7 @@ var PromptDialogContent = React.forwardRef(
         setError("");
       }
     };
-    const field = props.multiline ? React.createElement(Input.TextArea, {
+    const field = props.multiline ? React2.createElement(Input.TextArea, {
       ref: (instance) => {
         inputElementRef.current = instance?.resizableTextArea?.textArea ?? null;
       },
@@ -3735,7 +4614,7 @@ var PromptDialogContent = React.forwardRef(
       readOnly: props.readOnly,
       placeholder: props.placeholder,
       onChange: handleChange
-    }) : React.createElement(Input, {
+    }) : React2.createElement(Input, {
       ref: (instance) => {
         inputElementRef.current = instance?.input ?? null;
       },
@@ -3744,17 +4623,17 @@ var PromptDialogContent = React.forwardRef(
       placeholder: props.placeholder,
       onChange: handleChange
     });
-    return React.createElement(
+    return React2.createElement(
       "div",
       { style: { display: "grid", gap: 10 } },
-      props.content ? React.createElement("div", { style: { whiteSpace: "pre-line" } }, props.content) : null,
-      props.label ? React.createElement(
+      props.content ? React2.createElement("div", { style: { whiteSpace: "pre-line" } }, props.content) : null,
+      props.label ? React2.createElement(
         "div",
         { style: { fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.88)" } },
         props.label
       ) : null,
       field,
-      error ? React.createElement(
+      error ? React2.createElement(
         "div",
         { style: { fontSize: 12, color: "#ff4d4f" } },
         error
@@ -3774,7 +4653,7 @@ function showPromptModal(container, options) {
   container.appendChild(mountNode);
   const root = ReactDOMClient.createRoot(mountNode);
   return new Promise((resolve) => {
-    const contentRef = React.createRef();
+    const contentRef = React2.createRef();
     const cleanup = () => {
       window.setTimeout(() => {
         root.unmount();
@@ -3785,10 +4664,10 @@ function showPromptModal(container, options) {
       resolve(value);
       cleanup();
     };
-    const PromptModal = () => React.createElement(
+    const PromptModal = () => React2.createElement(
       AntApp,
       null,
-      React.createElement(
+      React2.createElement(
         Modal,
         {
           open: true,
@@ -3819,7 +4698,7 @@ function showPromptModal(container, options) {
             handleResolve(null);
           }
         },
-        React.createElement(PromptDialogContent, {
+        React2.createElement(PromptDialogContent, {
           ref: contentRef,
           content: options.content,
           label: options.label,
@@ -3831,7 +4710,7 @@ function showPromptModal(container, options) {
         })
       )
     );
-    root.render(React.createElement(PromptModal));
+    root.render(React2.createElement(PromptModal));
     window.setTimeout(() => {
       contentRef.current?.focus(Boolean(options.selectOnOpen));
     }, 0);
@@ -3880,10 +4759,10 @@ function createFeedbackService(options) {
         maskClosable: true,
         getContainer: () => container,
         cancelButtonProps: dialog.cancelText ? void 0 : { style: { display: "none" } },
-        footer: dialog.secondaryConfirmText ? (_originNode, { OkBtn }) => React.createElement(
-          React.Fragment,
+        footer: dialog.secondaryConfirmText ? (_originNode, { OkBtn }) => React2.createElement(
+          React2.Fragment,
           null,
-          React.createElement(
+          React2.createElement(
             Button,
             {
               key: "secondary",
@@ -3894,7 +4773,7 @@ function createFeedbackService(options) {
             },
             dialog.secondaryConfirmText
           ),
-          React.createElement(OkBtn)
+          React2.createElement(OkBtn)
         ) : void 0,
         onOk: () => settle(true),
         onCancel: () => settle(false)
@@ -8789,27 +9668,6 @@ var Disposer = class {
   }
 };
 
-// src/ui/csp-nonce.ts
-function resolveCspNonce(ownerDocument) {
-  const documentRef = ownerDocument ?? (typeof document !== "undefined" ? document : null);
-  if (!documentRef) return void 0;
-  const metaNonce = typeof documentRef.querySelector === "function" ? documentRef.querySelector('meta[name="csp-nonce"], meta[property="csp-nonce"]')?.getAttribute("content")?.trim() : void 0;
-  if (metaNonce) return metaNonce;
-  if (typeof documentRef.querySelectorAll === "function") {
-    for (const element of Array.from(documentRef.querySelectorAll("style"))) {
-      const nonce = element.nonce?.trim();
-      if (nonce) return nonce;
-    }
-  }
-  if (typeof documentRef.querySelectorAll === "function") {
-    for (const element of Array.from(documentRef.querySelectorAll("script"))) {
-      const nonce = element.nonce?.trim();
-      if (nonce) return nonce;
-    }
-  }
-  return void 0;
-}
-
 // src/ui/shadow-host.ts
 var SHADOW_HOST_FOCUS_TRAP_SELECTORS = [
   ".ant-modal-wrap",
@@ -9616,304 +10474,13 @@ function mountShadowHost(_options = {}) {
 }
 
 // src/ui/runtime/create-web-editor-ui-runtime.tsx
-import React22 from "react";
+import React25 from "react";
 import { createRoot as createRoot2 } from "react-dom/client";
 import { App as App2, ConfigProvider } from "antd";
 import { StyleProvider, createCache } from "@ant-design/cssinjs";
 
 // src/ui/runtime/runtime-shell.tsx
-import React21 from "react";
-
-// src/ui/runtime/theme.ts
-var ANCHOR_GAP_PX = 12;
-var SAFE_PADDING_PX = 12;
-var PAGE_CONFIG_PANEL_MIN_WIDTH = 232;
-var PAGE_CONFIG_PANEL_MAX_WIDTH = 360;
-var PAGE_CONFIG_PANEL_WIDTH = 248;
-var PROPERTY_PANEL_WIDTH = PAGE_CONFIG_PANEL_WIDTH;
-var PROPERTY_PANEL_RADIUS = 20;
-var PROPERTY_PANEL_TOP = 24;
-var PROPERTY_PANEL_RIGHT = 16;
-var TOOLBAR_BOTTOM = 24;
-var PROPERTY_PANEL_EXPANDED_HEIGHT_PX = PROPERTY_PANEL_TOP + TOOLBAR_BOTTOM;
-var PROPERTY_PANEL_EXPANDED_HEIGHT = `calc(100vh - ${PROPERTY_PANEL_TOP + TOOLBAR_BOTTOM}px)`;
-var PROMPT_CARD_WIDTH = 280;
-var PROMPT_CARD_ESTIMATED_HEIGHT = 104;
-var TEXT_INPUT_PLACEHOLDER = "\u7F16\u8F91\u5F53\u524D\u6587\u672C";
-var FLOATING_CLAMP_MARGIN = 16;
-var POPUP_LAYER_Z_INDEX = 10040;
-var HEADER_HORIZONTAL_PADDING = 10;
-var HEADER_VERTICAL_PADDING = 8;
-var HEADER_CONTROL_SIZE = 28;
-var COMPACT_TOOL_SIZE = 44;
-var COMPACT_TOOLBAR_WIDTH = 251;
-var COMPACT_TOOLBAR_HEIGHT = 44;
-var WEB_EDITOR_POPUP_ROOT_ATTR = "data-we-popup-root";
-var ACTION_ICON_SIZE = 15;
-var ACTION_ICON_STROKE = 1.8;
-var ACTION_BUTTON_SIZE = 28;
-var WEB_EDITOR_V2_PASTE_DEBUG_KEY = "__WEB_EDITOR_V2_PASTE_DEBUG__";
-var BRAND_PRIMARY = "#008F5D";
-var BRAND_PRIMARY_HOVER = "#00A36A";
-var BRAND_PRIMARY_ACTIVE = "#007A4F";
-var BRAND_PRIMARY_SOFT = "rgba(0, 143, 93, 0.16)";
-var BRAND_PRIMARY_RING = "rgba(0, 143, 93, 0.28)";
-var BRAND_PRIMARY_SHADOW = "rgba(0, 143, 93, 0.28)";
-var BRAND_ACCENT = "#00D68F";
-var SLEEPING_ICON = "#A1A1AA";
-var SLEEPING_ICON_STRONG = "#71717A";
-var WEB_EDITOR_PARENT_PASTE_BRIDGE_CLEANUP_KEY = "__webEditorV2ParentPasteBridgeCleanup__";
-var LIGHT_EDITOR_CHROME = {
-  accent: BRAND_PRIMARY,
-  accentBright: BRAND_ACCENT,
-  accentHover: BRAND_PRIMARY_HOVER,
-  accentActive: BRAND_PRIMARY_ACTIVE,
-  accentSoft: BRAND_PRIMARY_SOFT,
-  accentRing: BRAND_PRIMARY_RING,
-  surface: "#FFFFFF",
-  surfaceElevated: "#FFFFFF",
-  surfaceMuted: "#FAFAFA",
-  surfaceInteractive: "#F4F4F5",
-  surfaceOverlay: "rgba(255, 255, 255, 0.96)",
-  border: "rgba(39, 39, 42, 0.10)",
-  borderStrong: "rgba(39, 39, 42, 0.16)",
-  divider: "rgba(228, 228, 231, 0.95)",
-  textPrimary: "#18181B",
-  textSecondary: "#3F3F46",
-  textMuted: "#A1A1AA",
-  textSleeping: "#A1A1AA",
-  textSleepingStrong: "#71717A",
-  textDanger: "#DC2626",
-  hoverSubtle: "rgba(244, 244, 245, 1)",
-  hoverGhost: "rgba(15, 23, 42, 0.035)",
-  toolbarShellBorder: "rgba(228, 228, 231, 0.80)",
-  toolbarShellInset: "inset 0 1px 0 rgba(255, 255, 255, 0.88)",
-  toolbarGlow: "0 0 20px -5px rgba(0, 143, 93, 0.20)",
-  shadow: "0 24px 60px rgba(15, 23, 42, 0.14), 0 8px 24px rgba(15, 23, 42, 0.08)",
-  shadowCompact: "0 10px 28px rgba(15, 23, 42, 0.10), 0 2px 8px rgba(15, 23, 42, 0.06)",
-  overlayCloseBackground: "rgba(255, 255, 255, 0.94)"
-};
-var DARK_EDITOR_CHROME = {
-  accent: BRAND_PRIMARY,
-  accentBright: BRAND_ACCENT,
-  accentHover: BRAND_PRIMARY_HOVER,
-  accentActive: BRAND_PRIMARY_ACTIVE,
-  accentSoft: BRAND_PRIMARY_SOFT,
-  accentRing: BRAND_PRIMARY_RING,
-  surface: "#121212",
-  surfaceElevated: "#161616",
-  surfaceMuted: "#18181B",
-  surfaceInteractive: "#27272A",
-  surfaceOverlay: "rgba(18, 18, 18, 0.96)",
-  border: "rgba(255, 255, 255, 0.08)",
-  borderStrong: "rgba(255, 255, 255, 0.12)",
-  divider: "rgba(39, 39, 42, 0.95)",
-  textPrimary: "rgba(255, 255, 255, 0.94)",
-  textSecondary: "#D4D4D8",
-  textMuted: "#A1A1AA",
-  textSleeping: SLEEPING_ICON,
-  textSleepingStrong: SLEEPING_ICON_STRONG,
-  textDanger: "#ff7875",
-  hoverSubtle: "rgba(39, 39, 42, 0.80)",
-  hoverGhost: "rgba(255, 255, 255, 0.04)",
-  toolbarShellBorder: "rgba(39, 39, 42, 0.82)",
-  toolbarShellInset: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
-  toolbarGlow: "0 0 20px -5px rgba(0, 143, 93, 0.15)",
-  shadow: "0 18px 48px rgba(0, 0, 0, 0.42), 0 4px 18px rgba(0, 0, 0, 0.28)",
-  shadowCompact: "0 10px 28px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.20)",
-  overlayCloseBackground: "rgba(18, 18, 18, 0.92)"
-};
-function cssVar(name) {
-  return `var(${name})`;
-}
-var EDITOR_CHROME = {
-  accent: cssVar("--we-editor-accent"),
-  accentBright: cssVar("--we-editor-accent-bright"),
-  accentHover: cssVar("--we-editor-accent-hover"),
-  accentActive: cssVar("--we-editor-accent-active"),
-  accentSoft: cssVar("--we-editor-accent-soft"),
-  accentRing: cssVar("--we-editor-accent-ring"),
-  surface: cssVar("--we-editor-surface"),
-  surfaceElevated: cssVar("--we-editor-surface-elevated"),
-  surfaceMuted: cssVar("--we-editor-surface-muted"),
-  surfaceInteractive: cssVar("--we-editor-surface-interactive"),
-  surfaceOverlay: cssVar("--we-editor-surface-overlay"),
-  border: cssVar("--we-editor-border"),
-  borderStrong: cssVar("--we-editor-border-strong"),
-  divider: cssVar("--we-editor-divider"),
-  textPrimary: cssVar("--we-editor-text-primary"),
-  textSecondary: cssVar("--we-editor-text-secondary"),
-  textMuted: cssVar("--we-editor-text-muted"),
-  textSleeping: cssVar("--we-editor-text-sleeping"),
-  textSleepingStrong: cssVar("--we-editor-text-sleeping-strong"),
-  textDanger: cssVar("--we-editor-text-danger"),
-  hoverSubtle: cssVar("--we-editor-hover-subtle"),
-  hoverGhost: cssVar("--we-editor-hover-ghost"),
-  toolbarShellBorder: cssVar("--we-editor-toolbar-shell-border"),
-  toolbarShellInset: cssVar("--we-editor-toolbar-shell-inset"),
-  toolbarGlow: cssVar("--we-editor-toolbar-glow"),
-  shadow: cssVar("--we-editor-shadow"),
-  shadowCompact: cssVar("--we-editor-shadow-compact"),
-  overlayCloseBackground: cssVar("--we-editor-overlay-close-background")
-};
-function getEditorChromeValues(mode) {
-  return mode === "dark" ? DARK_EDITOR_CHROME : LIGHT_EDITOR_CHROME;
-}
-function createEditorChromeCssVars(mode) {
-  const chrome = getEditorChromeValues(mode);
-  return {
-    ["--we-editor-accent"]: chrome.accent,
-    ["--we-editor-accent-bright"]: chrome.accentBright,
-    ["--we-editor-accent-hover"]: chrome.accentHover,
-    ["--we-editor-accent-active"]: chrome.accentActive,
-    ["--we-editor-accent-soft"]: chrome.accentSoft,
-    ["--we-editor-accent-ring"]: chrome.accentRing,
-    ["--we-editor-surface"]: chrome.surface,
-    ["--we-editor-surface-elevated"]: chrome.surfaceElevated,
-    ["--we-editor-surface-muted"]: chrome.surfaceMuted,
-    ["--we-editor-surface-interactive"]: chrome.surfaceInteractive,
-    ["--we-editor-surface-overlay"]: chrome.surfaceOverlay,
-    ["--we-editor-border"]: chrome.border,
-    ["--we-editor-border-strong"]: chrome.borderStrong,
-    ["--we-editor-divider"]: chrome.divider,
-    ["--we-editor-text-primary"]: chrome.textPrimary,
-    ["--we-editor-text-secondary"]: chrome.textSecondary,
-    ["--we-editor-text-muted"]: chrome.textMuted,
-    ["--we-editor-text-sleeping"]: chrome.textSleeping,
-    ["--we-editor-text-sleeping-strong"]: chrome.textSleepingStrong,
-    ["--we-editor-text-danger"]: chrome.textDanger,
-    ["--we-editor-hover-subtle"]: chrome.hoverSubtle,
-    ["--we-editor-hover-ghost"]: chrome.hoverGhost,
-    ["--we-editor-toolbar-shell-border"]: chrome.toolbarShellBorder,
-    ["--we-editor-toolbar-shell-inset"]: chrome.toolbarShellInset,
-    ["--we-editor-toolbar-glow"]: chrome.toolbarGlow,
-    ["--we-editor-shadow"]: chrome.shadow,
-    ["--we-editor-shadow-compact"]: chrome.shadowCompact,
-    ["--we-editor-overlay-close-background"]: chrome.overlayCloseBackground
-  };
-}
-function createRuntimeAntdTheme(mode) {
-  const chrome = getEditorChromeValues(mode);
-  return {
-    token: {
-      colorPrimary: chrome.accent,
-      colorInfo: chrome.accent,
-      colorSuccess: chrome.accent,
-      colorLink: chrome.accent,
-      colorPrimaryHover: chrome.accentHover,
-      colorPrimaryActive: chrome.accentActive,
-      colorPrimaryBorder: chrome.accent,
-      colorPrimaryBorderHover: chrome.accentHover,
-      colorPrimaryBg: chrome.accentSoft,
-      colorPrimaryBgHover: "rgba(0, 143, 93, 0.22)",
-      borderRadius: 8,
-      fontSize: 11,
-      fontSizeSM: 11,
-      colorBgBase: chrome.surface,
-      colorBgContainer: chrome.surfaceElevated,
-      colorBgElevated: chrome.surfaceElevated,
-      colorFill: mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.06)",
-      colorFillSecondary: chrome.surfaceMuted,
-      colorFillTertiary: chrome.surfaceInteractive,
-      colorText: chrome.textPrimary,
-      colorTextSecondary: chrome.textSecondary,
-      colorTextTertiary: chrome.textMuted,
-      colorBorder: chrome.border,
-      colorBorderSecondary: chrome.borderStrong,
-      colorTextPlaceholder: chrome.textMuted,
-      colorSplit: chrome.border,
-      boxShadowSecondary: chrome.shadow,
-      colorIcon: chrome.textSecondary,
-      colorIconHover: chrome.textPrimary,
-      controlOutline: chrome.accentSoft,
-      controlOutlineWidth: 2,
-      controlHeight: 32,
-      controlHeightSM: 28
-    },
-    components: {
-      Button: {
-        borderRadius: 12,
-        paddingInlineSM: 8,
-        controlHeightSM: 28,
-        defaultShadow: "none",
-        primaryShadow: "none",
-        dangerShadow: "none",
-        textTextColor: chrome.textPrimary,
-        textHoverBg: chrome.hoverSubtle,
-        defaultBg: chrome.surfaceMuted,
-        defaultColor: chrome.textPrimary,
-        defaultBorderColor: chrome.border,
-        defaultHoverBg: chrome.surfaceInteractive,
-        defaultHoverColor: chrome.textPrimary,
-        defaultHoverBorderColor: chrome.borderStrong
-      },
-      Collapse: {
-        contentBg: "transparent",
-        headerBg: "transparent",
-        borderlessContentBg: "transparent",
-        contentPadding: "0 0 8px",
-        borderlessContentPadding: "0 0 8px"
-      },
-      Input: {
-        colorBgContainer: chrome.surfaceMuted,
-        activeBg: chrome.surfaceInteractive,
-        hoverBg: chrome.surfaceInteractive,
-        activeBorderColor: chrome.accent,
-        hoverBorderColor: chrome.borderStrong,
-        activeShadow: `0 0 0 2px ${chrome.accentSoft}`
-      },
-      InputNumber: {
-        colorBgContainer: chrome.surfaceMuted,
-        activeBg: chrome.surfaceInteractive,
-        hoverBg: chrome.surfaceInteractive,
-        activeBorderColor: chrome.accent,
-        hoverBorderColor: chrome.borderStrong,
-        activeShadow: `0 0 0 2px ${chrome.accentSoft}`
-      },
-      Select: {
-        optionSelectedBg: chrome.accentSoft,
-        optionActiveBg: chrome.hoverSubtle,
-        selectorBg: chrome.surfaceMuted,
-        activeBorderColor: chrome.accent,
-        hoverBorderColor: chrome.borderStrong
-      },
-      Slider: {
-        colorPrimary: chrome.accent,
-        handleSize: 8,
-        railBg: mode === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(15, 23, 42, 0.12)",
-        railHoverBg: mode === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(15, 23, 42, 0.18)",
-        trackBg: chrome.accent,
-        trackHoverBg: chrome.accentHover
-      },
-      ColorPicker: {
-        colorPrimary: chrome.accent
-      },
-      Dropdown: {
-        colorBgElevated: chrome.surfaceElevated,
-        colorText: chrome.textPrimary,
-        colorTextDescription: chrome.textSecondary,
-        controlItemBgHover: chrome.hoverSubtle,
-        controlItemBgActive: chrome.accentSoft,
-        borderRadiusLG: 16
-      },
-      Modal: {
-        contentBg: chrome.surfaceElevated,
-        headerBg: chrome.surfaceElevated,
-        titleColor: chrome.textPrimary,
-        titleFontSize: 14,
-        borderRadiusLG: 18
-      },
-      Tooltip: {
-        colorBgSpotlight: mode === "dark" ? "#050608" : "#0F172A",
-        colorTextLightSolid: "#FFFFFF"
-      },
-      Popover: {
-        colorBgElevated: chrome.surfaceElevated,
-        colorText: chrome.textPrimary
-      }
-    }
-  };
-}
+import React24 from "react";
 
 // src/ui/runtime/styles/property-panel-styles.ts
 var panelContainerStyle = {
@@ -11576,7 +12143,7 @@ var promptCardStyle = {
 };
 
 // src/ui/runtime/element-agent-task-overlays.tsx
-import React2 from "react";
+import React3 from "react";
 
 // src/ui/runtime/session-activity-utils.ts
 function limitVisibleSessionActivities(items, limit = 3) {
@@ -11604,7 +12171,7 @@ function resolveSessionActivityTarget(options) {
 }
 
 // src/ui/runtime/element-agent-task-overlays.tsx
-import { Fragment, jsx, jsxs } from "react/jsx-runtime";
+import { Fragment, jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
 var INLINE_STATUS_MIN_WIDTH = 110;
 var INLINE_STATUS_MIN_HEIGHT = 40;
 var OVERLAY_ACTIVITY_LIMIT = 2;
@@ -11718,9 +12285,9 @@ function ElementAgentTaskOverlays(props) {
   const { tasks } = props;
   void props.renderTick;
   void props.onDismissTask;
-  const animationFrameRef = React2.useRef(null);
-  const animationTimeoutRef = React2.useRef(null);
-  const activityFeeds = React2.useMemo(() => {
+  const animationFrameRef = React3.useRef(null);
+  const animationTimeoutRef = React3.useRef(null);
+  const activityFeeds = React3.useMemo(() => {
     const feeds = /* @__PURE__ */ new Map();
     for (const task of tasks) {
       const target = resolveSessionActivityTarget({
@@ -11734,16 +12301,16 @@ function ElementAgentTaskOverlays(props) {
     }
     return Array.from(feeds.entries()).map(([key, target]) => ({ key, target }));
   }, [tasks]);
-  const activityHostElementKey = React2.useMemo(
+  const activityHostElementKey = React3.useMemo(
     () => pickOverlayActivityHostTask(tasks),
     [tasks]
   );
-  const [recentActivities, setRecentActivities] = React2.useState([]);
-  const [displayedActivities, setDisplayedActivities] = React2.useState([]);
-  const [animatedActivities, setAnimatedActivities] = React2.useState(null);
-  const [animatedTranslateY, setAnimatedTranslateY] = React2.useState(0);
-  const [animationPhase, setAnimationPhase] = React2.useState("idle");
-  const clearAnimationState = React2.useCallback(() => {
+  const [recentActivities, setRecentActivities] = React3.useState([]);
+  const [displayedActivities, setDisplayedActivities] = React3.useState([]);
+  const [animatedActivities, setAnimatedActivities] = React3.useState(null);
+  const [animatedTranslateY, setAnimatedTranslateY] = React3.useState(0);
+  const [animationPhase, setAnimationPhase] = React3.useState("idle");
+  const clearAnimationState = React3.useCallback(() => {
     if (animationFrameRef.current !== null) {
       window.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -11756,7 +12323,7 @@ function ElementAgentTaskOverlays(props) {
     setAnimatedTranslateY(0);
     setAnimationPhase("idle");
   }, []);
-  React2.useEffect(() => {
+  React3.useEffect(() => {
     return () => {
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
@@ -11766,7 +12333,7 @@ function ElementAgentTaskOverlays(props) {
       }
     };
   }, []);
-  React2.useEffect(() => {
+  React3.useEffect(() => {
     if (activityFeeds.length === 0) {
       if (shouldResetOverlayActivityState({
         recentCount: recentActivities.length,
@@ -11805,7 +12372,7 @@ function ElementAgentTaskOverlays(props) {
     props.subscribeSessionActivity,
     recentActivities.length
   ]);
-  const activityHostPresentation = React2.useMemo(() => {
+  const activityHostPresentation = React3.useMemo(() => {
     const hostTask = tasks.find((task) => task.elementKey === activityHostElementKey) ?? null;
     if (!hostTask) {
       return {
@@ -11828,7 +12395,7 @@ function ElementAgentTaskOverlays(props) {
       height: rect.height
     });
   }, [activityHostElementKey, tasks, props.renderTick]);
-  React2.useEffect(() => {
+  React3.useEffect(() => {
     const visibleCount = activityHostPresentation.maxVisibleItems;
     if (!activityHostElementKey || visibleCount <= 0 || recentActivities.length === 0) {
       if (shouldClearOverlayDisplayedActivities({
@@ -11911,7 +12478,7 @@ function ElementAgentTaskOverlays(props) {
     });
     const showInlineStatus = rect.width > INLINE_STATUS_MIN_WIDTH && rect.height > INLINE_STATUS_MIN_HEIGHT && (!running || !showActivityFeed);
     const scanSize = Math.max(48, Math.min(88, Math.round(rect.height * 0.28)));
-    return /* @__PURE__ */ jsxs(
+    return /* @__PURE__ */ jsxs2(
       "div",
       {
         style: {
@@ -11926,7 +12493,7 @@ function ElementAgentTaskOverlays(props) {
           zIndex: 10024
         },
         children: [
-          /* @__PURE__ */ jsx(
+          /* @__PURE__ */ jsx2(
             "div",
             {
               style: {
@@ -11940,7 +12507,7 @@ function ElementAgentTaskOverlays(props) {
               }
             }
           ),
-          running ? /* @__PURE__ */ jsx(
+          running ? /* @__PURE__ */ jsx2(
             "div",
             {
               style: {
@@ -11949,7 +12516,7 @@ function ElementAgentTaskOverlays(props) {
                 overflow: "hidden",
                 borderRadius: "inherit"
               },
-              children: /* @__PURE__ */ jsx(
+              children: /* @__PURE__ */ jsx2(
                 "div",
                 {
                   className: "we-runtime-agent-task__scanner",
@@ -11961,7 +12528,7 @@ function ElementAgentTaskOverlays(props) {
               )
             }
           ) : null,
-          showInlineStatus ? /* @__PURE__ */ jsx(
+          showInlineStatus ? /* @__PURE__ */ jsx2(
             "div",
             {
               style: {
@@ -11979,10 +12546,10 @@ function ElementAgentTaskOverlays(props) {
                 pointerEvents: "none",
                 textShadow: `0 1px 6px ${tone.glow}`
               },
-              children: /* @__PURE__ */ jsx("span", { children: tone.text })
+              children: /* @__PURE__ */ jsx2("span", { children: tone.text })
             }
           ) : null,
-          showActivityFeed ? /* @__PURE__ */ jsx(
+          showActivityFeed ? /* @__PURE__ */ jsx2(
             "div",
             {
               style: {
@@ -11997,7 +12564,7 @@ function ElementAgentTaskOverlays(props) {
                 padding: "10px 12px",
                 textAlign: "center"
               },
-              children: /* @__PURE__ */ jsx(
+              children: /* @__PURE__ */ jsx2(
                 "div",
                 {
                   style: {
@@ -12006,7 +12573,7 @@ function ElementAgentTaskOverlays(props) {
                     height: activityPresentation.maxVisibleItems * OVERLAY_ACTIVITY_ROW_HEIGHT + Math.max(0, activityPresentation.maxVisibleItems - 1) * OVERLAY_ACTIVITY_ROW_GAP,
                     overflow: "hidden"
                   },
-                  children: /* @__PURE__ */ jsx(
+                  children: /* @__PURE__ */ jsx2(
                     "div",
                     {
                       style: {
@@ -12020,7 +12587,7 @@ function ElementAgentTaskOverlays(props) {
                       children: activityItems.map((item, index) => {
                         const lastAnimatedIndex = activityItems.length - 1;
                         const rowOpacity = animatedActivities ? animationPhase === "idle" ? index === lastAnimatedIndex ? 0 : 1 : index === 0 ? 0 : 1 : 1;
-                        return /* @__PURE__ */ jsx(
+                        return /* @__PURE__ */ jsx2(
                           "span",
                           {
                             style: {
@@ -12055,15 +12622,15 @@ function ElementAgentTaskOverlays(props) {
     );
   }).filter(Boolean);
   if (overlayNodes.length === 0) return null;
-  return /* @__PURE__ */ jsx(Fragment, { children: overlayNodes });
+  return /* @__PURE__ */ jsx2(Fragment, { children: overlayNodes });
 }
 
 // src/ui/runtime/prompt-card-view.tsx
-import React9 from "react";
+import React11 from "react";
 import { createPortal } from "react-dom";
 
 // src/ui/runtime/mobile-selection-overlay.tsx
-import React3 from "react";
+import React4 from "react";
 
 // src/core/editor/screenshot.ts
 var SCREENSHOT_IMAGE_PROXY_PATH = "/api/export/image-proxy";
@@ -12493,7 +13060,7 @@ async function captureElementScreenshot(element, fileNameHint, options = {}) {
 }
 
 // src/ui/runtime/mobile-selection-overlay.tsx
-import { Fragment as Fragment2, jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
+import { Fragment as Fragment2, jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
 var OVERLAY_Z_INDEX = POPUP_LAYER_Z_INDEX + 5;
 var THUMBNAIL_MAX_WIDTH_RATIO = 0.85;
 var THUMBNAIL_MAX_HEIGHT = 120;
@@ -12610,16 +13177,16 @@ async function createScreenshotThumbnail(element, maxWidth, maxHeight) {
 }
 function MobileSelectionOverlay(props) {
   const { currentTarget, promptVisible, promptCardTop, onDismiss } = props;
-  const thumbnailHostRef = React3.useRef(null);
-  const [animateIn, setAnimateIn] = React3.useState(false);
-  const visibleAtRef = React3.useRef(0);
+  const thumbnailHostRef = React4.useRef(null);
+  const [animateIn, setAnimateIn] = React4.useState(false);
+  const visibleAtRef = React4.useRef(0);
   const visible = isMobileDevice() && promptVisible && Boolean(currentTarget);
-  React3.useEffect(() => {
+  React4.useEffect(() => {
     if (visible) {
       visibleAtRef.current = Date.now();
     }
   }, [visible]);
-  React3.useEffect(() => {
+  React4.useEffect(() => {
     if (!visible) {
       setAnimateIn(false);
       return;
@@ -12627,7 +13194,7 @@ function MobileSelectionOverlay(props) {
     const raf = requestAnimationFrame(() => setAnimateIn(true));
     return () => cancelAnimationFrame(raf);
   }, [visible]);
-  React3.useEffect(() => {
+  React4.useEffect(() => {
     const host = thumbnailHostRef.current;
     if (!host || !currentTarget || !visible) {
       if (host) host.innerHTML = "";
@@ -12658,8 +13225,8 @@ function MobileSelectionOverlay(props) {
     };
   }, [currentTarget, visible]);
   if (!visible) return null;
-  return /* @__PURE__ */ jsxs2(Fragment2, { children: [
-    /* @__PURE__ */ jsx2(
+  return /* @__PURE__ */ jsxs3(Fragment2, { children: [
+    /* @__PURE__ */ jsx3(
       "div",
       {
         "data-mobile-selection-overlay": "true",
@@ -12689,7 +13256,7 @@ function MobileSelectionOverlay(props) {
         }
       }
     ),
-    /* @__PURE__ */ jsxs2(
+    /* @__PURE__ */ jsxs3(
       "div",
       {
         "data-mobile-selection-thumbnail": "true",
@@ -12714,7 +13281,7 @@ function MobileSelectionOverlay(props) {
           justifyContent: "center"
         },
         children: [
-          /* @__PURE__ */ jsx2(
+          /* @__PURE__ */ jsx3(
             "div",
             {
               style: {
@@ -12733,7 +13300,7 @@ function MobileSelectionOverlay(props) {
               children: "\u5F53\u524D\u9009\u4E2D\u5143\u7D20"
             }
           ),
-          /* @__PURE__ */ jsx2("div", { ref: thumbnailHostRef })
+          /* @__PURE__ */ jsx3("div", { ref: thumbnailHostRef })
         ]
       }
     )
@@ -12749,7 +13316,7 @@ import {
   CopyOutlined,
   DeleteOutlined as DeleteOutlined2,
   ExclamationCircleFilled,
-  ExportOutlined,
+  ExportOutlined as ExportOutlined2,
   FileTextOutlined,
   FormatPainterOutlined,
   MessageOutlined,
@@ -12778,6 +13345,9 @@ function computePromptCardPosition(options) {
     propertyPanelRight = 16,
     anchorGapPx = 12
   } = options;
+  if (options.stackWithCommentList && viewportWidth <= 760) {
+    return { left: 8, top: Math.round(Math.max(8, viewportHeight - Math.min(cardHeight, viewportHeight * 0.48 - 16) - 8)) };
+  }
   if (isMobileDevice()) {
     const visualHeight = getVisualViewportHeight();
     const mobileCardPadding = 8;
@@ -12965,15 +13535,15 @@ async function executePromptCardDocumentAction(options) {
 
 // src/ui/runtime/component-prompt-footer.tsx
 import { ArrowUpOutlined, LoadingOutlined } from "@ant-design/icons";
-import { Fragment as Fragment3, jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
+import { Fragment as Fragment3, jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
 function ComponentPromptFooter(props) {
   const { newPrototype, loading } = props;
   const actionDisabled = props.disabled || loading || props.saving;
   const destinationDisabled = props.selectedElementCount !== 1 || loading || props.saving;
   const explanation = props.selectedElementCount !== 1 ? "\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u540E\uFF0C\u53EF\u751F\u6210\u72EC\u7ACB\u72B6\u6001\u9875" : newPrototype ? "\u5728\u72EC\u7ACB\u9875\u9762\u5C55\u793A\u7EC4\u4EF6\u7684\u4E0D\u540C\u72B6\u6001" : "\u8C03\u6574\u5F53\u524D\u9009\u4E2D\u7684\u7EC4\u4EF6";
-  return /* @__PURE__ */ jsxs3("div", { "data-we-component-prompt-footer": "true", style: { flexShrink: 0, padding: "0 12px 12px" }, children: [
-    props.newPrototypeAvailable ? /* @__PURE__ */ jsxs3("div", { "data-we-component-states-option": "true", style: { padding: "0 0 10px" }, children: [
-      /* @__PURE__ */ jsxs3("label", { style: {
+  return /* @__PURE__ */ jsxs4("div", { "data-we-component-prompt-footer": "true", style: { flexShrink: 0, padding: "0 12px 12px" }, children: [
+    props.newPrototypeAvailable ? /* @__PURE__ */ jsxs4("div", { "data-we-component-states-option": "true", style: { padding: "0 0 10px" }, children: [
+      /* @__PURE__ */ jsxs4("label", { style: {
         display: "inline-flex",
         alignItems: "center",
         gap: 7,
@@ -12983,7 +13553,7 @@ function ComponentPromptFooter(props) {
         color: EDITOR_CHROME.textSecondary,
         cursor: destinationDisabled ? "not-allowed" : "pointer"
       }, children: [
-        /* @__PURE__ */ jsx3(
+        /* @__PURE__ */ jsx4(
           "input",
           {
             type: "checkbox",
@@ -12996,12 +13566,12 @@ function ComponentPromptFooter(props) {
         ),
         "\u751F\u6210\u5230\u65B0\u539F\u578B"
       ] }),
-      /* @__PURE__ */ jsx3("div", { "aria-live": "polite", style: { color: EDITOR_CHROME.textMuted, fontSize: 11, lineHeight: "18px", paddingLeft: 22 }, children: explanation })
+      /* @__PURE__ */ jsx4("div", { "aria-live": "polite", style: { color: EDITOR_CHROME.textMuted, fontSize: 11, lineHeight: "18px", paddingLeft: 22 }, children: explanation })
     ] }) : null,
-    /* @__PURE__ */ jsxs3("div", { style: { display: "flex", alignItems: "center", gap: 8, paddingTop: 10, borderTop: `1px solid ${EDITOR_CHROME.border}` }, children: [
-      /* @__PURE__ */ jsx3("div", { style: { display: "flex", alignItems: "center", gap: 2 }, children: props.leadingActions }),
-      /* @__PURE__ */ jsx3("div", { style: { flex: 1 } }),
-      props.onSave ? /* @__PURE__ */ jsx3(
+    /* @__PURE__ */ jsxs4("div", { style: { display: "flex", alignItems: "center", gap: 8, paddingTop: 10, borderTop: `1px solid ${EDITOR_CHROME.border}` }, children: [
+      /* @__PURE__ */ jsx4("div", { style: { display: "flex", alignItems: "center", gap: 2 }, children: props.leadingActions }),
+      /* @__PURE__ */ jsx4("div", { style: { flex: 1 } }),
+      props.onSave ? /* @__PURE__ */ jsx4(
         "button",
         {
           type: "button",
@@ -13013,9 +13583,9 @@ function ComponentPromptFooter(props) {
           children: props.saving ? "\u6682\u5B58\u4E2D\u2026" : "\u6682\u5B58\u6279\u6CE8"
         }
       ) : null,
-      props.actionVisible ? /* @__PURE__ */ jsxs3(Fragment3, { children: [
-        !props.onSave ? /* @__PURE__ */ jsx3("span", { "aria-hidden": "true", style: { color: EDITOR_CHROME.textMuted, fontSize: 10, whiteSpace: "nowrap" }, children: props.shortcut }) : null,
-        /* @__PURE__ */ jsxs3(
+      props.actionVisible ? /* @__PURE__ */ jsxs4(Fragment3, { children: [
+        !props.onSave ? /* @__PURE__ */ jsx4("span", { "aria-hidden": "true", style: { color: EDITOR_CHROME.textMuted, fontSize: 10, whiteSpace: "nowrap" }, children: props.shortcut }) : null,
+        /* @__PURE__ */ jsxs4(
           "button",
           {
             type: "button",
@@ -13043,12 +13613,369 @@ function ComponentPromptFooter(props) {
               cursor: actionDisabled ? "not-allowed" : "pointer"
             },
             children: [
-              loading ? /* @__PURE__ */ jsx3(LoadingOutlined, { spin: true }) : /* @__PURE__ */ jsx3(ArrowUpOutlined, {}),
+              loading ? /* @__PURE__ */ jsx4(LoadingOutlined, { spin: true }) : /* @__PURE__ */ jsx4(ArrowUpOutlined, {}),
               loading ? newPrototype ? "\u51C6\u5907\u622A\u56FE\u2026" : "\u5904\u7406\u4E2D\u2026" : newPrototype ? "\u751F\u6210\u72B6\u6001\u9875" : "\u53D1\u9001\u4FEE\u6539"
             ]
           }
         )
       ] }) : null
+    ] })
+  ] });
+}
+
+// src/ui/runtime/component-comment-composer.tsx
+import React5 from "react";
+import { ArrowUpOutlined as ArrowUpOutlined2, ExportOutlined, LoadingOutlined as LoadingOutlined2 } from "@ant-design/icons";
+
+// src/ui/runtime/image-attachments.ts
+var MAX_PROMPT_IMAGE_ATTACHMENTS = 3;
+var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+function createAttachmentId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `img_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+function inferExtension(mimeType) {
+  const normalized = String(mimeType ?? "").trim().toLowerCase();
+  if (!normalized.startsWith("image/")) return "png";
+  const ext = normalized.slice("image/".length).replace(/[^a-z0-9+.-]/g, "");
+  if (!ext) return "png";
+  if (ext === "jpeg") return "jpg";
+  if (ext === "svg+xml") return "svg";
+  return ext;
+}
+function normalizeImageName(name, mimeType, index) {
+  const trimmed = String(name ?? "").trim();
+  if (trimmed) return trimmed;
+  return `clipboard-image-${index + 1}.${inferExtension(mimeType)}`;
+}
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("blob-read-failed"));
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.readAsDataURL(blob);
+  });
+}
+async function createPromptImageAttachment(blob, index = 0, fallbackName) {
+  const mimeType = String(blob.type ?? "").trim() || "image/png";
+  return {
+    id: createAttachmentId(),
+    name: normalizeImageName(
+      "name" in blob && typeof blob.name === "string" ? blob.name : fallbackName,
+      mimeType,
+      index
+    ),
+    data: await blobToDataUrl(blob),
+    mimeType,
+    size: Number(blob.size ?? 0),
+    createdAt: Date.now(),
+    source: "user"
+  };
+}
+function isStandardSvgText(value) {
+  const source = String(value ?? "").trim();
+  if (!source || typeof DOMParser === "undefined") return false;
+  try {
+    const document2 = new DOMParser().parseFromString(source, "image/svg+xml");
+    const root = document2.documentElement;
+    return root.localName === "svg" && root.namespaceURI === SVG_NAMESPACE;
+  } catch {
+    return false;
+  }
+}
+async function createPromptImageAttachmentFromSvgText(value) {
+  const source = String(value ?? "").trim();
+  if (!isStandardSvgText(source)) return null;
+  const blob = new Blob([source], { type: "image/svg+xml" });
+  return createPromptImageAttachment(blob, 0, "clipboard-image-1.svg");
+}
+async function readPromptImageAttachmentsFromDataTransferItems(items) {
+  if (!items) return [];
+  const imageFiles = Array.from(items).filter((item) => item.kind === "file" && String(item.type ?? "").startsWith("image/")).map((item) => item.getAsFile()).filter((file) => Boolean(file));
+  return Promise.all(imageFiles.map((file, index) => createPromptImageAttachment(file, index)));
+}
+async function readPromptImageAttachmentsFromClipboardItems(items) {
+  if (!items?.length) return [];
+  const blobs = await Promise.all(
+    items.flatMap(
+      (item) => item.types.filter((type) => String(type ?? "").startsWith("image/")).map(async (type) => ({
+        blob: await item.getType(type),
+        type
+      }))
+    )
+  );
+  return Promise.all(
+    blobs.map(({ blob }, index) => createPromptImageAttachment(blob, index))
+  );
+}
+function mergePromptImageAttachments(existing, incoming, maxCount = MAX_PROMPT_IMAGE_ATTACHMENTS) {
+  const safeExisting = existing.slice(0, maxCount);
+  const capacity = Math.max(0, maxCount - safeExisting.length);
+  const accepted = incoming.slice(0, capacity);
+  return {
+    images: [...safeExisting, ...accepted],
+    acceptedCount: accepted.length,
+    droppedCount: Math.max(0, incoming.length - accepted.length)
+  };
+}
+function isTargetScreenshotImage(image) {
+  return image.source === "target-screenshot";
+}
+function splitPromptImageAttachments(images) {
+  const userImages = [];
+  let targetScreenshot = null;
+  for (const image of images) {
+    if (isTargetScreenshotImage(image)) {
+      targetScreenshot = image;
+    } else {
+      userImages.push(image);
+    }
+  }
+  return { userImages, targetScreenshot };
+}
+function replaceUserPromptImageAttachments(existing, nextUserImages, maxCount = MAX_PROMPT_IMAGE_ATTACHMENTS) {
+  const { targetScreenshot } = splitPromptImageAttachments(existing);
+  const userImages = nextUserImages.filter((image) => !isTargetScreenshotImage(image)).slice(0, maxCount);
+  return targetScreenshot ? [...userImages, targetScreenshot] : userImages;
+}
+function buildPromptImageAttachmentSignature(elementKey, image) {
+  return [
+    String(elementKey ?? "").trim(),
+    String(image.mimeType ?? "").trim(),
+    String(Number(image.size ?? 0)),
+    String(image.data ?? "").slice(0, 96)
+  ].join("::");
+}
+
+// src/ui/runtime/component-comment-composer.tsx
+import { Fragment as Fragment4, jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
+function ComponentCommentComposer(props) {
+  const [purpose, setPurpose] = React5.useState("modify-prototype");
+  const scope = props.api.getScopeKey();
+  const [draft, setDraft] = React5.useState(() => props.api.getDraft(props.element, purpose));
+  const [busy, setBusy] = React5.useState(null);
+  const [error, setError] = React5.useState("");
+  const [message, setMessage] = React5.useState("");
+  const [loadState, setLoadState] = React5.useState(() => props.getLoadState?.() ?? { status: "ready" });
+  const busyRef = React5.useRef(false);
+  const mounted = React5.useRef(true);
+  const context = React5.useRef({ element: props.element, purpose, scope });
+  context.current = { element: props.element, purpose, scope };
+  const tabId = React5.useId();
+  const item = COMMENT_PURPOSES.find((item2) => item2.id === purpose);
+  const skills = mergePromptCardSkills(props.skillOptions ?? []).filter((skill) => !props.enabledSkillIds || props.enabledSkillIds.includes(skill.id));
+  const trigger = findPromptCardSkillTrigger(draft.note);
+  React5.useEffect(() => {
+    setDraft(props.api.getDraft(props.element, purpose));
+    setError("");
+    setMessage("");
+  }, [props.api, props.element, purpose, scope, props.editRequest?.revision]);
+  React5.useEffect(() => {
+    if (props.editRequest) setPurpose(props.editRequest.purpose);
+  }, [props.editRequest]);
+  React5.useEffect(() => {
+    mounted.current = true;
+    const timer = globalThis.setInterval(() => {
+      const state2 = props.getLoadState?.() ?? { status: "ready" };
+      setLoadState((previous) => previous.status === state2.status && previous.revision === state2.revision && previous.error === state2.error ? previous : state2);
+    }, 300);
+    return () => {
+      mounted.current = false;
+      globalThis.clearInterval(timer);
+    };
+  }, [props.getLoadState]);
+  const update = (patch) => {
+    props.api.updateDraft(props.element, purpose, patch);
+    setDraft(props.api.getDraft(props.element, purpose));
+    setError("");
+    setMessage("");
+  };
+  const perform = async (action) => {
+    if (busyRef.current) return;
+    if (action !== "export" && (loadState.status !== "ready" || !props.available[purpose] || action === "send" && !draft.note.trim())) return;
+    const origin = context.current;
+    const stillCurrent = () => mounted.current && context.current.element === origin.element && context.current.purpose === origin.purpose && props.api.getScopeKey() === origin.scope;
+    busyRef.current = true;
+    setBusy(action);
+    setError("");
+    setMessage("");
+    let savedId;
+    try {
+      if (action === "export") {
+        await props.onExport?.();
+        return;
+      }
+      const entry = await props.api.saveDraft(origin.element, origin.purpose);
+      savedId = entry.id;
+      if (stillCurrent()) setDraft(props.api.getDraft(origin.element, origin.purpose));
+      props.onSaved?.();
+      if (action === "send") {
+        if (props.api.getScopeKey() !== origin.scope) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\uFF0C\u6279\u6CE8\u5DF2\u6682\u5B58\uFF0C\u8BF7\u5728\u539F\u9875\u9762\u53D1\u9001");
+        await props.api.run(item.action, [entry.id]);
+      }
+      if (stillCurrent()) setMessage(action === "save" ? "\u5DF2\u6682\u5B58\uFF0C\u53EF\u7EE7\u7EED\u6DFB\u52A0\u6279\u6CE8" : purpose === "modify-prototype" ? "\u5DF2\u53D1\u9001\u4FEE\u6539" : purpose === "generate-prototype" ? "\u5DF2\u6253\u5F00\u65B0\u539F\u578B\u786E\u8BA4\u7A97\u53E3" : "\u5DF2\u6253\u5F00\u5F15\u5165\u8BF4\u660E\u7A97\u53E3");
+    } catch (cause) {
+      if (stillCurrent()) {
+        if (savedId && !props.api.getDraft(origin.element, origin.purpose).note) {
+          try {
+            props.api.edit(savedId);
+            setDraft(props.api.getDraft(origin.element, origin.purpose));
+          } catch {
+          }
+        }
+        setError(cause instanceof Error ? cause.message : "\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+      }
+    } finally {
+      busyRef.current = false;
+      if (mounted.current) setBusy(null);
+    }
+  };
+  const disabled = busy !== null || loadState.status !== "ready" || !props.available[purpose] || !props.element.isConnected;
+  const sendDisabled = disabled || !draft.note.trim();
+  return /* @__PURE__ */ jsxs5("section", { className: "we-purpose-composer", "aria-label": "\u7EC4\u4EF6\u6279\u6CE8", onKeyDown: (event) => {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      props.onClose();
+    }
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!sendDisabled) void perform("send");
+    }
+  }, children: [
+    /* @__PURE__ */ jsx5("style", { nonce: resolveCspNonce(), children: `
+      .we-purpose-composer{font-family:inherit;color:${EDITOR_CHROME.textPrimary};min-width:0;width:100%;display:flex;flex-direction:column;max-height:inherit;min-height:0}
+      .we-purpose-composer *{box-sizing:border-box}
+      .we-purpose-composer button,.we-purpose-composer select{font-family:inherit;cursor:pointer;color:inherit}
+      .we-purpose-composer button:disabled{cursor:not-allowed;opacity:.5}
+      .we-purpose-composer button:focus-visible,.we-purpose-composer textarea:focus-visible,.we-purpose-composer select:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:2px}
+      .we-purpose-composer__header{display:flex;flex-shrink:0;align-items:center;gap:6px;padding:12px;border-bottom:1px solid ${EDITOR_CHROME.border}}
+      .we-purpose-composer__title{flex:1;min-width:0}.we-purpose-composer__title small{display:block;font-size:10px;color:${EDITOR_CHROME.textMuted};margin-bottom:3px}.we-purpose-composer__title strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .we-purpose-composer__icon{border:0;background:transparent;border-radius:6px;min-width:28px;min-height:28px;font-size:18px}
+      .we-purpose-composer__tabs{display:grid;flex-shrink:0;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin:12px 12px 0;padding:3px;background:${EDITOR_CHROME.surfaceMuted};border:1px solid ${EDITOR_CHROME.border};border-radius:9px}
+      .we-purpose-composer__tab{padding:8px 2px;white-space:nowrap;border:0;border-radius:6px;background:transparent;color:${EDITOR_CHROME.textSecondary}!important;font-size:12px}
+      .we-purpose-composer__tab[aria-selected=true]{background:${EDITOR_CHROME.surface};color:${EDITOR_CHROME.accent}!important;box-shadow:0 1px 3px #00000012;font-weight:600}
+      .we-purpose-composer__body{padding:12px;max-height:48dvh;min-height:0;flex:1;overflow:auto}
+      .we-purpose-composer__input{display:block;resize:vertical;width:100%;min-height:100px;max-height:220px;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:10px;background:${EDITOR_CHROME.surfaceMuted};color:${EDITOR_CHROME.textPrimary};font:inherit;font-size:13px;line-height:1.7;padding:10px 12px}
+      .we-purpose-composer__input::placeholder{color:${EDITOR_CHROME.textMuted}}
+      .we-purpose-composer__hint{font-size:11px;line-height:1.6;color:${EDITOR_CHROME.textMuted};margin:8px 0 0}
+      .we-purpose-composer__skills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+      .we-purpose-composer__skills button,.we-purpose-composer select{font-size:11px;border:1px solid ${EDITOR_CHROME.border};border-radius:6px;padding:4px 6px;background:${EDITOR_CHROME.surface}}
+      .we-purpose-composer__footer{display:flex;flex-shrink:0;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid ${EDITOR_CHROME.border};padding:10px 12px 12px}
+      .we-purpose-composer__action{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:7px 10px;font-size:12px;white-space:nowrap;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:8px;background:${EDITOR_CHROME.surface}}
+      .we-purpose-composer__send{background:${EDITOR_CHROME.accent};border-color:transparent;color:white!important}
+      @media(max-width:380px){.we-purpose-composer__header{padding:10px}.we-purpose-composer__tab{font-size:11px}.we-purpose-composer__action{padding:7px 8px}}
+      @media(prefers-reduced-motion:reduce){.we-purpose-composer *{animation:none!important;transition:none!important}}
+    ` }),
+    /* @__PURE__ */ jsxs5("header", { className: "we-purpose-composer__header", children: [
+      /* @__PURE__ */ jsxs5("div", { className: "we-purpose-composer__title", children: [
+        /* @__PURE__ */ jsxs5("small", { children: [
+          "\u7EC4\u4EF6\u6279\u6CE8",
+          draft.editingCommentId ? " \xB7 \u7F16\u8F91\u4E2D" : ""
+        ] }),
+        /* @__PURE__ */ jsx5("strong", { title: props.label, children: props.label })
+      ] }),
+      props.tools,
+      /* @__PURE__ */ jsx5("button", { type: "button", className: "we-purpose-composer__icon", "aria-label": "\u5173\u95ED\u7EC4\u4EF6\u6279\u6CE8", title: "\u5173\u95ED\uFF0C\u4FDD\u7559\u8349\u7A3F", onClick: props.onClose, children: "\xD7" })
+    ] }),
+    /* @__PURE__ */ jsx5("div", { role: "tablist", "aria-label": "\u6279\u6CE8\u7528\u9014", className: "we-purpose-composer__tabs", children: COMMENT_PURPOSES.map((tab, index) => /* @__PURE__ */ jsx5(
+      "button",
+      {
+        type: "button",
+        role: "tab",
+        "aria-label": tab.label,
+        id: `${tabId}-${tab.id}`,
+        "aria-controls": `${tabId}-panel`,
+        "aria-selected": purpose === tab.id,
+        tabIndex: purpose === tab.id ? 0 : -1,
+        className: "we-purpose-composer__tab",
+        onClick: () => setPurpose(tab.id),
+        onKeyDown: (event) => {
+          const next = event.key === "ArrowRight" ? (index + 1) % 3 : event.key === "ArrowLeft" ? (index + 2) % 3 : event.key === "Home" ? 0 : event.key === "End" ? 2 : null;
+          if (next !== null) {
+            event.preventDefault();
+            setPurpose(COMMENT_PURPOSES[next].id);
+            event.currentTarget.parentElement?.children[next]?.focus();
+          }
+        },
+        children: tab.label
+      },
+      tab.id
+    )) }),
+    /* @__PURE__ */ jsxs5("div", { role: "tabpanel", id: `${tabId}-panel`, "aria-labelledby": `${tabId}-${purpose}`, className: "we-purpose-composer__body", children: [
+      loadState.status === "loading" ? props.loadingContent : loadState.status === "error" ? /* @__PURE__ */ jsxs5("div", { children: [
+        /* @__PURE__ */ jsx5("p", { role: "alert", children: loadState.error || "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25" }),
+        /* @__PURE__ */ jsx5("button", { type: "button", onClick: () => {
+          setLoadState({ status: "loading" });
+          void props.onRetry?.().catch((cause) => setLoadState({ status: "error", error: String(cause) }));
+        }, children: "\u91CD\u65B0\u52A0\u8F7D" })
+      ] }) : /* @__PURE__ */ jsxs5(Fragment4, { children: [
+        /* @__PURE__ */ jsx5(
+          "textarea",
+          {
+            className: "we-purpose-composer__input",
+            "aria-label": "\u7ED9 AI \u7684\u6307\u793A",
+            rows: 4,
+            value: draft.note,
+            maxLength: 8e3,
+            placeholder: purpose === "generate-prototype" ? "\u63CF\u8FF0\u9700\u8981\u751F\u6210\u7684\u7EC4\u4EF6\u72B6\u6001\uFF0C\u4F8B\u5982\u9ED8\u8BA4\u3001\u52A0\u8F7D\u4E2D\u3001\u9519\u8BEF\u2026" : purpose === "document-component" ? "\u63CF\u8FF0\u8981\u5199\u5165 PRD \u7684\u7EC4\u4EF6\u8BF4\u660E\u4E0E\u4EA4\u4E92\u89C4\u5219\u2026" : "\u8F93\u5165\u5BF9\u5F53\u524D\u7EC4\u4EF6\u7684\u4FEE\u6539\u8981\u6C42\uFF0C/ \u9009\u62E9\u6280\u80FD",
+            onChange: (event) => update({ note: event.target.value }),
+            onPaste: (event) => {
+              if (!Array.from(event.clipboardData.items).some((item2) => item2.kind === "file" && item2.type.startsWith("image/"))) return;
+              event.preventDefault();
+              const origin = context.current;
+              void readPromptImageAttachmentsFromDataTransferItems(event.clipboardData.items).then((incoming) => {
+                if (!mounted.current || props.api.getScopeKey() !== origin.scope) return;
+                const previous = props.api.getDraft(origin.element, origin.purpose);
+                const merged = mergePromptImageAttachments(previous.images, incoming);
+                props.api.updateDraft(origin.element, origin.purpose, { images: merged.images });
+                if (context.current.element === origin.element && context.current.purpose === origin.purpose) setDraft(props.api.getDraft(origin.element, origin.purpose));
+                if (merged.droppedCount) setError("\u6700\u591A\u6DFB\u52A0 3 \u5F20\u56FE\u7247");
+              }).catch((cause) => {
+                if (mounted.current) setError(cause instanceof Error ? cause.message : "\u56FE\u7247\u8BFB\u53D6\u5931\u8D25");
+              });
+            }
+          }
+        ),
+        /* @__PURE__ */ jsxs5("div", { className: "we-purpose-composer__skills", children: [
+          draft.skillIds.map((id) => /* @__PURE__ */ jsxs5("button", { type: "button", "aria-label": `\u79FB\u9664\u6280\u80FD ${id}`, onClick: () => update({ skillIds: draft.skillIds.filter((value) => value !== id) }), children: [
+            skills.find((skill) => skill.id === id)?.label || id,
+            " \xD7"
+          ] }, id)),
+          /* @__PURE__ */ jsxs5("select", { "aria-label": "\u6DFB\u52A0\u6280\u80FD", value: "", onChange: (event) => {
+            if (!event.target.value) return;
+            update({ skillIds: Array.from(/* @__PURE__ */ new Set([...draft.skillIds, event.target.value])), ...trigger ? { note: draft.note.slice(0, trigger.start) + draft.note.slice(trigger.end) } : {} });
+          }, children: [
+            /* @__PURE__ */ jsx5("option", { value: "", children: "\uFF0B \u6280\u80FD" }),
+            skills.filter((skill) => !draft.skillIds.includes(skill.id) && (!trigger?.query || `${skill.label} ${skill.description}`.includes(trigger.query))).map((skill) => /* @__PURE__ */ jsx5("option", { value: skill.id, children: skill.label }, skill.id))
+          ] })
+        ] }),
+        draft.images.length ? /* @__PURE__ */ jsx5("div", { className: "we-purpose-composer__skills", children: draft.images.map((image) => /* @__PURE__ */ jsxs5("button", { type: "button", "aria-label": `\u79FB\u9664\u9644\u4EF6 ${image.name}`, onClick: () => update({ images: draft.images.filter((item2) => item2.id !== image.id) }), children: [
+          /* @__PURE__ */ jsx5("img", { src: image.data || image.assetPath, alt: image.name, width: 24, height: 24, style: { objectFit: "cover", verticalAlign: "middle", borderRadius: 4 } }),
+          " \xD7"
+        ] }, image.id)) }) : null,
+        /* @__PURE__ */ jsx5("p", { className: "we-purpose-composer__hint", children: props.available[purpose] ? item.hint : "\u5F53\u524D\u9875\u9762\u6682\u4E0D\u652F\u6301\u6B64\u7528\u9014\uFF0C\u8BF7\u5207\u6362\u5176\u4ED6\u6807\u7B7E\u3002" }),
+        draft.editingCommentId ? /* @__PURE__ */ jsx5("button", { type: "button", "aria-label": "\u65B0\u589E\u6279\u6CE8", className: "we-purpose-composer__action", onClick: () => {
+          props.api.startNew(props.element, purpose);
+          setDraft(props.api.getDraft(props.element, purpose));
+        }, children: "\u65B0\u589E\u6279\u6CE8" }) : null
+      ] }),
+      error ? /* @__PURE__ */ jsx5("p", { role: "alert", style: { color: EDITOR_CHROME.textDanger, fontSize: 12, margin: "8px 0 0" }, children: error }) : null,
+      message ? /* @__PURE__ */ jsx5("p", { role: "status", className: "we-purpose-composer__hint", children: message }) : null
+    ] }),
+    /* @__PURE__ */ jsxs5("footer", { className: "we-purpose-composer__footer", children: [
+      props.onExport ? /* @__PURE__ */ jsxs5("button", { type: "button", className: "we-purpose-composer__action", "aria-label": "\u5BFC\u51FA\u7EC4\u4EF6", title: props.exportTitle || "\u5BFC\u51FA\u9009\u4E2D\u7EC4\u4EF6", disabled: Boolean(busy) || props.exportDisabled, "aria-busy": busy === "export", onClick: () => perform("export"), children: [
+        busy === "export" ? /* @__PURE__ */ jsx5(LoadingOutlined2, { spin: true }) : /* @__PURE__ */ jsx5(ExportOutlined, {}),
+        "\u5BFC\u51FA"
+      ] }) : null,
+      /* @__PURE__ */ jsx5("span", { style: { flex: 1 } }),
+      /* @__PURE__ */ jsx5("button", { type: "button", className: "we-purpose-composer__action", "aria-label": "\u6682\u5B58\u6279\u6CE8", disabled, "aria-busy": busy === "save", onClick: () => perform("save"), children: busy === "save" ? "\u6682\u5B58\u4E2D\u2026" : "\u6682\u5B58\u6279\u6CE8" }),
+      /* @__PURE__ */ jsxs5("button", { type: "button", className: "we-purpose-composer__action we-purpose-composer__send", "aria-label": "\u53D1\u9001", title: `\u53D1\u9001\uFF1A${item.label}\uFF08\u2318/Ctrl Enter\uFF09`, disabled: sendDisabled, "aria-busy": busy === "send", onClick: () => perform("send"), children: [
+        busy === "send" ? /* @__PURE__ */ jsx5(LoadingOutlined2, { spin: true }) : /* @__PURE__ */ jsx5(ArrowUpOutlined2, {}),
+        busy === "send" ? "\u5904\u7406\u4E2D\u2026" : "\u53D1\u9001"
+      ] })
     ] })
   ] });
 }
@@ -13060,10 +13987,10 @@ function resolvePromptCardCloseActionTitle(platform) {
 }
 
 // src/ui/runtime/action-buttons.tsx
-import React4 from "react";
+import React6 from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button as Button2, Tooltip } from "antd";
-import { LoadingOutlined as LoadingOutlined2 } from "@ant-design/icons";
+import { LoadingOutlined as LoadingOutlined3 } from "@ant-design/icons";
 
 // src/ui/runtime/popup-container.ts
 var SELECTION_LOCK_ROOT_SELECTOR = '[data-we-selection-lock-root="true"]';
@@ -13139,7 +14066,7 @@ function resolveRuntimePopupContainerFromTrigger(trigger, fallbackContainer) {
 }
 
 // src/ui/runtime/action-buttons.tsx
-import { jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
+import { jsx as jsx6, jsxs as jsxs6 } from "react/jsx-runtime";
 var ICON_ACTION_TONE_STYLES = {
   neutral: {
     color: EDITOR_CHROME.textPrimary
@@ -13158,7 +14085,7 @@ var ICON_ACTION_TONE_STYLES = {
 };
 function SvgIcon(props) {
   const { children, size = ACTION_ICON_SIZE, strokeWidth = ACTION_ICON_STROKE } = props;
-  return /* @__PURE__ */ jsx4(
+  return /* @__PURE__ */ jsx6(
     "svg",
     {
       width: size,
@@ -13167,7 +14094,7 @@ function SvgIcon(props) {
       fill: "none",
       "aria-hidden": "true",
       style: { display: "block" },
-      children: /* @__PURE__ */ jsx4(
+      children: /* @__PURE__ */ jsx6(
         "g",
         {
           stroke: "currentColor",
@@ -13181,32 +14108,32 @@ function SvgIcon(props) {
   );
 }
 function AgentSparkleIcon() {
-  return /* @__PURE__ */ jsx4(SvgIcon, { children: /* @__PURE__ */ jsx4("path", { d: "M8 2.5l1.4 4.1L13.5 8l-4.1 1.4L8 13.5 6.6 9.4 2.5 8l4.1-1.4L8 2.5z" }) });
+  return /* @__PURE__ */ jsx6(SvgIcon, { children: /* @__PURE__ */ jsx6("path", { d: "M8 2.5l1.4 4.1L13.5 8l-4.1 1.4L8 13.5 6.6 9.4 2.5 8l4.1-1.4L8 2.5z" }) });
 }
 function CloseToolIcon() {
-  return /* @__PURE__ */ jsx4("span", { role: "img", "aria-hidden": "true", className: "anticon anticon-close", children: /* @__PURE__ */ jsxs4(SvgIcon, { children: [
-    /* @__PURE__ */ jsx4("path", { d: "M4.5 4.5l7 7" }),
-    /* @__PURE__ */ jsx4("path", { d: "M11.5 4.5l-7 7" })
+  return /* @__PURE__ */ jsx6("span", { role: "img", "aria-hidden": "true", className: "anticon anticon-close", children: /* @__PURE__ */ jsxs6(SvgIcon, { children: [
+    /* @__PURE__ */ jsx6("path", { d: "M4.5 4.5l7 7" }),
+    /* @__PURE__ */ jsx6("path", { d: "M11.5 4.5l-7 7" })
   ] }) });
 }
 function TooltipButton(props) {
   const { title, children, disabled } = props;
-  return /* @__PURE__ */ jsx4(Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx4("span", { style: { display: "inline-flex" }, children: React4.cloneElement(children, { disabled }) }) });
+  return /* @__PURE__ */ jsx6(Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx6("span", { style: { display: "inline-flex" }, children: React6.cloneElement(children, { disabled }) }) });
 }
 function IconActionButton(props) {
   const { title, icon, onClick, disabled, loading, tone = "neutral", style, pressed, label } = props;
-  const [hovered, setHovered] = React4.useState(false);
+  const [hovered, setHovered] = React6.useState(false);
   const toneStyle = ICON_ACTION_TONE_STYLES[tone];
   const mobile = isMobileDevice();
   const btnSize = mobile ? Math.max(ACTION_BUTTON_SIZE, 36) : ACTION_BUTTON_SIZE;
-  return /* @__PURE__ */ jsx4(TooltipButton, { title, disabled, children: /* @__PURE__ */ jsx4(
+  return /* @__PURE__ */ jsx6(TooltipButton, { title, disabled, children: /* @__PURE__ */ jsx6(
     Button2,
     {
       size: "small",
       type: "text",
       "aria-label": title,
       "aria-pressed": pressed,
-      icon: loading ? /* @__PURE__ */ jsx4(LoadingOutlined2, { spin: true }) : icon,
+      icon: loading ? /* @__PURE__ */ jsx6(LoadingOutlined3, { spin: true }) : icon,
       disabled,
       onClick,
       onMouseEnter: () => setHovered(true),
@@ -13236,14 +14163,14 @@ function IconActionButton(props) {
 }
 function AgentToolbarIconButton(props) {
   const { title, icon, awake, active = false, disabled = false, loading = false, onClick, ariaLabel } = props;
-  const [hovered, setHovered] = React4.useState(false);
+  const [hovered, setHovered] = React6.useState(false);
   const mobile = isMobileDevice();
   const btnSize = mobile ? 36 : 32;
   const defaultColor = disabled ? awake ? EDITOR_CHROME.textMuted : EDITOR_CHROME.textSleepingStrong : awake ? EDITOR_CHROME.textSecondary : EDITOR_CHROME.textSleepingStrong;
   const color = active && !disabled ? EDITOR_CHROME.accent : defaultColor;
   const background = hovered && !disabled && !active ? awake ? EDITOR_CHROME.hoverSubtle : EDITOR_CHROME.hoverGhost : "transparent";
   const hoverColor = active ? EDITOR_CHROME.accentActive : EDITOR_CHROME.textPrimary;
-  return /* @__PURE__ */ jsx4(TooltipButton, { title, disabled, children: /* @__PURE__ */ jsx4(
+  return /* @__PURE__ */ jsx6(TooltipButton, { title, disabled, children: /* @__PURE__ */ jsx6(
     "button",
     {
       type: "button",
@@ -13270,7 +14197,7 @@ function AgentToolbarIconButton(props) {
         transition: "background-color 220ms ease, color 220ms ease, transform 220ms ease",
         transform: hovered && !disabled ? "translateY(-0.5px)" : "translateY(0)"
       },
-      children: /* @__PURE__ */ jsx4("span", { style: { display: "inline-flex", alignItems: "center", justifyContent: "center" }, children: loading ? /* @__PURE__ */ jsx4(LoadingOutlined2, { spin: true }) : icon })
+      children: /* @__PURE__ */ jsx6("span", { style: { display: "inline-flex", alignItems: "center", justifyContent: "center" }, children: loading ? /* @__PURE__ */ jsx6(LoadingOutlined3, { spin: true }) : icon })
     }
   ) });
 }
@@ -13286,7 +14213,7 @@ function AgentToolbarShell(props) {
   const shellBorderColor = EDITOR_CHROME.toolbarShellBorder;
   const shellSurfaceShadow = EDITOR_CHROME.toolbarShellInset;
   const shellShadow = awake ? EDITOR_CHROME.toolbarGlow : EDITOR_CHROME.shadowCompact;
-  return /* @__PURE__ */ jsxs4(
+  return /* @__PURE__ */ jsxs6(
     "div",
     {
       className: "we-runtime-prop-panel__drag-handle",
@@ -13306,7 +14233,7 @@ function AgentToolbarShell(props) {
         ...style
       },
       children: [
-        /* @__PURE__ */ jsx4(
+        /* @__PURE__ */ jsx6(
           "div",
           {
             style: {
@@ -13317,7 +14244,7 @@ function AgentToolbarShell(props) {
             }
           }
         ),
-        /* @__PURE__ */ jsx4(AnimatePresence, { children: connected ? /* @__PURE__ */ jsxs4(
+        /* @__PURE__ */ jsx6(AnimatePresence, { children: connected ? /* @__PURE__ */ jsxs6(
           motion.div,
           {
             initial: { opacity: 0 },
@@ -13332,7 +14259,7 @@ function AgentToolbarShell(props) {
               borderRadius: 999
             },
             children: [
-              /* @__PURE__ */ jsx4(
+              /* @__PURE__ */ jsx6(
                 "div",
                 {
                   className: "we-runtime-toolbar__spinner",
@@ -13342,7 +14269,7 @@ function AgentToolbarShell(props) {
                   }
                 }
               ),
-              /* @__PURE__ */ jsx4(
+              /* @__PURE__ */ jsx6(
                 "div",
                 {
                   className: "we-runtime-toolbar__spinner",
@@ -13357,7 +14284,7 @@ function AgentToolbarShell(props) {
           },
           "toolbar-ring"
         ) : null }),
-        /* @__PURE__ */ jsxs4(
+        /* @__PURE__ */ jsxs6(
           "div",
           {
             style: {
@@ -13377,7 +14304,7 @@ function AgentToolbarShell(props) {
               minWidth: fullWidth ? 0 : "unset"
             },
             children: [
-              /* @__PURE__ */ jsx4(
+              /* @__PURE__ */ jsx6(
                 "div",
                 {
                   ref: dragHandleRef,
@@ -13388,7 +14315,7 @@ function AgentToolbarShell(props) {
                   style: {
                     color: EDITOR_CHROME.textMuted
                   },
-                  children: /* @__PURE__ */ jsxs4(
+                  children: /* @__PURE__ */ jsxs6(
                     "svg",
                     {
                       width: "8",
@@ -13398,12 +14325,12 @@ function AgentToolbarShell(props) {
                       focusable: "false",
                       style: { display: "block", pointerEvents: "none" },
                       children: [
-                        /* @__PURE__ */ jsx4("circle", { cx: "2", cy: "4", r: "1.25" }),
-                        /* @__PURE__ */ jsx4("circle", { cx: "6", cy: "4", r: "1.25" }),
-                        /* @__PURE__ */ jsx4("circle", { cx: "2", cy: "9", r: "1.25" }),
-                        /* @__PURE__ */ jsx4("circle", { cx: "6", cy: "9", r: "1.25" }),
-                        /* @__PURE__ */ jsx4("circle", { cx: "2", cy: "14", r: "1.25" }),
-                        /* @__PURE__ */ jsx4("circle", { cx: "6", cy: "14", r: "1.25" })
+                        /* @__PURE__ */ jsx6("circle", { cx: "2", cy: "4", r: "1.25" }),
+                        /* @__PURE__ */ jsx6("circle", { cx: "6", cy: "4", r: "1.25" }),
+                        /* @__PURE__ */ jsx6("circle", { cx: "2", cy: "9", r: "1.25" }),
+                        /* @__PURE__ */ jsx6("circle", { cx: "6", cy: "9", r: "1.25" }),
+                        /* @__PURE__ */ jsx6("circle", { cx: "2", cy: "14", r: "1.25" }),
+                        /* @__PURE__ */ jsx6("circle", { cx: "6", cy: "14", r: "1.25" })
                       ]
                     }
                   )
@@ -13464,18 +14391,18 @@ function deriveAgentUiState(options) {
 }
 
 // src/ui/runtime/prompt-image-strip.tsx
-import React5 from "react";
+import React7 from "react";
 import { CloseOutlined } from "@ant-design/icons";
-import { jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
+import { jsx as jsx7, jsxs as jsxs7 } from "react/jsx-runtime";
 var THUMB_SIZE = 28;
 var PREVIEW_WIDTH = 220;
 var PREVIEW_HEIGHT = 160;
 var IMAGE_RADIUS = 12;
 function PromptImageStrip(props) {
   const { images, onRemoveImage, readOnly = false } = props;
-  const [hoveredId, setHoveredId] = React5.useState(null);
+  const [hoveredId, setHoveredId] = React7.useState(null);
   if (images.length === 0) return null;
-  return /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx7(
     "div",
     {
       style: {
@@ -13487,7 +14414,7 @@ function PromptImageStrip(props) {
       children: images.map((image) => {
         const hovered = hoveredId === image.id;
         const canRemove = !readOnly;
-        return /* @__PURE__ */ jsxs5(
+        return /* @__PURE__ */ jsxs7(
           "div",
           {
             onMouseEnter: () => setHoveredId(image.id),
@@ -13498,7 +14425,7 @@ function PromptImageStrip(props) {
               height: THUMB_SIZE
             },
             children: [
-              hovered ? /* @__PURE__ */ jsx5(
+              hovered ? /* @__PURE__ */ jsx7(
                 "div",
                 {
                   style: {
@@ -13518,7 +14445,7 @@ function PromptImageStrip(props) {
                     justifyContent: "center",
                     zIndex: 2
                   },
-                  children: /* @__PURE__ */ jsx5(
+                  children: /* @__PURE__ */ jsx7(
                     "img",
                     {
                       src: image.data,
@@ -13534,7 +14461,7 @@ function PromptImageStrip(props) {
                   )
                 }
               ) : null,
-              /* @__PURE__ */ jsx5(
+              /* @__PURE__ */ jsx7(
                 "button",
                 {
                   type: "button",
@@ -13557,7 +14484,7 @@ function PromptImageStrip(props) {
                     justifyContent: "center",
                     boxShadow: hovered ? EDITOR_CHROME.shadow : "none"
                   },
-                  children: hovered && canRemove ? /* @__PURE__ */ jsx5(CloseOutlined, { style: { fontSize: 12, color: EDITOR_CHROME.textPrimary } }) : /* @__PURE__ */ jsx5(
+                  children: hovered && canRemove ? /* @__PURE__ */ jsx7(CloseOutlined, { style: { fontSize: 12, color: EDITOR_CHROME.textPrimary } }) : /* @__PURE__ */ jsx7(
                     "img",
                     {
                       src: image.data,
@@ -13581,12 +14508,12 @@ function PromptImageStrip(props) {
 }
 
 // src/ui/runtime/prompt-card-design-editor.tsx
-import React8 from "react";
+import React10 from "react";
 import { DeleteOutlined } from "@ant-design/icons";
 import { Empty as Empty2, Popconfirm, Segmented as Segmented2 } from "antd";
 
 // src/ui/property-panel/react-design-panel.tsx
-import React6 from "react";
+import React8 from "react";
 import {
   Button as Button3,
   ColorPicker,
@@ -13608,7 +14535,7 @@ import {
   LinkOutlined,
   UpOutlined
 } from "@ant-design/icons";
-import { Fragment as Fragment4, jsx as jsx6, jsxs as jsxs6 } from "react/jsx-runtime";
+import { Fragment as Fragment5, jsx as jsx8, jsxs as jsxs8 } from "react/jsx-runtime";
 var TEXT_ALIGN_OPTIONS = [
   { value: "left", label: "\u5DE6" },
   { value: "center", label: "\u4E2D" },
@@ -13720,27 +14647,27 @@ var compactUnitSelectWideStyle = {
 };
 function SizeSection(props) {
   const { snapshot, target, transactionManager, disabled, onRefreshRequest, variant = "full" } = props;
-  const [width, setWidth] = React6.useState(snapshot.width);
-  const [height, setHeight] = React6.useState(snapshot.height);
-  const [minWidth, setMinWidth] = React6.useState(snapshot.minWidth);
-  const [minHeight, setMinHeight] = React6.useState(snapshot.minHeight);
-  const [maxWidth, setMaxWidth] = React6.useState(snapshot.maxWidth);
-  const [maxHeight, setMaxHeight] = React6.useState(snapshot.maxHeight);
-  const [widthMode, setWidthMode] = React6.useState(inferSizeMode(snapshot.width));
-  const [heightMode, setHeightMode] = React6.useState(inferSizeMode(snapshot.height));
-  const [showConstraints, setShowConstraints] = React6.useState(() => hasCustomSizeConstraints(snapshot));
-  const previousTargetRef = React6.useRef(target);
-  const constraintsPresent = React6.useMemo(
+  const [width, setWidth] = React8.useState(snapshot.width);
+  const [height, setHeight] = React8.useState(snapshot.height);
+  const [minWidth, setMinWidth] = React8.useState(snapshot.minWidth);
+  const [minHeight, setMinHeight] = React8.useState(snapshot.minHeight);
+  const [maxWidth, setMaxWidth] = React8.useState(snapshot.maxWidth);
+  const [maxHeight, setMaxHeight] = React8.useState(snapshot.maxHeight);
+  const [widthMode, setWidthMode] = React8.useState(inferSizeMode(snapshot.width));
+  const [heightMode, setHeightMode] = React8.useState(inferSizeMode(snapshot.height));
+  const [showConstraints, setShowConstraints] = React8.useState(() => hasCustomSizeConstraints(snapshot));
+  const previousTargetRef = React8.useRef(target);
+  const constraintsPresent = React8.useMemo(
     () => hasCustomSizeConstraints(snapshot),
     [snapshot.maxHeight, snapshot.maxWidth, snapshot.minHeight, snapshot.minWidth]
   );
-  const commitLength = React6.useCallback(
+  const commitLength = React8.useCallback(
     (property, value) => {
       commitStyle(transactionManager, target, property, normalizeLength(value), onRefreshRequest);
     },
     [onRefreshRequest, target, transactionManager]
   );
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     setWidth(snapshot.width);
     setHeight(snapshot.height);
     setMinWidth(snapshot.minWidth);
@@ -13757,7 +14684,7 @@ function SizeSection(props) {
     snapshot.minWidth,
     snapshot.width
   ]);
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     if (previousTargetRef.current !== target) {
       previousTargetRef.current = target;
       setShowConstraints(constraintsPresent);
@@ -13768,8 +14695,8 @@ function SizeSection(props) {
     }
   }, [constraintsPresent, target]);
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ jsx6("div", { style: sectionStackStyle, children: /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-      /* @__PURE__ */ jsx6(
+    return /* @__PURE__ */ jsx8("div", { style: sectionStackStyle, children: /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+      /* @__PURE__ */ jsx8(
         LengthField,
         {
           label: "\u5BBD\u5EA6 (px)",
@@ -13780,7 +14707,7 @@ function SizeSection(props) {
           onCommit: (value) => commitLength("width", value)
         }
       ),
-      /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsx8(
         LengthField,
         {
           label: "\u9AD8\u5EA6 (px)",
@@ -13793,10 +14720,10 @@ function SizeSection(props) {
       )
     ] }) });
   }
-  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsxs6("div", { style: modeGridStyle, children: [
-      /* @__PURE__ */ jsx6(Field, { label: "\u5BBD\u5EA6", children: /* @__PURE__ */ jsxs6("div", { style: modeFieldStyle, children: [
-        /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsxs8("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsxs8("div", { style: modeGridStyle, children: [
+      /* @__PURE__ */ jsx8(Field, { label: "\u5BBD\u5EA6", children: /* @__PURE__ */ jsxs8("div", { style: modeFieldStyle, children: [
+        /* @__PURE__ */ jsx8(
           UnitValueInput,
           {
             value: width,
@@ -13806,7 +14733,7 @@ function SizeSection(props) {
             onCommit: (value) => commitLength("width", value)
           }
         ),
-        /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx8(
           Segmented,
           {
             size: "small",
@@ -13827,8 +14754,8 @@ function SizeSection(props) {
           }
         )
       ] }) }),
-      /* @__PURE__ */ jsx6(Field, { label: "\u9AD8\u5EA6", children: /* @__PURE__ */ jsxs6("div", { style: modeFieldStyle, children: [
-        /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsx8(Field, { label: "\u9AD8\u5EA6", children: /* @__PURE__ */ jsxs8("div", { style: modeFieldStyle, children: [
+        /* @__PURE__ */ jsx8(
           UnitValueInput,
           {
             value: height,
@@ -13838,7 +14765,7 @@ function SizeSection(props) {
             onCommit: (value) => commitLength("height", value)
           }
         ),
-        /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx8(
           Segmented,
           {
             size: "small",
@@ -13860,11 +14787,11 @@ function SizeSection(props) {
         )
       ] }) })
     ] }),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       Subsection,
       {
         title: "\u5C3A\u5BF8\u7EA6\u675F",
-        action: /* @__PURE__ */ jsx6(
+        action: /* @__PURE__ */ jsx8(
           SizeConstraintToggleButton,
           {
             expanded: showConstraints,
@@ -13872,9 +14799,9 @@ function SizeSection(props) {
             onClick: () => setShowConstraints((prev) => !prev)
           }
         ),
-        children: showConstraints ? /* @__PURE__ */ jsxs6(Fragment4, { children: [
-          /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-            /* @__PURE__ */ jsx6(
+        children: showConstraints ? /* @__PURE__ */ jsxs8(Fragment5, { children: [
+          /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+            /* @__PURE__ */ jsx8(
               LengthField,
               {
                 label: "\u6700\u5C0F\u5BBD\u5EA6",
@@ -13885,7 +14812,7 @@ function SizeSection(props) {
                 onCommit: (value) => commitLength("min-width", value)
               }
             ),
-            /* @__PURE__ */ jsx6(
+            /* @__PURE__ */ jsx8(
               LengthField,
               {
                 label: "\u6700\u5C0F\u9AD8\u5EA6",
@@ -13897,8 +14824,8 @@ function SizeSection(props) {
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-            /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+            /* @__PURE__ */ jsx8(
               LengthField,
               {
                 label: "\u6700\u5927\u5BBD\u5EA6",
@@ -13909,7 +14836,7 @@ function SizeSection(props) {
                 onCommit: (value) => commitLength("max-width", value)
               }
             ),
-            /* @__PURE__ */ jsx6(
+            /* @__PURE__ */ jsx8(
               LengthField,
               {
                 label: "\u6700\u5927\u9AD8\u5EA6",
@@ -13928,7 +14855,7 @@ function SizeSection(props) {
 }
 function SpacingSection(props) {
   const { snapshot, target, transactionManager, disabled, onRefreshRequest } = props;
-  const [values, setValues] = React6.useState({
+  const [values, setValues] = React8.useState({
     marginTop: snapshot.marginTop,
     marginRight: snapshot.marginRight,
     marginBottom: snapshot.marginBottom,
@@ -13938,14 +14865,14 @@ function SpacingSection(props) {
     paddingBottom: snapshot.paddingBottom,
     paddingLeft: snapshot.paddingLeft
   });
-  const [expandedGroups, setExpandedGroups] = React6.useState({ margin: false, padding: false });
-  const commit = React6.useCallback(
+  const [expandedGroups, setExpandedGroups] = React8.useState({ margin: false, padding: false });
+  const commit = React8.useCallback(
     (property, value) => {
       commitStyle(transactionManager, target, property, normalizeLength(value), onRefreshRequest);
     },
     [onRefreshRequest, target, transactionManager]
   );
-  const commitPair = React6.useCallback(
+  const commitPair = React8.useCallback(
     (properties, value) => {
       const normalized = normalizeLength(value);
       const handle = transactionManager.beginMultiStyle(target, properties);
@@ -13960,7 +14887,7 @@ function SpacingSection(props) {
     },
     [onRefreshRequest, target, transactionManager]
   );
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     setValues({
       marginTop: snapshot.marginTop,
       marginRight: snapshot.marginRight,
@@ -13981,12 +14908,12 @@ function SpacingSection(props) {
     snapshot.paddingRight,
     snapshot.paddingTop
   ]);
-  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsxs8("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx8(
       Subsection,
       {
         title: "\u5916\u8FB9\u8DDD",
-        action: /* @__PURE__ */ jsx6(
+        action: /* @__PURE__ */ jsx8(
           SpacingModeToggleButton,
           {
             expanded: expandedGroups.margin,
@@ -13994,8 +14921,8 @@ function SpacingSection(props) {
             onClick: () => setExpandedGroups((prev) => ({ ...prev, margin: !prev.margin }))
           }
         ),
-        children: expandedGroups.margin ? /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx6(
+        children: expandedGroups.margin ? /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u4E0A",
@@ -14005,7 +14932,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-top", value)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u53F3",
@@ -14015,7 +14942,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-right", value)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u4E0B",
@@ -14025,7 +14952,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-bottom", value)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u5DE6",
@@ -14035,8 +14962,8 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-left", value)
             }
           )
-        ] }) : /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx6(
+        ] }) : /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx8(
             PairLengthField,
             {
               label: "\u6C34\u5E73",
@@ -14047,7 +14974,7 @@ function SpacingSection(props) {
               onCommit: (value) => commitPair(["margin-left", "margin-right"], value)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             PairLengthField,
             {
               label: "\u5782\u76F4",
@@ -14061,11 +14988,11 @@ function SpacingSection(props) {
         ] })
       }
     ),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       Subsection,
       {
         title: "\u5185\u8FB9\u8DDD",
-        action: /* @__PURE__ */ jsx6(
+        action: /* @__PURE__ */ jsx8(
           SpacingModeToggleButton,
           {
             expanded: expandedGroups.padding,
@@ -14073,8 +15000,8 @@ function SpacingSection(props) {
             onClick: () => setExpandedGroups((prev) => ({ ...prev, padding: !prev.padding }))
           }
         ),
-        children: expandedGroups.padding ? /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx6(
+        children: expandedGroups.padding ? /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u4E0A",
@@ -14084,7 +15011,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-top", value)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u53F3",
@@ -14094,7 +15021,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-right", value)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u4E0B",
@@ -14104,7 +15031,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-bottom", value)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u5DE6",
@@ -14114,8 +15041,8 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-left", value)
             }
           )
-        ] }) : /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx6(
+        ] }) : /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx8(
             PairLengthField,
             {
               label: "\u6C34\u5E73",
@@ -14126,7 +15053,7 @@ function SpacingSection(props) {
               onCommit: (value) => commitPair(["padding-left", "padding-right"], value)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             PairLengthField,
             {
               label: "\u5782\u76F4",
@@ -14152,15 +15079,15 @@ function TypographySection(props) {
     onRefreshRequest,
     variant = "full"
   } = props;
-  const [fontFamily, setFontFamily] = React6.useState(snapshot.fontFamily);
-  const [fontSize, setFontSize] = React6.useState(snapshot.fontSize);
-  const [fontWeight, setFontWeight] = React6.useState(snapshot.fontWeight || "400");
-  const [lineHeight, setLineHeight] = React6.useState(snapshot.lineHeight);
-  const [letterSpacing, setLetterSpacing] = React6.useState(snapshot.letterSpacing);
-  const [textAlign, setTextAlign] = React6.useState(snapshot.textAlign || "left");
-  const [textDecorationLine, setTextDecorationLine] = React6.useState(snapshot.textDecorationLine || "none");
-  const [color, setColor] = React6.useState(snapshot.color);
-  React6.useEffect(() => {
+  const [fontFamily, setFontFamily] = React8.useState(snapshot.fontFamily);
+  const [fontSize, setFontSize] = React8.useState(snapshot.fontSize);
+  const [fontWeight, setFontWeight] = React8.useState(snapshot.fontWeight || "400");
+  const [lineHeight, setLineHeight] = React8.useState(snapshot.lineHeight);
+  const [letterSpacing, setLetterSpacing] = React8.useState(snapshot.letterSpacing);
+  const [textAlign, setTextAlign] = React8.useState(snapshot.textAlign || "left");
+  const [textDecorationLine, setTextDecorationLine] = React8.useState(snapshot.textDecorationLine || "none");
+  const [color, setColor] = React8.useState(snapshot.color);
+  React8.useEffect(() => {
     setFontFamily(snapshot.fontFamily);
     setFontSize(snapshot.fontSize);
     setFontWeight(snapshot.fontWeight || "400");
@@ -14180,8 +15107,8 @@ function TypographySection(props) {
     snapshot.textDecorationLine
   ]);
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
-      /* @__PURE__ */ jsx6(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ jsx6(
+    return /* @__PURE__ */ jsxs8("div", { style: sectionStackStyle, children: [
+      /* @__PURE__ */ jsx8(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ jsx8(
         Input2,
         {
           value: fontFamily,
@@ -14192,8 +15119,8 @@ function TypographySection(props) {
           onPressEnter: () => commitStyle(transactionManager, target, "font-family", fontFamily.trim(), onRefreshRequest)
         }
       ) }),
-      /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-        /* @__PURE__ */ jsx6(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+        /* @__PURE__ */ jsx8(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ jsx8(
           Select,
           {
             value: fontWeight || "400",
@@ -14206,7 +15133,7 @@ function TypographySection(props) {
             }
           }
         ) }),
-        /* @__PURE__ */ jsx6(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx8(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ jsx8(
           Select,
           {
             value: textAlign || "left",
@@ -14220,8 +15147,8 @@ function TypographySection(props) {
           }
         ) })
       ] }),
-      /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-        /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+        /* @__PURE__ */ jsx8(
           LengthField,
           {
             label: "\u5B57\u53F7 (px)",
@@ -14232,7 +15159,7 @@ function TypographySection(props) {
             onCommit: (value) => commitStyle(transactionManager, target, "font-size", normalizeLength(value), onRefreshRequest)
           }
         ),
-        /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx8(
           LengthField,
           {
             label: "\u884C\u9AD8 (px)",
@@ -14246,8 +15173,8 @@ function TypographySection(props) {
       ] })
     ] });
   }
-  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx6(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsxs8("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx8(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ jsx8(
       Input2,
       {
         value: fontFamily,
@@ -14258,8 +15185,8 @@ function TypographySection(props) {
         onPressEnter: () => commitStyle(transactionManager, target, "font-family", fontFamily.trim(), onRefreshRequest)
       }
     ) }),
-    /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-      /* @__PURE__ */ jsx6(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+      /* @__PURE__ */ jsx8(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ jsx8(
         Select,
         {
           value: fontWeight || "400",
@@ -14272,7 +15199,7 @@ function TypographySection(props) {
           }
         }
       ) }),
-      /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsx8(
         LengthField,
         {
           label: "\u5B57\u53F7",
@@ -14283,7 +15210,7 @@ function TypographySection(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       ColorField,
       {
         label: "\u6587\u5B57\u989C\u8272",
@@ -14297,8 +15224,8 @@ function TypographySection(props) {
         onValueChange: setColor
       }
     ),
-    /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-      /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+      /* @__PURE__ */ jsx8(
         LengthField,
         {
           label: "\u884C\u9AD8",
@@ -14309,7 +15236,7 @@ function TypographySection(props) {
           onCommit: (value) => commitStyle(transactionManager, target, "line-height", value.trim(), onRefreshRequest)
         }
       ),
-      /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsx8(
         LengthField,
         {
           label: "\u5B57\u95F4\u8DDD",
@@ -14320,7 +15247,7 @@ function TypographySection(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ jsx6(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ jsx8(
       Segmented,
       {
         size: "small",
@@ -14335,7 +15262,7 @@ function TypographySection(props) {
         }
       }
     ) }),
-    /* @__PURE__ */ jsx6(Field, { label: "\u6587\u672C\u88C5\u9970", children: /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(Field, { label: "\u6587\u672C\u88C5\u9970", children: /* @__PURE__ */ jsx8(
       Segmented,
       {
         size: "small",
@@ -14359,12 +15286,12 @@ function TypographySection(props) {
 }
 function AppearanceSection(props) {
   const { snapshot, target, transactionManager, disabled, onRefreshRequest } = props;
-  const [opacity, setOpacity] = React6.useState(toOpacityPercent(snapshot.opacity));
-  React6.useEffect(() => {
+  const [opacity, setOpacity] = React8.useState(toOpacityPercent(snapshot.opacity));
+  React8.useEffect(() => {
     setOpacity(toOpacityPercent(snapshot.opacity));
   }, [snapshot.opacity]);
-  return /* @__PURE__ */ jsx6("div", { style: sectionStackStyle, children: /* @__PURE__ */ jsx6(Field, { label: "\u900F\u660E\u5EA6", children: /* @__PURE__ */ jsxs6("div", { style: { display: "grid", gridTemplateColumns: "1fr 72px", gap: 10, alignItems: "center" }, children: [
-    /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8("div", { style: sectionStackStyle, children: /* @__PURE__ */ jsx8(Field, { label: "\u900F\u660E\u5EA6", children: /* @__PURE__ */ jsxs8("div", { style: { display: "grid", gridTemplateColumns: "1fr 72px", gap: 10, alignItems: "center" }, children: [
+    /* @__PURE__ */ jsx8(
       Slider,
       {
         min: 0,
@@ -14381,7 +15308,7 @@ function AppearanceSection(props) {
         )
       }
     ),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       InputNumber,
       {
         min: 0,
@@ -14405,17 +15332,17 @@ function CommonColorsSection(props) {
   const { snapshot, target, transactionManager, tokensService, disabled, onRefreshRequest } = props;
   const initialBackgroundImage = snapshot.backgroundImage === "none" ? "" : snapshot.backgroundImage;
   const initialFillValue = isGradientCss(initialBackgroundImage) ? initialBackgroundImage : snapshot.backgroundColor;
-  const [fillValue, setFillValue] = React6.useState(initialFillValue);
-  const [textColor, setTextColor] = React6.useState(snapshot.color);
-  const [borderColor, setBorderColor] = React6.useState(snapshot.borderColor);
-  React6.useEffect(() => {
+  const [fillValue, setFillValue] = React8.useState(initialFillValue);
+  const [textColor, setTextColor] = React8.useState(snapshot.color);
+  const [borderColor, setBorderColor] = React8.useState(snapshot.borderColor);
+  React8.useEffect(() => {
     const nextBackgroundImage = snapshot.backgroundImage === "none" ? "" : snapshot.backgroundImage;
     setFillValue(isGradientCss(nextBackgroundImage) ? nextBackgroundImage : snapshot.backgroundColor);
     setTextColor(snapshot.color);
     setBorderColor(snapshot.borderColor);
   }, [snapshot.backgroundColor, snapshot.backgroundImage, snapshot.borderColor, snapshot.color]);
-  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsxs8("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx8(
       BackgroundFillField,
       {
         label: "\u80CC\u666F\u989C\u8272",
@@ -14428,7 +15355,7 @@ function CommonColorsSection(props) {
         onValueChange: setFillValue
       }
     ),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       ColorField,
       {
         label: "\u6587\u5B57\u989C\u8272",
@@ -14442,7 +15369,7 @@ function CommonColorsSection(props) {
         onValueChange: setTextColor
       }
     ),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       ColorField,
       {
         label: "\u8FB9\u6846\u989C\u8272",
@@ -14469,25 +15396,25 @@ function BorderSection(props) {
     variant = "full",
     hideColorField = false
   } = props;
-  const [borderStyle, setBorderStyle] = React6.useState(snapshot.borderStyle || "none");
-  const [widthLinked, setWidthLinked] = React6.useState(isLinkedBorderWidth(snapshot));
-  const [borderWidth, setBorderWidth] = React6.useState(snapshot.borderWidth);
-  const [widths, setWidths] = React6.useState({
+  const [borderStyle, setBorderStyle] = React8.useState(snapshot.borderStyle || "none");
+  const [widthLinked, setWidthLinked] = React8.useState(isLinkedBorderWidth(snapshot));
+  const [borderWidth, setBorderWidth] = React8.useState(snapshot.borderWidth);
+  const [widths, setWidths] = React8.useState({
     top: snapshot.borderTopWidth,
     right: snapshot.borderRightWidth,
     bottom: snapshot.borderBottomWidth,
     left: snapshot.borderLeftWidth
   });
-  const [borderColor, setBorderColor] = React6.useState(snapshot.borderColor);
-  const [radiusLinked, setRadiusLinked] = React6.useState(isLinkedRadius(snapshot));
-  const [borderRadius, setBorderRadius] = React6.useState(snapshot.borderRadius);
-  const [corners, setCorners] = React6.useState({
+  const [borderColor, setBorderColor] = React8.useState(snapshot.borderColor);
+  const [radiusLinked, setRadiusLinked] = React8.useState(isLinkedRadius(snapshot));
+  const [borderRadius, setBorderRadius] = React8.useState(snapshot.borderRadius);
+  const [corners, setCorners] = React8.useState({
     tl: snapshot.borderTopLeftRadius,
     tr: snapshot.borderTopRightRadius,
     br: snapshot.borderBottomRightRadius,
     bl: snapshot.borderBottomLeftRadius
   });
-  React6.useEffect(() => {
+  React8.useEffect(() => {
     setBorderStyle(snapshot.borderStyle || "none");
     setWidthLinked(isLinkedBorderWidth(snapshot));
     setBorderWidth(snapshot.borderWidth);
@@ -14520,7 +15447,7 @@ function BorderSection(props) {
     snapshot.borderTopWidth,
     snapshot.borderWidth
   ]);
-  const commitRadiusGroup = React6.useCallback(
+  const commitRadiusGroup = React8.useCallback(
     (value) => {
       const normalized = normalizeLength(value);
       const handle = transactionManager.beginMultiStyle(target, [
@@ -14544,7 +15471,7 @@ function BorderSection(props) {
     },
     [onRefreshRequest, target, transactionManager]
   );
-  const commitWidthGroup = React6.useCallback(
+  const commitWidthGroup = React8.useCallback(
     (value) => {
       const normalized = normalizeLength(value);
       const handle = transactionManager.beginMultiStyle(target, [
@@ -14569,8 +15496,8 @@ function BorderSection(props) {
     [onRefreshRequest, target, transactionManager]
   );
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
-      /* @__PURE__ */ jsx6(
+    return /* @__PURE__ */ jsxs8("div", { style: sectionStackStyle, children: [
+      /* @__PURE__ */ jsx8(
         LengthField,
         {
           label: "\u8FB9\u6846\u5BBD\u5EA6 (px)",
@@ -14581,7 +15508,7 @@ function BorderSection(props) {
           onCommit: (value) => commitWidthGroup(value)
         }
       ),
-      /* @__PURE__ */ jsx6(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsx8(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ jsx8(
         Select,
         {
           value: borderStyle || "none",
@@ -14594,7 +15521,7 @@ function BorderSection(props) {
           }
         }
       ) }),
-      /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsx8(
         LengthField,
         {
           label: "\u5706\u89D2 (px)",
@@ -14605,7 +15532,7 @@ function BorderSection(props) {
           onCommit: (value) => commitRadiusGroup(value)
         }
       ),
-      /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsx8(
         ColorField,
         {
           label: "\u8FB9\u6846\u989C\u8272",
@@ -14621,8 +15548,8 @@ function BorderSection(props) {
       )
     ] });
   }
-  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx6(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsxs8("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx8(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ jsx8(
       Select,
       {
         value: borderStyle || "none",
@@ -14635,11 +15562,11 @@ function BorderSection(props) {
         }
       }
     ) }),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       Field,
       {
         label: "\u8FB9\u6846\u5BBD\u5EA6",
-        action: /* @__PURE__ */ jsx6(
+        action: /* @__PURE__ */ jsx8(
           AxisModeToggleButton,
           {
             expanded: !widthLinked,
@@ -14647,7 +15574,7 @@ function BorderSection(props) {
             onClick: () => setWidthLinked((prev) => !prev)
           }
         ),
-        children: widthLinked ? /* @__PURE__ */ jsx6(
+        children: widthLinked ? /* @__PURE__ */ jsx8(
           UnitValueInput,
           {
             value: borderWidth,
@@ -14656,8 +15583,8 @@ function BorderSection(props) {
             onChange: setBorderWidth,
             onCommit: (value) => commitWidthGroup(value)
           }
-        ) : /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx6(
+        ) : /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u4E0A",
@@ -14667,7 +15594,7 @@ function BorderSection(props) {
               onCommit: (value) => commitStyle(transactionManager, target, "border-top-width", normalizeLength(value), onRefreshRequest)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u53F3",
@@ -14677,7 +15604,7 @@ function BorderSection(props) {
               onCommit: (value) => commitStyle(transactionManager, target, "border-right-width", normalizeLength(value), onRefreshRequest)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u4E0B",
@@ -14687,7 +15614,7 @@ function BorderSection(props) {
               onCommit: (value) => commitStyle(transactionManager, target, "border-bottom-width", normalizeLength(value), onRefreshRequest)
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u5DE6",
@@ -14700,7 +15627,7 @@ function BorderSection(props) {
         ] })
       }
     ),
-    hideColorField ? null : /* @__PURE__ */ jsx6(
+    hideColorField ? null : /* @__PURE__ */ jsx8(
       ColorField,
       {
         label: "\u8FB9\u6846\u989C\u8272",
@@ -14714,11 +15641,11 @@ function BorderSection(props) {
         onValueChange: setBorderColor
       }
     ),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       Field,
       {
         label: "\u5706\u89D2",
-        action: /* @__PURE__ */ jsx6(
+        action: /* @__PURE__ */ jsx8(
           AxisModeToggleButton,
           {
             expanded: !radiusLinked,
@@ -14726,7 +15653,7 @@ function BorderSection(props) {
             onClick: () => setRadiusLinked((prev) => !prev)
           }
         ),
-        children: radiusLinked ? /* @__PURE__ */ jsx6(
+        children: radiusLinked ? /* @__PURE__ */ jsx8(
           UnitValueInput,
           {
             value: borderRadius,
@@ -14735,8 +15662,8 @@ function BorderSection(props) {
             onChange: setBorderRadius,
             onCommit: (value) => commitRadiusGroup(value)
           }
-        ) : /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-          /* @__PURE__ */ jsx6(
+        ) : /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u5DE6\u4E0A",
@@ -14752,7 +15679,7 @@ function BorderSection(props) {
               )
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u53F3\u4E0A",
@@ -14768,7 +15695,7 @@ function BorderSection(props) {
               )
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u53F3\u4E0B",
@@ -14784,7 +15711,7 @@ function BorderSection(props) {
               )
             }
           ),
-          /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx8(
             LengthField,
             {
               label: "\u5DE6\u4E0B",
@@ -14807,14 +15734,14 @@ function BorderSection(props) {
 }
 function EffectsSection(props) {
   const { snapshot, target, transactionManager, disabled, onRefreshRequest, variant = "full" } = props;
-  const parsedShadow = React6.useMemo(() => parseShadow(snapshot.boxShadow), [snapshot.boxShadow]);
-  const [shadowColor, setShadowColor] = React6.useState(parsedShadow.color);
-  const [shadowX, setShadowX] = React6.useState(parsedShadow.x);
-  const [shadowY, setShadowY] = React6.useState(parsedShadow.y);
-  const [shadowBlur, setShadowBlur] = React6.useState(parsedShadow.blur);
-  const [shadowSpread, setShadowSpread] = React6.useState(parsedShadow.spread);
-  const [boxShadow, setBoxShadow] = React6.useState(snapshot.boxShadow === "none" ? "" : snapshot.boxShadow);
-  React6.useEffect(() => {
+  const parsedShadow = React8.useMemo(() => parseShadow(snapshot.boxShadow), [snapshot.boxShadow]);
+  const [shadowColor, setShadowColor] = React8.useState(parsedShadow.color);
+  const [shadowX, setShadowX] = React8.useState(parsedShadow.x);
+  const [shadowY, setShadowY] = React8.useState(parsedShadow.y);
+  const [shadowBlur, setShadowBlur] = React8.useState(parsedShadow.blur);
+  const [shadowSpread, setShadowSpread] = React8.useState(parsedShadow.spread);
+  const [boxShadow, setBoxShadow] = React8.useState(snapshot.boxShadow === "none" ? "" : snapshot.boxShadow);
+  React8.useEffect(() => {
     const nextParsedShadow = parseShadow(snapshot.boxShadow);
     setShadowColor(nextParsedShadow.color);
     setShadowX(nextParsedShadow.x);
@@ -14823,7 +15750,7 @@ function EffectsSection(props) {
     setShadowSpread(nextParsedShadow.spread);
     setBoxShadow(snapshot.boxShadow === "none" ? "" : snapshot.boxShadow);
   }, [snapshot.boxShadow]);
-  const commitShadow = React6.useCallback(() => {
+  const commitShadow = React8.useCallback(() => {
     const next = composeShadow({
       color: shadowColor,
       x: shadowX,
@@ -14835,8 +15762,8 @@ function EffectsSection(props) {
     commitStyle(transactionManager, target, "box-shadow", next, onRefreshRequest);
   }, [onRefreshRequest, shadowBlur, shadowColor, shadowSpread, shadowX, shadowY, target, transactionManager]);
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
-      /* @__PURE__ */ jsx6(
+    return /* @__PURE__ */ jsxs8("div", { style: sectionStackStyle, children: [
+      /* @__PURE__ */ jsx8(
         ColorField,
         {
           label: "\u9634\u5F71\u989C\u8272",
@@ -14850,8 +15777,8 @@ function EffectsSection(props) {
           onValueChange: setShadowColor
         }
       ),
-      /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-        /* @__PURE__ */ jsx6(
+      /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+        /* @__PURE__ */ jsx8(
           LengthField,
           {
             label: "\u6A2A\u5411",
@@ -14861,7 +15788,7 @@ function EffectsSection(props) {
             onCommit: () => commitShadow()
           }
         ),
-        /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx8(
           LengthField,
           {
             label: "\u7EB5\u5411",
@@ -14871,7 +15798,7 @@ function EffectsSection(props) {
             onCommit: () => commitShadow()
           }
         ),
-        /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx8(
           LengthField,
           {
             label: "\u6A21\u7CCA",
@@ -14884,8 +15811,8 @@ function EffectsSection(props) {
       ] })
     ] });
   }
-  return /* @__PURE__ */ jsxs6("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsxs8("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ jsx8(
       ColorField,
       {
         label: "\u9634\u5F71\u989C\u8272",
@@ -14899,13 +15826,13 @@ function EffectsSection(props) {
         onValueChange: setShadowColor
       }
     ),
-    /* @__PURE__ */ jsxs6("div", { style: grid2Style, children: [
-      /* @__PURE__ */ jsx6(LengthField, { label: "\u6A2A\u5411", value: shadowX, disabled, onChange: setShadowX, onCommit: () => commitShadow() }),
-      /* @__PURE__ */ jsx6(LengthField, { label: "\u7EB5\u5411", value: shadowY, disabled, onChange: setShadowY, onCommit: () => commitShadow() }),
-      /* @__PURE__ */ jsx6(LengthField, { label: "\u6A21\u7CCA", value: shadowBlur, disabled, onChange: setShadowBlur, onCommit: () => commitShadow() }),
-      /* @__PURE__ */ jsx6(LengthField, { label: "\u6269\u6563", value: shadowSpread, disabled, onChange: setShadowSpread, onCommit: () => commitShadow() })
+    /* @__PURE__ */ jsxs8("div", { style: grid2Style, children: [
+      /* @__PURE__ */ jsx8(LengthField, { label: "\u6A2A\u5411", value: shadowX, disabled, onChange: setShadowX, onCommit: () => commitShadow() }),
+      /* @__PURE__ */ jsx8(LengthField, { label: "\u7EB5\u5411", value: shadowY, disabled, onChange: setShadowY, onCommit: () => commitShadow() }),
+      /* @__PURE__ */ jsx8(LengthField, { label: "\u6A21\u7CCA", value: shadowBlur, disabled, onChange: setShadowBlur, onCommit: () => commitShadow() }),
+      /* @__PURE__ */ jsx8(LengthField, { label: "\u6269\u6563", value: shadowSpread, disabled, onChange: setShadowSpread, onCommit: () => commitShadow() })
     ] }),
-    /* @__PURE__ */ jsx6(Subsection, { title: "\u9AD8\u7EA7\u9634\u5F71", children: /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(Subsection, { title: "\u9AD8\u7EA7\u9634\u5F71", children: /* @__PURE__ */ jsx8(
       Input2.TextArea,
       {
         autoSize: { minRows: 2, maxRows: 5 },
@@ -14925,9 +15852,9 @@ function EffectsSection(props) {
   ] });
 }
 function Field(props) {
-  return /* @__PURE__ */ jsxs6("div", { style: fieldStyle, children: [
-    /* @__PURE__ */ jsxs6("div", { style: { ...labelStyle, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }, children: [
-      /* @__PURE__ */ jsx6("span", { children: props.label }),
+  return /* @__PURE__ */ jsxs8("div", { style: fieldStyle, children: [
+    /* @__PURE__ */ jsxs8("div", { style: { ...labelStyle, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }, children: [
+      /* @__PURE__ */ jsx8("span", { children: props.label }),
       props.action
     ] }),
     props.children
@@ -14936,21 +15863,21 @@ function Field(props) {
 function AxisModeToggleButton(props) {
   const { expanded, disabled, onClick } = props;
   const title = expanded ? "\u805A\u5408\u7F16\u8F91" : "\u9010\u9879\u7F16\u8F91";
-  return /* @__PURE__ */ jsx6(Tooltip2, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(Tooltip2, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx8(
     Button3,
     {
       type: "text",
       size: "small",
       "aria-label": title,
-      icon: expanded ? /* @__PURE__ */ jsx6(FullscreenExitOutlined, {}) : /* @__PURE__ */ jsx6(FullscreenOutlined, {}),
+      icon: expanded ? /* @__PURE__ */ jsx8(FullscreenExitOutlined, {}) : /* @__PURE__ */ jsx8(FullscreenOutlined, {}),
       disabled,
       onClick
     }
   ) });
 }
 function Subsection(props) {
-  return /* @__PURE__ */ jsxs6("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: [
-    /* @__PURE__ */ jsxs6(
+  return /* @__PURE__ */ jsxs8("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: [
+    /* @__PURE__ */ jsxs8(
       "div",
       {
         style: {
@@ -14964,7 +15891,7 @@ function Subsection(props) {
           gap: 8
         },
         children: [
-          /* @__PURE__ */ jsx6("span", { children: props.title }),
+          /* @__PURE__ */ jsx8("span", { children: props.title }),
           props.action
         ]
       }
@@ -14975,14 +15902,14 @@ function Subsection(props) {
 function SpacingModeToggleButton(props) {
   const { expanded, disabled, onClick } = props;
   const title = expanded ? "\u805A\u5408\u7F16\u8F91" : "\u9010\u9879\u7F16\u8F91";
-  return /* @__PURE__ */ jsx6(Tooltip2, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(Tooltip2, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ jsx8(
     Button3,
     {
       type: "text",
       size: "small",
       disabled,
       "aria-label": title,
-      icon: expanded ? /* @__PURE__ */ jsx6(FullscreenExitOutlined, {}) : /* @__PURE__ */ jsx6(FullscreenOutlined, {}),
+      icon: expanded ? /* @__PURE__ */ jsx8(FullscreenExitOutlined, {}) : /* @__PURE__ */ jsx8(FullscreenOutlined, {}),
       onClick
     }
   ) });
@@ -14990,7 +15917,7 @@ function SpacingModeToggleButton(props) {
 function SizeConstraintToggleButton(props) {
   const { expanded, disabled, onClick } = props;
   const title = expanded ? "\u9690\u85CF\u6700\u5C0F\u503C\u548C\u6700\u5927\u503C" : "\u663E\u793A\u6700\u5C0F\u503C\u548C\u6700\u5927\u503C";
-  return /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(
     Button3,
     {
       type: "text",
@@ -14999,15 +15926,15 @@ function SizeConstraintToggleButton(props) {
       "aria-label": title,
       onClick,
       style: { paddingInline: 4, color: PANEL_TEXT_SECONDARY },
-      children: /* @__PURE__ */ jsxs6("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
-        /* @__PURE__ */ jsx6("span", { children: "Min Max" }),
-        expanded ? /* @__PURE__ */ jsx6(UpOutlined, { style: { fontSize: 10 } }) : /* @__PURE__ */ jsx6(DownOutlined, { style: { fontSize: 10 } })
+      children: /* @__PURE__ */ jsxs8("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
+        /* @__PURE__ */ jsx8("span", { children: "Min Max" }),
+        expanded ? /* @__PURE__ */ jsx8(UpOutlined, { style: { fontSize: 10 } }) : /* @__PURE__ */ jsx8(DownOutlined, { style: { fontSize: 10 } })
       ] })
     }
   );
 }
 function LengthField(props) {
-  return /* @__PURE__ */ jsx6(Field, { label: props.label, children: /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(Field, { label: props.label, children: /* @__PURE__ */ jsx8(
     UnitValueInput,
     {
       value: props.value,
@@ -15029,8 +15956,8 @@ function BackgroundFillField(props) {
     onRefreshRequest,
     onValueChange
   } = props;
-  return /* @__PURE__ */ jsx6(Field, { label, children: /* @__PURE__ */ jsxs6("div", { style: colorRowStyle, children: [
-    /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(Field, { label, children: /* @__PURE__ */ jsxs8("div", { style: colorRowStyle, children: [
+    /* @__PURE__ */ jsx8(
       ColorPicker,
       {
         mode: ["single", "gradient"],
@@ -15047,10 +15974,10 @@ function BackgroundFillField(props) {
           onValueChange("");
           commitBackgroundFill(transactionManager, target, "", onRefreshRequest);
         },
-        children: /* @__PURE__ */ jsx6(SquareColorTriggerButton, { value })
+        children: /* @__PURE__ */ jsx8(SquareColorTriggerButton, { value })
       }
     ),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       Input2,
       {
         value,
@@ -15069,7 +15996,7 @@ function BackgroundFillField(props) {
         }
       }
     ),
-    tokensService && !isGradientCss(value) ? /* @__PURE__ */ jsx6(
+    tokensService && !isGradientCss(value) ? /* @__PURE__ */ jsx8(
       TokenPickerButton,
       {
         target,
@@ -15085,7 +16012,7 @@ function BackgroundFillField(props) {
   ] }) });
 }
 function PairLengthField(props) {
-  return /* @__PURE__ */ jsx6(Field, { label: props.label, children: /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(Field, { label: props.label, children: /* @__PURE__ */ jsx8(
     UnitValueInput,
     {
       value: props.value,
@@ -15100,21 +16027,21 @@ function PairLengthField(props) {
   ) });
 }
 function UnitValueInput(props) {
-  const parsed = React6.useMemo(() => parseUnitValue(props.value), [props.value]);
-  const commitRawValue = React6.useCallback(
+  const parsed = React8.useMemo(() => parseUnitValue(props.value), [props.value]);
+  const commitRawValue = React8.useCallback(
     (nextRawValue) => {
       props.onCommit(nextRawValue);
     },
     [props]
   );
-  const commitAmountValue = React6.useCallback(
+  const commitAmountValue = React8.useCallback(
     (nextAmountValue, unit) => {
       props.onCommit(resolveUnitAmountCommitValue(nextAmountValue, unit));
     },
     [props]
   );
   if (parsed.kind === "raw") {
-    return /* @__PURE__ */ jsx6(
+    return /* @__PURE__ */ jsx8(
       Input2,
       {
         size: "small",
@@ -15143,8 +16070,8 @@ function UnitValueInput(props) {
   const amountPlaceholder = isSpecialUnit ? selectedUnitLabel : props.placeholder;
   const amountInputStyle = isSpecialUnit ? compactValueInputWideStyle : compactValueInputStyle;
   const unitSelectStyle = isSpecialUnit ? compactUnitSelectWideStyle : compactUnitSelectStyle;
-  return /* @__PURE__ */ jsxs6(Space.Compact, { block: true, className: "we-runtime-prop-panel__unit-input", style: unitInputRowStyle, children: [
-    /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsxs8(Space.Compact, { block: true, className: "we-runtime-prop-panel__unit-input", style: unitInputRowStyle, children: [
+    /* @__PURE__ */ jsx8(
       Input2,
       {
         className: "we-runtime-prop-panel__unit-input-amount",
@@ -15159,7 +16086,7 @@ function UnitValueInput(props) {
         onPressEnter: (event) => commitAmountValue(event.currentTarget.value, parsed.unit)
       }
     ),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       Select,
       {
         className: "we-runtime-prop-panel__unit-input-unit",
@@ -15194,7 +16121,7 @@ function ColorField(props) {
   } = props;
   const tokenRef = tokensService?.parseCssVar(value.trim()) ?? null;
   const literalValue = tokenRef ? tokensService?.resolveToken(target, tokenRef.name).computedValue ?? "" : value;
-  const commitValue = React6.useCallback(
+  const commitValue = React8.useCallback(
     (nextValue) => {
       if (property === "box-shadow-color") {
         const current = readStyleValue(target, "box-shadow");
@@ -15209,8 +16136,8 @@ function ColorField(props) {
     },
     [onRefreshRequest, onValueChange, property, target, transactionManager]
   );
-  return /* @__PURE__ */ jsx6(Field, { label, children: /* @__PURE__ */ jsxs6("div", { style: colorRowStyle, children: [
-    /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(Field, { label, children: /* @__PURE__ */ jsxs8("div", { style: colorRowStyle, children: [
+    /* @__PURE__ */ jsx8(
       ColorPicker,
       {
         value: isColorValue(literalValue) ? literalValue : "#ffffff",
@@ -15221,10 +16148,10 @@ function ColorField(props) {
           const nextValue = css || next.toCssString();
           commitValue(nextValue);
         },
-        children: /* @__PURE__ */ jsx6(SquareColorTriggerButton, { value: literalValue })
+        children: /* @__PURE__ */ jsx8(SquareColorTriggerButton, { value: literalValue })
       }
     ),
-    /* @__PURE__ */ jsx6(
+    /* @__PURE__ */ jsx8(
       Input2,
       {
         value,
@@ -15235,7 +16162,7 @@ function ColorField(props) {
         onPressEnter: () => commitValue(value.trim())
       }
     ),
-    tokensService ? /* @__PURE__ */ jsx6(
+    tokensService ? /* @__PURE__ */ jsx8(
       TokenPickerButton,
       {
         target,
@@ -15248,7 +16175,7 @@ function ColorField(props) {
         onValueChange
       }
     ) : null,
-    tokenRef && tokensService ? /* @__PURE__ */ jsx6(
+    tokenRef && tokensService ? /* @__PURE__ */ jsx8(
       Button3,
       {
         size: "small",
@@ -15263,18 +16190,18 @@ function ColorField(props) {
     ) : null
   ] }) });
 }
-var SquareColorTriggerButton = React6.forwardRef(
+var SquareColorTriggerButton = React8.forwardRef(
   function SquareColorTriggerButton2(props, ref) {
     const { value, style, ...triggerProps } = props;
     const previewBackground = resolveColorPreviewBackground(value);
-    return /* @__PURE__ */ jsx6(
+    return /* @__PURE__ */ jsx8(
       "span",
       {
         ...triggerProps,
         ref,
         "data-we-prompt-primary-focus-exempt": "true",
         style: { ...squareColorTriggerStyle, ...style },
-        children: /* @__PURE__ */ jsx6(
+        children: /* @__PURE__ */ jsx8(
           "span",
           {
             style: {
@@ -15298,14 +16225,14 @@ function TokenPickerButton(props) {
     onApplied,
     onValueChange
   } = props;
-  const [open, setOpen] = React6.useState(false);
-  const [query, setQuery] = React6.useState("");
-  const tokens = React6.useMemo(() => {
+  const [open, setOpen] = React8.useState(false);
+  const [query, setQuery] = React8.useState("");
+  const tokens = React8.useMemo(() => {
     return tokensService.getContextTokens(target).tokens.filter((entry) => {
       return entry.computedValue.trim() !== "";
     });
   }, [target, tokensService]);
-  const filteredTokens = React6.useMemo(() => {
+  const filteredTokens = React8.useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return tokens;
     return tokens.filter((entry) => {
@@ -15314,15 +16241,15 @@ function TokenPickerButton(props) {
       return name.includes(keyword) || value.includes(keyword);
     });
   }, [query, tokens]);
-  return /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(
     Popover,
     {
       trigger: ["click"],
       open,
       onOpenChange: setOpen,
       getPopupContainer: resolveRuntimePopupContainer,
-      content: /* @__PURE__ */ jsxs6("div", { style: { width: 280, display: "flex", flexDirection: "column", gap: 8 }, children: [
-        /* @__PURE__ */ jsx6(
+      content: /* @__PURE__ */ jsxs8("div", { style: { width: 280, display: "flex", flexDirection: "column", gap: 8 }, children: [
+        /* @__PURE__ */ jsx8(
           Input2,
           {
             size: "small",
@@ -15331,7 +16258,7 @@ function TokenPickerButton(props) {
             onChange: (event) => setQuery(event.target.value)
           }
         ),
-        /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx8(
           "div",
           {
             style: {
@@ -15341,7 +16268,7 @@ function TokenPickerButton(props) {
               maxHeight: 280,
               overflowY: "auto"
             },
-            children: filteredTokens.length > 0 ? filteredTokens.map((entry) => /* @__PURE__ */ jsx6(
+            children: filteredTokens.length > 0 ? filteredTokens.map((entry) => /* @__PURE__ */ jsx8(
               Button3,
               {
                 size: "small",
@@ -15364,16 +16291,16 @@ function TokenPickerButton(props) {
                   setOpen(false);
                   setQuery("");
                 },
-                children: /* @__PURE__ */ jsxs6(Space, { direction: "vertical", size: 0, style: { alignItems: "flex-start" }, children: [
-                  /* @__PURE__ */ jsx6("span", { style: { fontSize: 11, fontWeight: 600, color: PANEL_TEXT_PRIMARY }, children: entry.token.name }),
-                  /* @__PURE__ */ jsx6("span", { style: { fontSize: 10, color: PANEL_TOKEN_NOTE }, children: entry.computedValue })
+                children: /* @__PURE__ */ jsxs8(Space, { direction: "vertical", size: 0, style: { alignItems: "flex-start" }, children: [
+                  /* @__PURE__ */ jsx8("span", { style: { fontSize: 11, fontWeight: 600, color: PANEL_TEXT_PRIMARY }, children: entry.token.name }),
+                  /* @__PURE__ */ jsx8("span", { style: { fontSize: 10, color: PANEL_TOKEN_NOTE }, children: entry.computedValue })
                 ] })
               },
               entry.token.name
-            )) : /* @__PURE__ */ jsx6("div", { style: { fontSize: 11, color: PANEL_TOKEN_NOTE }, children: "\u6CA1\u6709\u5339\u914D\u5230\u8BBE\u8BA1\u4EE4\u724C\u3002" })
+            )) : /* @__PURE__ */ jsx8("div", { style: { fontSize: 11, color: PANEL_TOKEN_NOTE }, children: "\u6CA1\u6709\u5339\u914D\u5230\u8BBE\u8BA1\u4EE4\u724C\u3002" })
           }
         ),
-        currentValue ? /* @__PURE__ */ jsxs6(
+        currentValue ? /* @__PURE__ */ jsxs8(
           Button3,
           {
             size: "small",
@@ -15389,7 +16316,7 @@ function TokenPickerButton(props) {
           }
         ) : null
       ] }),
-      children: /* @__PURE__ */ jsx6(Button3, { size: "small", icon: /* @__PURE__ */ jsx6(LinkOutlined, {}), disabled })
+      children: /* @__PURE__ */ jsx8(Button3, { size: "small", icon: /* @__PURE__ */ jsx8(LinkOutlined, {}), disabled })
     }
   );
 }
@@ -15651,11 +16578,11 @@ function normalizeLength(raw) {
 }
 
 // src/ui/runtime/prompt-card-scroll-area.tsx
-import React7 from "react";
+import React9 from "react";
 import {
   OverlayScrollbarsComponent
 } from "overlayscrollbars-react";
-import { jsx as jsx7 } from "react/jsx-runtime";
+import { jsx as jsx9 } from "react/jsx-runtime";
 var PROMPT_CARD_SCROLL_OPTIONS = {
   overflow: {
     x: "hidden",
@@ -15704,8 +16631,8 @@ function resolvePromptCardScrollViewport(rootRef) {
 }
 function PromptCardScrollArea(props) {
   const { children, style } = props;
-  const rootRef = React7.useRef(null);
-  const handleWheelCapture = React7.useCallback((event) => {
+  const rootRef = React9.useRef(null);
+  const handleWheelCapture = React9.useCallback((event) => {
     const viewport = resolvePromptCardScrollViewport(rootRef.current);
     if (!viewport) {
       return;
@@ -15727,7 +16654,7 @@ function PromptCardScrollArea(props) {
     event.stopPropagation();
     viewport.scrollTop = nextOffset;
   }, []);
-  return /* @__PURE__ */ jsx7(
+  return /* @__PURE__ */ jsx9(
     OverlayScrollbarsComponent,
     {
       ref: rootRef,
@@ -15737,43 +16664,43 @@ function PromptCardScrollArea(props) {
       style: { width: "100%", ...style },
       options: PROMPT_CARD_SCROLL_OPTIONS,
       onWheelCapture: handleWheelCapture,
-      children: /* @__PURE__ */ jsx7("div", { className: "we-runtime-prompt-card__scroll-content", children })
+      children: /* @__PURE__ */ jsx9("div", { className: "we-runtime-prompt-card__scroll-content", children })
     }
   );
 }
 
 // src/ui/runtime/prompt-card-design-editor.tsx
-import { jsx as jsx8, jsxs as jsxs7 } from "react/jsx-runtime";
+import { jsx as jsx10, jsxs as jsxs9 } from "react/jsx-runtime";
 var mergedGroupStackStyle = {
   display: "flex",
   flexDirection: "column",
   gap: 10
 };
 function PromptCardGroupDivider() {
-  return /* @__PURE__ */ jsx8("div", { className: "we-runtime-prompt-card__group-divider", "aria-hidden": "true" });
+  return /* @__PURE__ */ jsx10("div", { className: "we-runtime-prompt-card__group-divider", "aria-hidden": "true" });
 }
 function PromptCardLayoutPanel(props) {
-  return /* @__PURE__ */ jsxs7("div", { style: mergedGroupStackStyle, children: [
-    /* @__PURE__ */ jsx8(SpacingSection, { ...props }),
-    /* @__PURE__ */ jsx8(PromptCardGroupDivider, {}),
-    /* @__PURE__ */ jsx8(SizeSection, { ...props, variant: "prompt-card" })
+  return /* @__PURE__ */ jsxs9("div", { style: mergedGroupStackStyle, children: [
+    /* @__PURE__ */ jsx10(SpacingSection, { ...props }),
+    /* @__PURE__ */ jsx10(PromptCardGroupDivider, {}),
+    /* @__PURE__ */ jsx10(SizeSection, { ...props, variant: "prompt-card" })
   ] });
 }
 function PromptCardTypographyPanel(props) {
-  return /* @__PURE__ */ jsx8(TypographySection, { ...props, variant: "prompt-card" });
+  return /* @__PURE__ */ jsx10(TypographySection, { ...props, variant: "prompt-card" });
 }
 function PromptCardCommonColorsPanel(props) {
-  return /* @__PURE__ */ jsxs7("div", { style: mergedGroupStackStyle, children: [
-    /* @__PURE__ */ jsx8(CommonColorsSection, { ...props }),
-    /* @__PURE__ */ jsx8(PromptCardGroupDivider, {}),
-    /* @__PURE__ */ jsx8(AppearanceSection, { ...props })
+  return /* @__PURE__ */ jsxs9("div", { style: mergedGroupStackStyle, children: [
+    /* @__PURE__ */ jsx10(CommonColorsSection, { ...props }),
+    /* @__PURE__ */ jsx10(PromptCardGroupDivider, {}),
+    /* @__PURE__ */ jsx10(AppearanceSection, { ...props })
   ] });
 }
 function PromptCardBorderEffectsPanel(props) {
-  return /* @__PURE__ */ jsxs7("div", { style: mergedGroupStackStyle, children: [
-    /* @__PURE__ */ jsx8(BorderSection, { ...props, hideColorField: true }),
-    /* @__PURE__ */ jsx8(PromptCardGroupDivider, {}),
-    /* @__PURE__ */ jsx8(EffectsSection, { ...props, variant: "prompt-card" })
+  return /* @__PURE__ */ jsxs9("div", { style: mergedGroupStackStyle, children: [
+    /* @__PURE__ */ jsx10(BorderSection, { ...props, hideColorField: true }),
+    /* @__PURE__ */ jsx10(PromptCardGroupDivider, {}),
+    /* @__PURE__ */ jsx10(EffectsSection, { ...props, variant: "prompt-card" })
   ] });
 }
 var GROUPS = [
@@ -15807,12 +16734,12 @@ function PromptCardDesignEditor(props) {
     onDeleteElement,
     defaultGroupId = "colors"
   } = props;
-  const [activeGroupId, setActiveGroupId] = React8.useState(defaultGroupId);
-  const snapshot = React8.useMemo(
+  const [activeGroupId, setActiveGroupId] = React10.useState(defaultGroupId);
+  const snapshot = React10.useMemo(
     () => target ? createStyleSnapshot(target) : null,
     [target, refreshKey]
   );
-  React8.useEffect(() => {
+  React10.useEffect(() => {
     setActiveGroupId((current) => {
       if (GROUPS.some((group) => group.id === current)) {
         return current;
@@ -15821,7 +16748,7 @@ function PromptCardDesignEditor(props) {
     });
   }, [defaultGroupId]);
   if (!target || !snapshot) {
-    return /* @__PURE__ */ jsx8("div", { style: { paddingTop: 10 }, children: /* @__PURE__ */ jsx8(
+    return /* @__PURE__ */ jsx10("div", { style: { paddingTop: 10 }, children: /* @__PURE__ */ jsx10(
       Empty2,
       {
         image: Empty2.PRESENTED_IMAGE_SIMPLE,
@@ -15840,9 +16767,9 @@ function PromptCardDesignEditor(props) {
   };
   const activeGroup = GROUPS.find((group) => group.id === activeGroupId) ?? GROUPS[0];
   const ActiveGroupPanel = activeGroup.render;
-  return /* @__PURE__ */ jsxs7("div", { "data-we-prompt-primary-focus-exempt": "true", style: editorShellStyle, children: [
-    /* @__PURE__ */ jsxs7("div", { style: tabStripStyle, children: [
-      /* @__PURE__ */ jsx8(
+  return /* @__PURE__ */ jsxs9("div", { "data-we-prompt-primary-focus-exempt": "true", style: editorShellStyle, children: [
+    /* @__PURE__ */ jsxs9("div", { style: tabStripStyle, children: [
+      /* @__PURE__ */ jsx10(
         Segmented2,
         {
           value: activeGroup.id,
@@ -15853,7 +16780,7 @@ function PromptCardDesignEditor(props) {
           onChange: (value) => setActiveGroupId(String(value))
         }
       ),
-      /* @__PURE__ */ jsx8(
+      /* @__PURE__ */ jsx10(
         Popconfirm,
         {
           title: "\u5220\u9664\u5F53\u524D\u5143\u7D20",
@@ -15864,11 +16791,11 @@ function PromptCardDesignEditor(props) {
           disabled: disabled || !onDeleteElement,
           getPopupContainer: resolveRuntimePopupContainer,
           onConfirm: () => onDeleteElement?.(target),
-          children: /* @__PURE__ */ jsx8("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx8(
+          children: /* @__PURE__ */ jsx10("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx10(
             IconActionButton,
             {
               title: "\u5220\u9664\u5F53\u524D\u5143\u7D20\uFF08Delete / Backspace\uFF09",
-              icon: /* @__PURE__ */ jsx8(DeleteOutlined, {}),
+              icon: /* @__PURE__ */ jsx10(DeleteOutlined, {}),
               tone: "dark",
               disabled: disabled || !onDeleteElement
             }
@@ -15876,12 +16803,12 @@ function PromptCardDesignEditor(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ jsx8(PromptCardScrollArea, { style: contentStyle, children: /* @__PURE__ */ jsx8(ActiveGroupPanel, { ...sectionProps }) })
+    /* @__PURE__ */ jsx10(PromptCardScrollArea, { style: contentStyle, children: /* @__PURE__ */ jsx10(ActiveGroupPanel, { ...sectionProps }) })
   ] });
 }
 
 // src/ui/runtime/prompt-card-view.tsx
-import { Fragment as Fragment5, jsx as jsx9, jsxs as jsxs8 } from "react/jsx-runtime";
+import { Fragment as Fragment6, jsx as jsx11, jsxs as jsxs10 } from "react/jsx-runtime";
 function normalizePromptStyleSummaryLine(line) {
   return line.replace(/^样式\s+/u, "").trim();
 }
@@ -16104,7 +17031,7 @@ function dismissPromptCardTerminalState(options) {
   onDismissSelection?.();
   return true;
 }
-var PromptCardView = React9.forwardRef(
+var PromptCardView = React11.forwardRef(
   function PromptCardView2(props, ref) {
     const {
       options,
@@ -16188,61 +17115,62 @@ var PromptCardView = React9.forwardRef(
     const isAnnotationSession = interactionProfile === "annotation";
     const textCommentMode = interactionProfile === "text-comment";
     const componentComposer = Boolean(onDocumentComponent && !isAnnotationSession && !externalAnnotationMode && !textCommentMode);
-    const rootRef = React9.useRef(null);
-    const textComposerRef = React9.useRef(null);
-    const noteComposerRef = React9.useRef(null);
-    const inlineTextEditingRef = React9.useRef(inlineTextEditing);
-    const [portalContainer, setPortalContainer] = React9.useState(null);
-    const [promptCardSize, setPromptCardSize] = React9.useState(null);
-    const [sendingCurrentElementPrompt, setSendingCurrentElementPrompt] = React9.useState(false);
-    const [savingComment, setSavingComment] = React9.useState(false);
-    const savingCommentRef = React9.useRef(false);
-    const [refreshKey, setRefreshKey] = React9.useState(0);
-    const [selectedSkills, setSelectedSkills] = React9.useState([]);
-    const [promptDismissed, setPromptDismissed] = React9.useState(false);
-    const [newPrototypeRequested, setGenerateNewPrototype] = React9.useState(false);
+    const purposeComposer = componentComposer && Boolean(props.componentComments) && selectedElementCount === 1;
+    const rootRef = React11.useRef(null);
+    const textComposerRef = React11.useRef(null);
+    const noteComposerRef = React11.useRef(null);
+    const inlineTextEditingRef = React11.useRef(inlineTextEditing);
+    const [portalContainer, setPortalContainer] = React11.useState(null);
+    const [promptCardSize, setPromptCardSize] = React11.useState(null);
+    const [sendingCurrentElementPrompt, setSendingCurrentElementPrompt] = React11.useState(false);
+    const [savingComment, setSavingComment] = React11.useState(false);
+    const savingCommentRef = React11.useRef(false);
+    const [refreshKey, setRefreshKey] = React11.useState(0);
+    const [selectedSkills, setSelectedSkills] = React11.useState([]);
+    const [promptDismissed, setPromptDismissed] = React11.useState(false);
+    const [newPrototypeRequested, setGenerateNewPrototype] = React11.useState(false);
     const generateNewPrototype = resolveComponentPrototypeDestination({
       requested: newPrototypeRequested,
       generatorAvailable: Boolean(onGenerateComponentStates),
       interactionProfile,
       externalAnnotationMode
     });
-    React9.useEffect(() => setGenerateNewPrototype(false), [currentTarget, selectedElementCount, isAnnotationSession, externalAnnotationMode, textCommentMode, onGenerateComponentStates]);
-    const [externalCommentsToolOpen, setExternalCommentsToolOpen] = React9.useState(true);
-    const [hoveredExternalCommentId, setHoveredExternalCommentId] = React9.useState(null);
-    const [annotationEditorOpen, setAnnotationEditorOpen] = React9.useState(
+    React11.useEffect(() => setGenerateNewPrototype(false), [currentTarget, selectedElementCount, isAnnotationSession, externalAnnotationMode, textCommentMode, onGenerateComponentStates]);
+    const [externalCommentsToolOpen, setExternalCommentsToolOpen] = React11.useState(true);
+    const [hoveredExternalCommentId, setHoveredExternalCommentId] = React11.useState(null);
+    const [annotationEditorOpen, setAnnotationEditorOpen] = React11.useState(
       () => readAnnotationInputModePreference() === "edit"
     );
-    const setAnnotationInputMode = React9.useCallback((mode) => {
+    const setAnnotationInputMode = React11.useCallback((mode) => {
       writeAnnotationInputModePreference(mode);
       setAnnotationEditorOpen(mode === "edit");
     }, []);
-    const [runningElementToolId, setRunningElementToolId] = React9.useState(null);
-    const [elementToolError, setElementToolError] = React9.useState("");
-    const externalComments = React9.useMemo(
+    const [runningElementToolId, setRunningElementToolId] = React11.useState(null);
+    const [elementToolError, setElementToolError] = React11.useState("");
+    const externalComments = React11.useMemo(
       () => savedNoteMeta?.externalComments ?? [],
       [savedNoteMeta?.externalComments, refreshKey]
     );
-    const externalCommentGroups = React9.useMemo(
+    const externalCommentGroups = React11.useMemo(
       () => groupExternalCommentsByAuthor(externalComments),
       [externalComments, refreshKey]
     );
-    const externalCommentEntries = React9.useMemo(
+    const externalCommentEntries = React11.useMemo(
       () => externalCommentGroups.flatMap((group) => group.comments.map((comment) => ({ group, comment }))),
       [externalCommentGroups]
     );
     const elementTools = options.getElementTools?.(currentTarget) ?? [];
     const hasElementTools = elementTools.length > 0;
-    const skillTrigger = React9.useMemo(() => findPromptCardSkillTrigger(draftNote), [draftNote]);
-    const promptCardSkills = React9.useMemo(
+    const skillTrigger = React11.useMemo(() => findPromptCardSkillTrigger(draftNote), [draftNote]);
+    const promptCardSkills = React11.useMemo(
       () => mergePromptCardSkills(skillOptions ?? []),
       [skillOptions]
     );
-    const filteredSkills = React9.useMemo(
+    const filteredSkills = React11.useMemo(
       () => filterPromptCardSkills(skillTrigger?.query ?? "", enabledSkillIds, promptCardSkills),
       [enabledSkillIds, promptCardSkills, skillTrigger?.query]
     );
-    const selectedSkillsDirty = React9.useMemo(() => {
+    const selectedSkillsDirty = React11.useMemo(() => {
       const savedSkillIds = savedNoteMeta?.skillIds ?? [];
       const selectedSkillIds = selectedSkills.map((skill) => skill.id);
       return selectedSkillIds.join("\0") !== savedSkillIds.join("\0");
@@ -16250,32 +17178,32 @@ var PromptCardView = React9.forwardRef(
     const skillMenuOpen = Boolean(
       skillTrigger && !inlineTextEditing && canEditNote && filteredSkills.length > 0
     );
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       inlineTextEditingRef.current = inlineTextEditing;
     }, [inlineTextEditing]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       setSelectedSkills(
         deserializePromptCardSkillSelection(savedNoteMeta, enabledSkillIds, skillOptions ?? [])
       );
       setRunningElementToolId(null);
       setElementToolError("");
     }, [enabledSkillIds, savedNoteMeta, currentTarget, skillOptions]);
-    React9.useLayoutEffect(() => {
+    React11.useLayoutEffect(() => {
       setPromptDismissed(false);
-    }, [currentTarget]);
-    React9.useLayoutEffect(() => {
+    }, [currentTarget, props.commentEditRequest?.revision]);
+    React11.useLayoutEffect(() => {
       setExternalCommentsToolOpen(true);
     }, [currentTarget, externalAnnotationMode]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (isAnnotationSession && bubbleStyleEditorOpen) {
         onBubbleStyleEditorOpenChange(false);
       }
     }, [bubbleStyleEditorOpen, isAnnotationSession, onBubbleStyleEditorOpenChange]);
-    const onConfirmNoteWithSelectedSkills = React9.useCallback(async () => {
+    const onConfirmNoteWithSelectedSkills = React11.useCallback(async () => {
       const payload = buildPromptCardSkillSavePayload(draftNote, selectedSkills);
       await onConfirmNote({ skillIds: payload.skillIds });
     }, [draftNote, onConfirmNote, selectedSkills]);
-    React9.useImperativeHandle(
+    React11.useImperativeHandle(
       ref,
       () => ({
         setTarget(element) {
@@ -16293,7 +17221,7 @@ var PromptCardView = React9.forwardRef(
       }),
       [onAnchorRectChange, onInlineTextEditingChange, onTargetChange]
     );
-    const focusPromptTextInput = React9.useCallback(() => {
+    const focusPromptTextInput = React11.useCallback(() => {
       if (inlineTextEditing) return false;
       if (inlineTextEditingRef.current) return false;
       const input = textComposerRef.current?.querySelector("input");
@@ -16310,7 +17238,7 @@ var PromptCardView = React9.forwardRef(
       }
       return true;
     }, [inlineTextEditing]);
-    const focusPromptTextarea = React9.useCallback(() => {
+    const focusPromptTextarea = React11.useCallback(() => {
       if (inlineTextEditing) return false;
       if (inlineTextEditingRef.current) return false;
       const textarea = noteComposerRef.current?.querySelector("textarea");
@@ -16328,7 +17256,7 @@ var PromptCardView = React9.forwardRef(
       }
       return true;
     }, [inlineTextEditing]);
-    const ensurePromptPrimaryFocus = React9.useCallback(
+    const ensurePromptPrimaryFocus = React11.useCallback(
       (attempts = 6) => {
         if (inlineTextEditingRef.current) return;
         let rafId = 0;
@@ -16362,7 +17290,7 @@ var PromptCardView = React9.forwardRef(
     const promptPositionBaseVisible = Boolean(
       currentTarget && anchorRect && !toolMinimized && uiMode === "bubble-card"
     );
-    React9.useLayoutEffect(() => {
+    React11.useLayoutEffect(() => {
       if (!promptPositionBaseVisible) {
         setPromptCardSize(null);
         return;
@@ -16399,8 +17327,8 @@ var PromptCardView = React9.forwardRef(
       propertyPanelEnabled,
       bubbleStyleEditorOpen
     ]);
-    const [visualViewportKey, setVisualViewportKey] = React9.useState(0);
-    React9.useEffect(() => {
+    const [visualViewportKey, setVisualViewportKey] = React11.useState(0);
+    React11.useEffect(() => {
       const vv = isMobileDevice() ? window.visualViewport : null;
       const handleResize = () => setVisualViewportKey((k) => k + 1);
       window.addEventListener("resize", handleResize);
@@ -16410,7 +17338,7 @@ var PromptCardView = React9.forwardRef(
         vv?.removeEventListener("resize", handleResize);
       };
     }, []);
-    const promptPosition = React9.useMemo(() => {
+    const promptPosition = React11.useMemo(() => {
       if (!currentTarget || !anchorRect || toolMinimized || uiMode !== "bubble-card") return null;
       const mobileWidth = isMobileDevice() ? Math.max(200, window.innerWidth - 16) : promptCardSize?.width ?? (componentComposer ? 360 : PROMPT_CARD_WIDTH);
       return computePromptCardPosition({
@@ -16421,6 +17349,7 @@ var PromptCardView = React9.forwardRef(
         viewportHeight: window.innerHeight,
         propertyPanelEnabled: commentListOpen && window.innerWidth > 760 || propertyPanelEnabled && (!pinnedToTopRight || propertyPanelOpen),
         pinnedToTopRight,
+        stackWithCommentList: purposeComposer && commentListOpen,
         safePaddingPx: SAFE_PADDING_PX,
         propertyPanelWidth: commentListOpen && window.innerWidth > 760 ? 320 : PROPERTY_PANEL_WIDTH,
         propertyPanelRight: commentListOpen && window.innerWidth > 760 ? 52 : PROPERTY_PANEL_RIGHT,
@@ -16430,6 +17359,7 @@ var PromptCardView = React9.forwardRef(
       anchorRect,
       currentTarget,
       componentComposer,
+      purposeComposer,
       promptCardSize,
       propertyPanelEnabled,
       pinnedToTopRight,
@@ -16442,7 +17372,7 @@ var PromptCardView = React9.forwardRef(
     const promptVisible = Boolean(
       currentTarget && promptPosition && promptCardSize && !toolMinimized && uiMode === "bubble-card" && !promptDismissed
     );
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!promptVisible || uiMode !== "bubble-card") {
         setSelectedSkills([]);
       }
@@ -16450,31 +17380,31 @@ var PromptCardView = React9.forwardRef(
         setAnnotationEditorOpen(false);
       }
     }, [isAnnotationSession, promptVisible, uiMode]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!isAnnotationSession && !canEditAnnotationMarkdown) {
         setAnnotationEditorOpen(false);
       }
     }, [canEditAnnotationMarkdown, isAnnotationSession]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!isAnnotationSession) return;
       setAnnotationEditorOpen(readAnnotationInputModePreference() === "edit");
     }, [isAnnotationSession]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!isAnnotationSession && bubbleStyleEditorOpen) {
         setAnnotationEditorOpen(false);
       }
     }, [bubbleStyleEditorOpen, isAnnotationSession]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!hasElementTools || !bubbleStyleEditorOpen) return;
       onBubbleStyleEditorOpenChange(false);
     }, [bubbleStyleEditorOpen, hasElementTools, onBubbleStyleEditorOpenChange]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       onPromptCardVisibleChange?.(promptVisible);
     }, [onPromptCardVisibleChange, promptVisible]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       return () => onPromptCardVisibleChange?.(false);
     }, [onPromptCardVisibleChange]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!promptVisible || !currentTarget || toolMinimized || uiMode !== "bubble-card" || inlineTextEditing)
         return;
       if (!isMobileDevice()) {
@@ -16494,11 +17424,11 @@ var PromptCardView = React9.forwardRef(
       toolMinimized,
       uiMode
     ]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!inlineTextEditing || promptVisible) return;
       onInlineTextEditingChange(false);
     }, [inlineTextEditing, onInlineTextEditingChange, promptVisible]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!inlineTextEditing) return;
       const textarea = noteComposerRef.current?.querySelector("textarea");
       if (textarea instanceof HTMLTextAreaElement) {
@@ -16509,7 +17439,7 @@ var PromptCardView = React9.forwardRef(
         input.blur();
       }
     }, [inlineTextEditing]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!promptVisible || uiMode !== "bubble-card") return;
       const handleWheel = (event) => {
         const root = rootRef.current;
@@ -16526,7 +17456,7 @@ var PromptCardView = React9.forwardRef(
         window.removeEventListener("wheel", handleWheel, true);
       };
     }, [promptVisible, uiMode]);
-    const saveAndCloseNoteComposer = React9.useCallback(async () => {
+    const saveAndCloseNoteComposer = React11.useCallback(async () => {
       await onConfirmNoteWithSelectedSkills();
       setSelectedSkills([]);
       const textarea = noteComposerRef.current?.querySelector("textarea");
@@ -16535,7 +17465,7 @@ var PromptCardView = React9.forwardRef(
       }
       onDismissSelection?.();
     }, [onConfirmNoteWithSelectedSkills, onDismissSelection]);
-    const handleSaveComment = React9.useCallback(async () => {
+    const handleSaveComment = React11.useCallback(async () => {
       if (savingCommentRef.current || !canEditNote) return;
       savingCommentRef.current = true;
       setSavingComment(true);
@@ -16549,7 +17479,7 @@ var PromptCardView = React9.forwardRef(
         setSavingComment(false);
       }
     }, [canEditNote, onConfirmNoteWithSelectedSkills, onPersistComments, onCommentSaved]);
-    const saveAndDismissPromptCard = React9.useCallback(async () => {
+    const saveAndDismissPromptCard = React11.useCallback(async () => {
       setSelectedSkills([]);
       setPromptDismissed(true);
       const activeElement = document.activeElement;
@@ -16580,7 +17510,7 @@ var PromptCardView = React9.forwardRef(
       options.getCreateAnnotationBlockReason,
       options.resolveAnnotationTarget
     ]);
-    const saveAndCloseAnnotationMarkdownComposer = React9.useCallback(async () => {
+    const saveAndCloseAnnotationMarkdownComposer = React11.useCallback(async () => {
       if (!documentSourceMarkdownEditor && getAnnotationManualEditLocatorState(
         currentTarget,
         void 0,
@@ -16603,10 +17533,10 @@ var PromptCardView = React9.forwardRef(
       options.getCreateAnnotationBlockReason,
       options.resolveAnnotationTarget
     ]);
-    const clearSelectedSkills = React9.useCallback(() => {
+    const clearSelectedSkills = React11.useCallback(() => {
       setSelectedSkills([]);
     }, []);
-    const handleSkillSelect = React9.useCallback(
+    const handleSkillSelect = React11.useCallback(
       (skill) => {
         const nextDraftNote = clearPromptCardSkillTrigger(draftNote);
         setSelectedSkills((current) => addPromptCardSkillSelection(current, skill));
@@ -16617,23 +17547,23 @@ var PromptCardView = React9.forwardRef(
       },
       [draftNote, ensurePromptPrimaryFocus, onDraftChange]
     );
-    const handleSkillRemove = React9.useCallback((skillId) => {
+    const handleSkillRemove = React11.useCallback((skillId) => {
       setSelectedSkills((current) => current.filter((skill) => skill.id !== skillId));
     }, []);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       setPortalContainer(
         options.container.querySelector(
           `[${WEB_EDITOR_POPUP_ROOT_ATTR}="true"]`
         )
       );
     }, [options.container]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       if (!promptVisible) {
         onHoverSelectionSuppressedChange(false);
         onSelectionInteractionLockChange(false);
       }
     }, [onHoverSelectionSuppressedChange, onSelectionInteractionLockChange, promptVisible]);
-    React9.useEffect(() => {
+    React11.useEffect(() => {
       return () => {
         onHoverSelectionSuppressedChange(false);
         onSelectionInteractionLockChange(false);
@@ -16683,7 +17613,7 @@ var PromptCardView = React9.forwardRef(
       getHasReusableAgentConversation,
       getAgentBridgeConnected
     });
-    const dismissTerminalTaskAndSelection = React9.useCallback(
+    const dismissTerminalTaskAndSelection = React11.useCallback(
       () => dismissPromptCardTerminalState({
         currentTarget,
         currentTaskTerminal,
@@ -16691,7 +17621,7 @@ var PromptCardView = React9.forwardRef(
       }),
       [currentTarget, currentTaskTerminal, onDismissSelection]
     );
-    const handlePromptCardClose = React9.useCallback(() => {
+    const handlePromptCardClose = React11.useCallback(() => {
       if (generateNewPrototype) {
         setPromptDismissed(true);
         onDismissSelection?.();
@@ -16734,11 +17664,12 @@ var PromptCardView = React9.forwardRef(
       getSendCurrentElementPromptToAgentBlockReason: () => currentElementBlockReason,
       hasReusableConversation
     });
-    React9.useLayoutEffect(() => {
+    React11.useLayoutEffect(() => {
+      if (purposeComposer) return;
       if (!currentElementPromptAction.dismissBubble) return;
       setPromptDismissed(true);
-    }, [currentElementPromptAction.dismissBubble]);
-    React9.useEffect(() => {
+    }, [currentElementPromptAction.dismissBubble, purposeComposer]);
+    React11.useEffect(() => {
       if (!promptVisible || uiMode !== "bubble-card" || !currentTaskTerminal) return;
       const handleWindowKeyDown = (event) => {
         if (event.isComposing || event.key !== "Escape") return;
@@ -16751,7 +17682,7 @@ var PromptCardView = React9.forwardRef(
         window.removeEventListener("keydown", handleWindowKeyDown, true);
       };
     }, [currentTaskTerminal, dismissTerminalTaskAndSelection, promptVisible, uiMode]);
-    const wakeAgentForCurrentElementAction = React9.useCallback(async () => {
+    const wakeAgentForCurrentElementAction = React11.useCallback(async () => {
       if (hideExecutionControls) {
         return true;
       }
@@ -16778,7 +17709,7 @@ var PromptCardView = React9.forwardRef(
       onAgentVisualStateChange,
       onWakeAgent
     ]);
-    const handleConfirmSendCurrentElementPrompt = React9.useCallback(async () => {
+    const handleConfirmSendCurrentElementPrompt = React11.useCallback(async () => {
       if (savingCommentRef.current || sendingCurrentElementPrompt || generateNewPrototype && selectedElementCount !== 1) return;
       if (componentComposer && (hideCurrentElementExecutionAction || !generateNewPrototype && (!currentElementPromptAction.visible || currentElementPromptAction.disabled))) return;
       if (generateNewPrototype && !draftNote.trim()) return;
@@ -16820,7 +17751,7 @@ var PromptCardView = React9.forwardRef(
       sendingCurrentElementPrompt,
       wakeAgentForCurrentElementAction
     ]);
-    const handlePromptKeyDown = React9.useCallback(
+    const handlePromptKeyDown = React11.useCallback(
       (event) => {
         const isComposing = event.nativeEvent.isComposing;
         if (isComposing) return;
@@ -16848,7 +17779,7 @@ var PromptCardView = React9.forwardRef(
       [dismissTerminalTaskAndSelection, saveAndCloseNoteComposer, componentComposer, generateNewPrototype, handleConfirmSendCurrentElementPrompt, handlePromptCardClose]
     );
     if (!promptPositionBaseVisible || !currentTarget || !promptPosition || toolMinimized || uiMode !== "bubble-card") {
-      return /* @__PURE__ */ jsx9("div", { ref: rootRef, style: { ...promptCardStyle, visibility: "hidden" } });
+      return /* @__PURE__ */ jsx11("div", { ref: rootRef, style: { ...promptCardStyle, visibility: "hidden" } });
     }
     const promptTarget = currentTarget;
     const handleElementToolAction = async (tool) => {
@@ -16898,10 +17829,10 @@ var PromptCardView = React9.forwardRef(
     const showContextAppendExecutionControls = !hideExecutionControls;
     const showPromptCardExecutionActions = !isAnnotationSession || !annotationMarkdownEditorOpen;
     const componentName = selectedElementCount > 1 ? `\u5DF2\u9009 ${selectedElementCount} \u4E2A\u5143\u7D20` : currentTarget.getAttribute("aria-label") || currentTarget.getAttribute("data-label") || currentTarget.id || currentTarget.tagName.toLowerCase();
-    const appendContextAction = showContextAppendExecutionControls && agentAvailable ? /* @__PURE__ */ jsx9(IconActionButton, { title: agentSelectionActionTitle, icon: /* @__PURE__ */ jsx9(AgentSparkleIcon, {}), tone: "dark", disabled: !currentTarget, onClick: () => {
+    const appendContextAction = showContextAppendExecutionControls && agentAvailable ? /* @__PURE__ */ jsx11(IconActionButton, { title: agentSelectionActionTitle, icon: /* @__PURE__ */ jsx11(AgentSparkleIcon, {}), tone: "dark", disabled: !currentTarget, onClick: () => {
       triggerAgentPromptAction({ currentTarget: promptTarget, onAppendElementToAgentContext: options.onAppendElementToAgentContext });
     } }) : null;
-    const clearEditsAction = !hideClearEditsAction && canClearCurrentElementEdits ? /* @__PURE__ */ jsx9(IconActionButton, { title: "\u6E05\u7A7A\u6279\u6CE8", icon: /* @__PURE__ */ jsx9(ClearOutlined, {}), tone: "dark", disabled: !currentTarget || sendingCurrentElementPrompt, onClick: () => {
+    const clearEditsAction = !hideClearEditsAction && canClearCurrentElementEdits ? /* @__PURE__ */ jsx11(IconActionButton, { title: "\u6E05\u7A7A\u6279\u6CE8", icon: /* @__PURE__ */ jsx11(ClearOutlined, {}), tone: "dark", disabled: !currentTarget || sendingCurrentElementPrompt, onClick: () => {
       clearSelectedSkills();
       void onClearCurrentElementEdits();
     } }) : null;
@@ -16910,7 +17841,7 @@ var PromptCardView = React9.forwardRef(
       externalAnnotationMode
     );
     const promptCardCloseActionTitle = componentComposer ? generateNewPrototype ? "\u5173\u95ED\uFF08Esc\uFF09" : "\u5173\u95ED\u5E76\u4FDD\u5B58\uFF08Esc\uFF09" : resolvePromptCardCloseActionTitle(globalThis.navigator?.platform);
-    const annotationDeleteAction = !documentSourceMarkdownEditor ? /* @__PURE__ */ jsx9(
+    const annotationDeleteAction = !documentSourceMarkdownEditor ? /* @__PURE__ */ jsx11(
       Popconfirm2,
       {
         title: "\u5220\u9664\u6807\u6CE8",
@@ -16923,18 +17854,18 @@ var PromptCardView = React9.forwardRef(
         onConfirm: () => {
           void onDeleteCurrentAnnotationNode?.();
         },
-        children: /* @__PURE__ */ jsx9("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx9(
+        children: /* @__PURE__ */ jsx11("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx11(
           IconActionButton,
           {
             title: "\u5220\u9664\u6807\u6CE8",
-            icon: /* @__PURE__ */ jsx9(DeleteOutlined2, {}),
+            icon: /* @__PURE__ */ jsx11(DeleteOutlined2, {}),
             tone: "dark",
             disabled: annotationLoading || annotationSaving || !onDeleteCurrentAnnotationNode
           }
         ) })
       }
     ) : null;
-    const promptCardNode = /* @__PURE__ */ jsxs8(
+    const promptCardNode = /* @__PURE__ */ jsxs10(
       "div",
       {
         ref: rootRef,
@@ -16946,6 +17877,12 @@ var PromptCardView = React9.forwardRef(
           left: promptPosition.left,
           top: promptPosition.top,
           visibility: promptVisible ? "visible" : "hidden",
+          ...purposeComposer && commentListOpen && window.innerWidth <= 760 ? {
+            width: "calc(100vw - 16px)",
+            maxWidth: "calc(100vw - 16px)",
+            maxHeight: "calc(48dvh - 16px)",
+            overflow: "hidden"
+          } : {},
           // Mobile: full width prompt card
           ...isMobileDevice() ? {
             width: "calc(100vw - 16px)",
@@ -16962,7 +17899,7 @@ var PromptCardView = React9.forwardRef(
           onHoverSelectionSuppressedChange(false);
         },
         children: [
-          /* @__PURE__ */ jsx9("style", { nonce: resolveCspNonce(), children: `
+          /* @__PURE__ */ jsx11("style", { nonce: resolveCspNonce(), children: `
             .we-runtime-prompt-card__textarea,
             .we-runtime-prompt-card__textarea:disabled,
             .we-runtime-prompt-card__textarea textarea,
@@ -17001,1043 +17938,1075 @@ var PromptCardView = React9.forwardRef(
               background: ${EDITOR_CHROME.accentHover} !important;
             }
           ` }),
-          /* @__PURE__ */ jsxs8(
-            "div",
+          purposeComposer && props.componentComments && !bubbleStyleEditorOpen ? /* @__PURE__ */ jsx11(
+            ComponentCommentComposer,
             {
-              "data-we-annotation-session-toolbar": "true",
-              style: {
-                display: "flex",
-                flexWrap: componentComposer ? "nowrap" : "wrap",
-                alignItems: "center",
-                gap: 8,
-                ...componentComposer ? { padding: "10px 12px", borderBottom: `1px solid ${EDITOR_CHROME.border}`, flexShrink: 0, gap: 4 } : {}
+              api: props.componentComments,
+              element: currentTarget,
+              label: componentName,
+              editRequest: props.commentEditRequest,
+              onSaved: onCommentSaved,
+              onClose: () => {
+                setPromptDismissed(true);
+                onDismissSelection?.();
               },
-              children: [
-                componentComposer ? /* @__PURE__ */ jsxs8("div", { style: { flex: "1 1 80px", minWidth: 0, marginRight: 4 }, children: [
-                  /* @__PURE__ */ jsx9("div", { style: { color: EDITOR_CHROME.textMuted, fontSize: 10, lineHeight: "15px" }, children: "\u7EC4\u4EF6\u6279\u6CE8" }),
-                  /* @__PURE__ */ jsx9("div", { title: componentName, style: { color: EDITOR_CHROME.textPrimary, fontSize: 12, lineHeight: "18px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: componentName })
-                ] }) : null,
-                !componentComposer && selectedElementCount > 1 ? /* @__PURE__ */ jsxs8("span", { "data-we-selection-count": "true", style: { fontSize: 12, color: EDITOR_CHROME.textMuted }, children: [
-                  "\u5DF2\u9009 ",
-                  selectedElementCount,
-                  " \u4E2A\u5143\u7D20"
-                ] }) : null,
-                /* @__PURE__ */ jsxs8(
-                  "div",
-                  {
-                    "data-we-prompt-card-tool-actions": "true",
-                    style: { display: "flex", flexWrap: componentComposer ? "nowrap" : "wrap", alignItems: "center", gap: 2, ...componentComposer ? { flexShrink: 0 } : {} },
-                    children: [
-                      isAnnotationSession && showAnnotationMarkdownEditorButton ? /* @__PURE__ */ jsxs8(
-                        "div",
-                        {
-                          "data-we-annotation-mode-tabs": "true",
-                          role: "tablist",
-                          "aria-label": `${annotationModeLabel}\u6807\u6CE8\u7F16\u8F91\u5DF2\u9009`,
-                          style: {
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 1,
-                            padding: 1,
-                            borderRadius: 7,
-                            background: EDITOR_CHROME.surface,
-                            border: `1px solid ${EDITOR_CHROME.border}`
-                          },
-                          children: [
-                            /* @__PURE__ */ jsx9(
-                              "button",
-                              {
-                                type: "button",
-                                role: "tab",
-                                "aria-selected": annotationEditorOpen,
-                                style: {
-                                  border: 0,
-                                  borderRadius: 6,
-                                  background: annotationEditorOpen ? EDITOR_CHROME.surfaceInteractive : "transparent",
-                                  color: annotationEditorOpen ? EDITOR_CHROME.textPrimary : EDITOR_CHROME.textMuted,
-                                  padding: "3px 6px",
-                                  fontSize: 10,
-                                  fontWeight: 500,
-                                  lineHeight: "16px",
-                                  cursor: annotationLoading ? "default" : "pointer"
-                                },
-                                disabled: annotationLoading,
-                                onClick: () => {
-                                  setAnnotationInputMode("edit");
-                                  onBubbleStyleEditorOpenChange(false);
-                                },
-                                children: "\u7F16\u8F91"
-                              }
-                            ),
-                            /* @__PURE__ */ jsx9(
-                              "button",
-                              {
-                                type: "button",
-                                role: "tab",
-                                "aria-selected": !annotationEditorOpen,
-                                style: {
-                                  border: 0,
-                                  borderRadius: 6,
-                                  background: !annotationEditorOpen ? EDITOR_CHROME.surfaceInteractive : "transparent",
-                                  color: !annotationEditorOpen ? EDITOR_CHROME.textPrimary : EDITOR_CHROME.textMuted,
-                                  padding: "3px 6px",
-                                  fontSize: 10,
-                                  fontWeight: 500,
-                                  lineHeight: "16px",
-                                  cursor: annotationLoading ? "default" : "pointer"
-                                },
-                                disabled: annotationLoading,
-                                onClick: () => {
-                                  setAnnotationInputMode("generate");
-                                  onBubbleStyleEditorOpenChange(false);
-                                },
-                                children: "\u751F\u6210"
-                              }
-                            )
-                          ]
-                        }
-                      ) : showAnnotationMarkdownEditorButton ? /* @__PURE__ */ jsx9(
-                        IconActionButton,
-                        {
-                          title: documentSourceMarkdownEditor ? annotationEditorOpen ? "\u5173\u95ED Markdown \u6E90\u7801\u7F16\u8F91" : "Markdown \u6E90\u7801\u7F16\u8F91" : annotationEditorOpen ? "\u5173\u95ED\u6807\u6CE8\u7F16\u8F91" : "\u6807\u6CE8\u7F16\u8F91",
-                          icon: /* @__PURE__ */ jsx9(FileTextOutlined, {}),
-                          tone: annotationEditorOpen ? "accent" : "dark",
-                          disabled: annotationLoading,
-                          onClick: () => {
-                            const nextAnnotationEditorOpen = !annotationEditorOpen;
-                            setAnnotationEditorOpen(nextAnnotationEditorOpen);
-                            if (nextAnnotationEditorOpen && bubbleStyleEditorOpen) {
-                              onBubbleStyleEditorOpenChange(false);
-                            }
-                          }
-                        }
-                      ) : null,
-                      showAnnotationDocumentEditButton ? /* @__PURE__ */ jsx9(
-                        IconActionButton,
-                        {
-                          title: "\u6587\u6863\u7F16\u8F91",
-                          icon: /* @__PURE__ */ jsx9(FileTextOutlined, {}),
-                          tone: "dark",
-                          onClick: () => {
-                            window.open(annotationDocumentEditUrl, "_blank", "noopener,noreferrer");
-                          }
-                        }
-                      ) : null,
-                      elementTools.map((tool) => {
-                        const running = runningElementToolId === tool.id;
-                        return /* @__PURE__ */ jsx9("span", { "data-we-element-tool": tool.id, children: /* @__PURE__ */ jsx9(
-                          IconActionButton,
-                          {
-                            title: running ? `${tool.label}\uFF08\u6B63\u5728\u6253\u5F00\uFF09` : tool.label,
-                            icon: tool.icon === "document" ? /* @__PURE__ */ jsx9(FileTextOutlined, {}) : /* @__PURE__ */ jsx9(ExportOutlined, {}),
-                            tone: "dark",
-                            loading: running,
-                            disabled: Boolean(tool.disabled || runningElementToolId),
-                            onClick: () => {
-                              void handleElementToolAction(tool);
-                            }
-                          }
-                        ) }, tool.id);
-                      }),
-                      !isAnnotationSession && !externalAnnotationMode && externalCommentGroups.length > 0 ? /* @__PURE__ */ jsx9("span", { "data-we-external-comments-tool-toggle": "true", children: /* @__PURE__ */ jsx9(
-                        IconActionButton,
-                        {
-                          title: externalCommentsToolOpen ? "\u5173\u95ED\u5916\u90E8\u6279\u6CE8" : "\u6253\u5F00\u5916\u90E8\u6279\u6CE8",
-                          icon: /* @__PURE__ */ jsx9(MessageOutlined, {}),
-                          tone: "dark",
-                          onClick: () => setExternalCommentsToolOpen((open) => !open)
-                        }
-                      ) }) : null,
-                      propertyPanelEnabled && styleDesignEnabled && !hasElementTools && !isAnnotationSession && !textCommentMode && !isCurrentAnnotationPanelTarget ? /* @__PURE__ */ jsx9(
-                        IconActionButton,
-                        {
-                          title: styleEditorToggleTitle,
-                          icon: /* @__PURE__ */ jsx9(FormatPainterOutlined, {}),
-                          tone: bubbleStyleEditorOpen ? "accent" : "dark",
-                          onClick: () => {
-                            const nextBubbleStyleEditorOpen = !bubbleStyleEditorOpen;
-                            onBubbleStyleEditorOpenChange(nextBubbleStyleEditorOpen);
-                            if (nextBubbleStyleEditorOpen) {
-                              setGenerateNewPrototype(false);
-                              setAnnotationEditorOpen(false);
-                            }
-                          }
-                        }
-                      ) : null,
-                      onDocumentComponent && currentTarget && !textCommentMode ? /* @__PURE__ */ jsx9(
-                        "button",
-                        {
-                          type: "button",
-                          "data-we-document-component": "true",
-                          title: selectedElementCount !== 1 ? "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668" : "\u622A\u56FE\u5E76\u5C06\u8BF4\u660E\u5F15\u5165 PRD \u6587\u6863",
-                          disabled: selectedElementCount !== 1 || savingComment,
-                          style: { border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 6, background: "transparent", color: EDITOR_CHROME.textSecondary, padding: "4px 8px", fontFamily: "inherit", fontSize: 12, whiteSpace: "nowrap", cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" },
-                          onClick: () => {
-                            void executePromptCardDocumentAction({
-                              currentTarget,
-                              note: draftNote,
-                              onConfirmNote: onConfirmNoteWithSelectedSkills,
-                              onDocumentComponent
-                            }).catch(() => {
-                            });
-                          },
-                          children: "\u5F15\u5165\u8BF4\u660E"
-                        }
-                      ) : null,
-                      axureSelectionExportAction.visible && !textCommentMode ? /* @__PURE__ */ jsx9(
-                        IconActionButton,
-                        {
-                          title: axureSelectionExportAction.title,
-                          icon: /* @__PURE__ */ jsx9(ExportOutlined, {}),
-                          tone: "dark",
-                          disabled: axureSelectionExportAction.disabled,
-                          onClick: () => {
-                            triggerDesignToolExportAction({ tool: "axure", currentTarget: promptTarget, onExportSelectionToDesignTool });
-                          }
-                        }
-                      ) : null,
-                      designAdjustmentTool !== "axure" && designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? /* @__PURE__ */ jsx9(
-                        IconActionButton,
-                        {
-                          title: designToolExportAction.title,
-                          icon: /* @__PURE__ */ jsx9(ExportOutlined, {}),
-                          tone: "dark",
-                          disabled: designToolExportAction.disabled,
-                          onClick: () => {
-                            triggerDesignToolExportAction({
-                              tool: designAdjustmentTool,
-                              currentTarget: promptTarget,
-                              onExportSelectionToDesignTool
-                            });
-                          }
-                        }
-                      ) : null
-                    ]
-                  }
-                ),
-                !componentComposer ? /* @__PURE__ */ jsx9("div", { style: { flex: 1 } }) : null,
-                showPromptCardExecutionActions && !componentComposer ? /* @__PURE__ */ jsxs8(
-                  "div",
-                  {
-                    "data-we-prompt-card-execution-actions": "true",
-                    style: { display: "flex", alignItems: "center", gap: 2 },
-                    children: [
-                      appendContextAction,
-                      !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype) ? /* @__PURE__ */ jsx9(
-                        IconActionButton,
-                        {
-                          title: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
-                          label: generateNewPrototype ? "\u751F\u6210\u7EC4\u4EF6\u72B6\u6001" : onDocumentComponent ? "AI \u751F\u6210\u539F\u578B" : void 0,
-                          icon: /* @__PURE__ */ jsx9(CaretRightFilled, {}),
-                          tone: "accent",
-                          loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
-                          disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
-                          onClick: () => {
-                            void handleConfirmSendCurrentElementPrompt();
-                          }
-                        }
-                      ) : null,
-                      clearEditsAction
-                    ]
-                  }
-                ) : null,
-                /* @__PURE__ */ jsxs8(
-                  "div",
-                  {
-                    style: {
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      paddingLeft: 8,
-                      marginLeft: 2,
-                      borderLeft: `1px solid ${EDITOR_CHROME.border}`,
-                      flexShrink: 0
-                    },
-                    children: [
-                      !isMobileDevice() && onPinnedToTopRightChange ? /* @__PURE__ */ jsx9(
-                        IconActionButton,
-                        {
-                          title: pinnedToTopRight ? "\u53D6\u6D88\u56FA\u5B9A\uFF0C\u8DDF\u968F\u5143\u7D20" : "\u56FA\u5B9A\u5230\u53F3\u4E0A\u89D2",
-                          icon: pinnedToTopRight ? /* @__PURE__ */ jsx9(PushpinFilled, {}) : /* @__PURE__ */ jsx9(PushpinOutlined, {}),
-                          pressed: pinnedToTopRight,
-                          tone: pinnedToTopRight ? "accent" : "dark",
-                          onClick: () => onPinnedToTopRightChange(!pinnedToTopRight)
-                        }
-                      ) : null,
-                      /* @__PURE__ */ jsx9(
-                        IconActionButton,
-                        {
-                          title: promptCardCloseActionTitle,
-                          icon: /* @__PURE__ */ jsx9(CloseToolIcon, {}),
-                          tone: "dark",
-                          onClick: handlePromptCardClose
-                        }
-                      )
-                    ]
-                  }
-                )
-              ]
+              getLoadState: props.getCommentListLoadState,
+              loadingContent: props.commentListLoadingContent,
+              onRetry: props.onRetryCommentList,
+              skillOptions: skillOptions ?? void 0,
+              enabledSkillIds: enabledSkillIds ?? void 0,
+              available: {
+                "modify-prototype": !hideExecutionControls && !hideCurrentElementExecutionAction && canEditNote,
+                "generate-prototype": Boolean(onGenerateComponentStates) && selectedElementCount === 1 && canEditNote,
+                "document-component": Boolean(onDocumentComponent) && selectedElementCount === 1 && canEditNote
+              },
+              onExport: axureSelectionExportAction.visible ? () => onExportSelectionToDesignTool?.("axure", currentTarget) : designToolExportAction.visible && designAdjustmentTool ? () => onExportSelectionToDesignTool?.(designAdjustmentTool, currentTarget) : void 0,
+              exportDisabled: axureSelectionExportAction.visible ? axureSelectionExportAction.disabled : designToolExportAction.disabled,
+              exportTitle: axureSelectionExportAction.visible ? axureSelectionExportAction.title : designToolExportAction.title,
+              tools: /* @__PURE__ */ jsxs10(Fragment6, { children: [
+                styleDesignEnabled ? /* @__PURE__ */ jsx11(IconActionButton, { title: styleEditorToggleTitle, icon: /* @__PURE__ */ jsx11(FormatPainterOutlined, {}), tone: "dark", onClick: () => onBubbleStyleEditorOpenChange(true) }) : null,
+                /* @__PURE__ */ jsx11(IconActionButton, { title: pinnedToTopRight ? "\u53D6\u6D88\u56FA\u5B9A" : "\u56FA\u5B9A\u5230\u53F3\u4E0A\u89D2", icon: /* @__PURE__ */ jsx11(PushpinOutlined, {}), tone: pinnedToTopRight ? "accent" : "dark", onClick: () => onPinnedToTopRightChange?.(!pinnedToTopRight) })
+              ] })
             }
-          ),
-          /* @__PURE__ */ jsxs8(
-            "div",
-            {
-              "data-we-prompt-card-content-scroll": "true",
-              style: {
-                display: "flex",
-                flex: "1 1 auto",
-                flexDirection: "column",
-                minHeight: 0,
-                overflowX: "hidden",
-                overflowY: "auto",
-                ...componentComposer ? { padding: "12px 12px 10px" } : {}
-              },
-              children: [
-                !isAnnotationSession && !externalAnnotationMode && externalCommentsToolOpen && externalCommentGroups.length > 0 ? /* @__PURE__ */ jsxs8(
-                  "section",
-                  {
-                    "data-we-external-comments-tool": "true",
-                    "aria-label": "\u5916\u90E8\u6279\u6CE8",
-                    style: externalCommentsToolStyle,
-                    children: [
-                      /* @__PURE__ */ jsx9(
-                        "div",
-                        {
-                          style: {
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            paddingBottom: 6,
-                            color: EDITOR_CHROME.textSecondary,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            lineHeight: "16px"
-                          },
-                          children: /* @__PURE__ */ jsxs8(
-                            "div",
-                            {
-                              "data-we-component-composer": componentComposer ? "true" : void 0,
-                              style: {
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 5
-                              },
-                              children: [
-                                /* @__PURE__ */ jsx9(MessageOutlined, {}),
-                                /* @__PURE__ */ jsx9("span", { children: "\u5916\u90E8\u6279\u6CE8" }),
-                                /* @__PURE__ */ jsx9("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: externalComments.length })
-                              ]
-                            }
-                          )
-                        }
-                      ),
-                      externalCommentEntries.map(({ group, comment }, entryIndex) => /* @__PURE__ */ jsxs8(
-                        "div",
-                        {
-                          "data-we-external-comments-entry": comment.id,
-                          "data-we-external-comments-author": group.authorId,
-                          onMouseEnter: () => setHoveredExternalCommentId(comment.id),
-                          onMouseLeave: () => setHoveredExternalCommentId(null),
-                          style: {
-                            display: "flex",
-                            position: "relative",
-                            alignItems: "flex-start",
-                            padding: "8px 0",
-                            borderTop: `1px solid ${EDITOR_CHROME.border}`,
-                            ...entryIndex === externalCommentEntries.length - 1 ? { paddingBottom: 7 } : {}
-                          },
-                          children: [
-                            /* @__PURE__ */ jsxs8("div", { style: { flex: 1, minWidth: 0 }, children: [
-                              /* @__PURE__ */ jsxs8(
-                                "div",
+          ) : /* @__PURE__ */ jsxs10(Fragment6, { children: [
+            /* @__PURE__ */ jsxs10(
+              "div",
+              {
+                "data-we-annotation-session-toolbar": "true",
+                style: {
+                  display: "flex",
+                  flexWrap: componentComposer ? "nowrap" : "wrap",
+                  alignItems: "center",
+                  gap: 8,
+                  ...componentComposer ? { padding: "10px 12px", borderBottom: `1px solid ${EDITOR_CHROME.border}`, flexShrink: 0, gap: 4 } : {}
+                },
+                children: [
+                  componentComposer ? /* @__PURE__ */ jsxs10("div", { style: { flex: "1 1 80px", minWidth: 0, marginRight: 4 }, children: [
+                    /* @__PURE__ */ jsx11("div", { style: { color: EDITOR_CHROME.textMuted, fontSize: 10, lineHeight: "15px" }, children: "\u7EC4\u4EF6\u6279\u6CE8" }),
+                    /* @__PURE__ */ jsx11("div", { title: componentName, style: { color: EDITOR_CHROME.textPrimary, fontSize: 12, lineHeight: "18px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: componentName })
+                  ] }) : null,
+                  !componentComposer && selectedElementCount > 1 ? /* @__PURE__ */ jsxs10("span", { "data-we-selection-count": "true", style: { fontSize: 12, color: EDITOR_CHROME.textMuted }, children: [
+                    "\u5DF2\u9009 ",
+                    selectedElementCount,
+                    " \u4E2A\u5143\u7D20"
+                  ] }) : null,
+                  /* @__PURE__ */ jsxs10(
+                    "div",
+                    {
+                      "data-we-prompt-card-tool-actions": "true",
+                      style: { display: "flex", flexWrap: componentComposer ? "nowrap" : "wrap", alignItems: "center", gap: 2, ...componentComposer ? { flexShrink: 0 } : {} },
+                      children: [
+                        isAnnotationSession && showAnnotationMarkdownEditorButton ? /* @__PURE__ */ jsxs10(
+                          "div",
+                          {
+                            "data-we-annotation-mode-tabs": "true",
+                            role: "tablist",
+                            "aria-label": `${annotationModeLabel}\u6807\u6CE8\u7F16\u8F91\u5DF2\u9009`,
+                            style: {
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 1,
+                              padding: 1,
+                              borderRadius: 7,
+                              background: EDITOR_CHROME.surface,
+                              border: `1px solid ${EDITOR_CHROME.border}`
+                            },
+                            children: [
+                              /* @__PURE__ */ jsx11(
+                                "button",
                                 {
-                                  "data-we-external-comments-author-label": "true",
-                                  "data-we-external-comments-author-kind": isExternalAuthorNetworkIdentifier(group.authorName) ? "network" : "display",
+                                  type: "button",
+                                  role: "tab",
+                                  "aria-selected": annotationEditorOpen,
                                   style: {
-                                    marginBottom: 2,
-                                    paddingRight: onDeleteExternalComment ? 20 : 0,
-                                    color: EDITOR_CHROME.textMuted,
+                                    border: 0,
+                                    borderRadius: 6,
+                                    background: annotationEditorOpen ? EDITOR_CHROME.surfaceInteractive : "transparent",
+                                    color: annotationEditorOpen ? EDITOR_CHROME.textPrimary : EDITOR_CHROME.textMuted,
+                                    padding: "3px 6px",
                                     fontSize: 10,
-                                    fontWeight: 600,
-                                    lineHeight: "14px",
-                                    letterSpacing: 0,
-                                    ...isExternalAuthorNetworkIdentifier(group.authorName) ? { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" } : {},
-                                    overflowWrap: "anywhere"
+                                    fontWeight: 500,
+                                    lineHeight: "16px",
+                                    cursor: annotationLoading ? "default" : "pointer"
                                   },
-                                  children: [
-                                    "\u8BC4\u5BA1\u8005 \xB7 ",
-                                    group.authorName
-                                  ]
+                                  disabled: annotationLoading,
+                                  onClick: () => {
+                                    setAnnotationInputMode("edit");
+                                    onBubbleStyleEditorOpenChange(false);
+                                  },
+                                  children: "\u7F16\u8F91"
                                 }
                               ),
-                              /* @__PURE__ */ jsx9(
-                                "div",
+                              /* @__PURE__ */ jsx11(
+                                "button",
                                 {
+                                  type: "button",
+                                  role: "tab",
+                                  "aria-selected": !annotationEditorOpen,
                                   style: {
-                                    color: EDITOR_CHROME.textPrimary,
-                                    fontSize: 11,
-                                    lineHeight: 1.55,
-                                    overflowWrap: "anywhere",
-                                    whiteSpace: "pre-wrap"
+                                    border: 0,
+                                    borderRadius: 6,
+                                    background: !annotationEditorOpen ? EDITOR_CHROME.surfaceInteractive : "transparent",
+                                    color: !annotationEditorOpen ? EDITOR_CHROME.textPrimary : EDITOR_CHROME.textMuted,
+                                    padding: "3px 6px",
+                                    fontSize: 10,
+                                    fontWeight: 500,
+                                    lineHeight: "16px",
+                                    cursor: annotationLoading ? "default" : "pointer"
                                   },
-                                  children: comment.content
+                                  disabled: annotationLoading,
+                                  onClick: () => {
+                                    setAnnotationInputMode("generate");
+                                    onBubbleStyleEditorOpenChange(false);
+                                  },
+                                  children: "\u751F\u6210"
                                 }
                               )
-                            ] }),
-                            onDeleteExternalComment ? /* @__PURE__ */ jsx9(
-                              IconActionButton,
-                              {
-                                title: "\u5220\u9664\u8FD9\u6761\u5916\u90E8\u6279\u6CE8",
-                                icon: /* @__PURE__ */ jsx9(DeleteOutlined2, {}),
-                                tone: "dark",
-                                onClick: () => {
-                                  void onDeleteExternalComment(comment.id);
-                                },
-                                style: {
-                                  width: 16,
-                                  minWidth: 16,
-                                  height: 16,
-                                  fontSize: 12,
-                                  position: "absolute",
-                                  top: 7,
-                                  right: 0,
-                                  background: "transparent",
-                                  opacity: hoveredExternalCommentId === comment.id ? 1 : 0,
-                                  pointerEvents: hoveredExternalCommentId === comment.id ? "auto" : "none",
-                                  transition: "opacity 160ms ease"
-                                }
-                              }
-                            ) : null
-                          ]
-                        },
-                        comment.id
-                      ))
-                    ]
-                  }
-                ) : null,
-                elementToolError ? /* @__PURE__ */ jsx9(
-                  "div",
-                  {
-                    role: "alert",
-                    style: {
-                      padding: "6px 10px",
-                      borderRadius: 8,
-                      background: "rgba(255, 77, 79, 0.12)",
-                      color: EDITOR_CHROME.textDanger,
-                      fontSize: 11,
-                      lineHeight: 1.45,
-                      overflowWrap: "anywhere"
-                    },
-                    children: elementToolError.slice(0, 240)
-                  }
-                ) : null,
-                savedNoteMeta?.commenterName ? /* @__PURE__ */ jsxs8(
-                  "div",
-                  {
-                    "data-we-prompt-card-commenter": "true",
-                    style: {
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      marginBottom: 6,
-                      padding: "5px 8px",
-                      borderLeft: `3px solid ${savedNoteMeta.commenterColor || EDITOR_CHROME.accent}`,
-                      borderRadius: 4,
-                      background: EDITOR_CHROME.surfaceMuted,
-                      color: EDITOR_CHROME.textSecondary,
-                      fontSize: 11,
-                      lineHeight: 1.35
-                    },
-                    children: [
-                      /* @__PURE__ */ jsx9("span", { style: { color: EDITOR_CHROME.textMuted }, children: "\u6279\u6CE8\u8005" }),
-                      /* @__PURE__ */ jsx9("span", { style: { color: savedNoteMeta.commenterColor || EDITOR_CHROME.textPrimary, fontWeight: 600 }, children: savedNoteMeta.commenterName })
-                    ]
-                  }
-                ) : null,
-                /* @__PURE__ */ jsxs8(
-                  "div",
-                  {
-                    ref: noteComposerRef,
-                    onFocusCapture: (event) => {
-                      if (inlineTextEditing) return;
-                      if (!shouldRestorePromptPrimaryFocusFromTarget(event.target)) return;
-                      window.requestAnimationFrame(() => {
-                        ensurePromptPrimaryFocus(3);
-                      });
-                    },
-                    onPointerDownCapture: (event) => {
-                      if (inlineTextEditing) return;
-                      if (!shouldRestorePromptPrimaryFocusFromTarget(event.target)) return;
-                      window.requestAnimationFrame(() => {
-                        ensurePromptPrimaryFocus(3);
-                      });
-                    },
-                    style: {
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                      pointerEvents: inlineTextEditing ? "none" : "auto"
-                    },
-                    children: [
-                      showPromptTextInput ? /* @__PURE__ */ jsx9("div", { ref: textComposerRef, children: /* @__PURE__ */ jsx9(
-                        Input3,
-                        {
-                          value: draftText,
-                          placeholder: TEXT_INPUT_PLACEHOLDER,
-                          size: "small",
-                          style: {
-                            borderRadius: 12,
-                            minHeight: 32,
-                            background: EDITOR_CHROME.surfaceMuted,
-                            borderColor: EDITOR_CHROME.borderStrong,
-                            boxShadow: "none",
-                            color: EDITOR_CHROME.textPrimary
-                          },
-                          onChange: (event) => {
-                            onTextDraftChange(event.target.value);
-                          },
-                          onPressEnter: (event) => {
-                            if (isMobileDevice()) {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              return;
-                            }
-                            event.preventDefault();
-                            event.stopPropagation();
-                            void onConfirmText();
-                          },
-                          onKeyDown: (event) => {
-                            if (event.key !== "Escape") return;
-                            event.preventDefault();
-                            event.stopPropagation();
-                            if (dismissTerminalTaskAndSelection()) return;
-                            onCancelText();
-                          },
-                          onBlur: () => {
-                            if (!textDirty) return;
-                            void onConfirmText();
+                            ]
                           }
-                        }
-                      ) }) : null,
-                      showNoteComposer ? /* @__PURE__ */ jsxs8(Fragment5, { children: [
-                        /* @__PURE__ */ jsx9(
-                          Dropdown,
+                        ) : showAnnotationMarkdownEditorButton ? /* @__PURE__ */ jsx11(
+                          IconActionButton,
                           {
-                            open: skillMenuOpen,
-                            trigger: [],
-                            placement: "bottomLeft",
-                            autoAdjustOverflow: { adjustX: 1, adjustY: 1 },
-                            destroyOnHidden: true,
-                            getPopupContainer: resolveRuntimePopupContainer,
-                            styles: { root: { zIndex: POPUP_LAYER_Z_INDEX + 40 } },
-                            popupRender: () => /* @__PURE__ */ jsxs8(
-                              "div",
-                              {
-                                "data-we-selection-lock-root": "true",
-                                "data-we-prompt-card-skill-menu": "true",
-                                style: {
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "stretch",
-                                  gap: 8,
-                                  padding: 10,
-                                  width: "min(420px, calc(100vw - 24px))",
-                                  maxWidth: "calc(100vw - 24px)",
-                                  maxHeight: "min(420px, calc(100vh - 120px))",
-                                  overflowX: "hidden",
-                                  overflowY: "auto",
-                                  borderRadius: 10,
-                                  background: EDITOR_CHROME.surfaceElevated,
-                                  border: `1px solid ${EDITOR_CHROME.borderStrong}`,
-                                  boxShadow: EDITOR_CHROME.shadowCompact
-                                },
-                                onPointerDownCapture: () => onSelectionInteractionLockChange(true),
-                                onPointerEnter: () => {
-                                  onHoverSelectionSuppressedChange(true);
-                                },
-                                onPointerLeave: () => {
-                                  onHoverSelectionSuppressedChange(false);
-                                },
-                                children: [
-                                  /* @__PURE__ */ jsxs8(
-                                    "div",
-                                    {
-                                      "data-we-prompt-card-skill-menu-header": "true",
-                                      style: {
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 2
-                                      },
-                                      children: [
-                                        /* @__PURE__ */ jsx9(
-                                          "span",
-                                          {
-                                            style: {
-                                              color: EDITOR_CHROME.textPrimary,
-                                              fontSize: 12,
-                                              fontWeight: 600,
-                                              lineHeight: 1.35
-                                            },
-                                            children: "\u9009\u62E9\u5904\u7406\u65B9\u5F0F"
-                                          }
-                                        ),
-                                        /* @__PURE__ */ jsx9(
-                                          "span",
-                                          {
-                                            style: {
-                                              color: EDITOR_CHROME.textMuted,
-                                              fontSize: 11,
-                                              lineHeight: 1.35
-                                            },
-                                            children: "\u70B9\u51FB\u6807\u7B7E\u5E94\u7528\uFF0C\u60AC\u505C\u67E5\u770B\u8BE6\u7EC6\u8BF4\u660E"
-                                          }
-                                        )
-                                      ]
-                                    }
-                                  ),
-                                  /* @__PURE__ */ jsx9(
-                                    "div",
-                                    {
-                                      "data-we-prompt-card-skill-options": "true",
-                                      style: {
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        alignItems: "center",
-                                        gap: 6
-                                      },
-                                      children: filteredSkills.map((skill) => {
-                                        const selected = selectedSkills.some(
-                                          (selectedSkill) => selectedSkill.id === skill.id
-                                        );
-                                        return /* @__PURE__ */ jsx9(
-                                          Tooltip3,
-                                          {
-                                            title: skill.description,
-                                            placement: "topLeft",
-                                            mouseEnterDelay: 0.15,
-                                            getPopupContainer: resolveRuntimePopupContainer,
-                                            children: /* @__PURE__ */ jsx9(
-                                              "button",
-                                              {
-                                                type: "button",
-                                                "data-we-prompt-card-skill-tooltip": "true",
-                                                disabled: selected,
-                                                style: {
-                                                  display: "inline-flex",
-                                                  alignItems: "center",
-                                                  justifyContent: "center",
-                                                  minHeight: 30,
-                                                  border: `1px solid ${selected ? EDITOR_CHROME.borderStrong : EDITOR_CHROME.border}`,
-                                                  borderRadius: 999,
-                                                  background: selected ? EDITOR_CHROME.surfaceInteractive : "transparent",
-                                                  color: selected ? EDITOR_CHROME.textMuted : EDITOR_CHROME.textPrimary,
-                                                  padding: "6px 10px",
-                                                  fontSize: 12,
-                                                  lineHeight: 1.2,
-                                                  whiteSpace: "nowrap",
-                                                  cursor: selected ? "default" : "pointer"
-                                                },
-                                                onMouseDown: (event) => {
-                                                  event.preventDefault();
-                                                },
-                                                onClick: () => {
-                                                  if (!selected) {
-                                                    handleSkillSelect(skill);
-                                                  }
-                                                },
-                                                children: skill.label
-                                              }
-                                            )
-                                          },
-                                          skill.id
-                                        );
-                                      })
-                                    }
-                                  )
-                                ]
+                            title: documentSourceMarkdownEditor ? annotationEditorOpen ? "\u5173\u95ED Markdown \u6E90\u7801\u7F16\u8F91" : "Markdown \u6E90\u7801\u7F16\u8F91" : annotationEditorOpen ? "\u5173\u95ED\u6807\u6CE8\u7F16\u8F91" : "\u6807\u6CE8\u7F16\u8F91",
+                            icon: /* @__PURE__ */ jsx11(FileTextOutlined, {}),
+                            tone: annotationEditorOpen ? "accent" : "dark",
+                            disabled: annotationLoading,
+                            onClick: () => {
+                              const nextAnnotationEditorOpen = !annotationEditorOpen;
+                              setAnnotationEditorOpen(nextAnnotationEditorOpen);
+                              if (nextAnnotationEditorOpen && bubbleStyleEditorOpen) {
+                                onBubbleStyleEditorOpenChange(false);
                               }
-                            ),
-                            children: /* @__PURE__ */ jsxs8(
+                            }
+                          }
+                        ) : null,
+                        showAnnotationDocumentEditButton ? /* @__PURE__ */ jsx11(
+                          IconActionButton,
+                          {
+                            title: "\u6587\u6863\u7F16\u8F91",
+                            icon: /* @__PURE__ */ jsx11(FileTextOutlined, {}),
+                            tone: "dark",
+                            onClick: () => {
+                              window.open(annotationDocumentEditUrl, "_blank", "noopener,noreferrer");
+                            }
+                          }
+                        ) : null,
+                        elementTools.map((tool) => {
+                          const running = runningElementToolId === tool.id;
+                          return /* @__PURE__ */ jsx11("span", { "data-we-element-tool": tool.id, children: /* @__PURE__ */ jsx11(
+                            IconActionButton,
+                            {
+                              title: running ? `${tool.label}\uFF08\u6B63\u5728\u6253\u5F00\uFF09` : tool.label,
+                              icon: tool.icon === "document" ? /* @__PURE__ */ jsx11(FileTextOutlined, {}) : /* @__PURE__ */ jsx11(ExportOutlined2, {}),
+                              tone: "dark",
+                              loading: running,
+                              disabled: Boolean(tool.disabled || runningElementToolId),
+                              onClick: () => {
+                                void handleElementToolAction(tool);
+                              }
+                            }
+                          ) }, tool.id);
+                        }),
+                        !isAnnotationSession && !externalAnnotationMode && externalCommentGroups.length > 0 ? /* @__PURE__ */ jsx11("span", { "data-we-external-comments-tool-toggle": "true", children: /* @__PURE__ */ jsx11(
+                          IconActionButton,
+                          {
+                            title: externalCommentsToolOpen ? "\u5173\u95ED\u5916\u90E8\u6279\u6CE8" : "\u6253\u5F00\u5916\u90E8\u6279\u6CE8",
+                            icon: /* @__PURE__ */ jsx11(MessageOutlined, {}),
+                            tone: "dark",
+                            onClick: () => setExternalCommentsToolOpen((open) => !open)
+                          }
+                        ) }) : null,
+                        propertyPanelEnabled && styleDesignEnabled && !hasElementTools && !isAnnotationSession && !textCommentMode && !isCurrentAnnotationPanelTarget ? /* @__PURE__ */ jsx11(
+                          IconActionButton,
+                          {
+                            title: styleEditorToggleTitle,
+                            icon: /* @__PURE__ */ jsx11(FormatPainterOutlined, {}),
+                            tone: bubbleStyleEditorOpen ? "accent" : "dark",
+                            onClick: () => {
+                              const nextBubbleStyleEditorOpen = !bubbleStyleEditorOpen;
+                              onBubbleStyleEditorOpenChange(nextBubbleStyleEditorOpen);
+                              if (nextBubbleStyleEditorOpen) {
+                                setGenerateNewPrototype(false);
+                                setAnnotationEditorOpen(false);
+                              }
+                            }
+                          }
+                        ) : null,
+                        onDocumentComponent && currentTarget && !textCommentMode ? /* @__PURE__ */ jsx11(
+                          "button",
+                          {
+                            type: "button",
+                            "data-we-document-component": "true",
+                            title: selectedElementCount !== 1 ? "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668" : "\u622A\u56FE\u5E76\u5C06\u8BF4\u660E\u5F15\u5165 PRD \u6587\u6863",
+                            disabled: selectedElementCount !== 1 || savingComment,
+                            style: { border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 6, background: "transparent", color: EDITOR_CHROME.textSecondary, padding: "4px 8px", fontFamily: "inherit", fontSize: 12, whiteSpace: "nowrap", cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" },
+                            onClick: () => {
+                              void executePromptCardDocumentAction({
+                                currentTarget,
+                                note: draftNote,
+                                onConfirmNote: onConfirmNoteWithSelectedSkills,
+                                onDocumentComponent
+                              }).catch(() => {
+                              });
+                            },
+                            children: "\u5F15\u5165\u8BF4\u660E"
+                          }
+                        ) : null,
+                        axureSelectionExportAction.visible && !textCommentMode ? /* @__PURE__ */ jsx11(
+                          IconActionButton,
+                          {
+                            title: axureSelectionExportAction.title,
+                            icon: /* @__PURE__ */ jsx11(ExportOutlined2, {}),
+                            tone: "dark",
+                            disabled: axureSelectionExportAction.disabled,
+                            onClick: () => {
+                              triggerDesignToolExportAction({ tool: "axure", currentTarget: promptTarget, onExportSelectionToDesignTool });
+                            }
+                          }
+                        ) : null,
+                        designAdjustmentTool !== "axure" && designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? /* @__PURE__ */ jsx11(
+                          IconActionButton,
+                          {
+                            title: designToolExportAction.title,
+                            icon: /* @__PURE__ */ jsx11(ExportOutlined2, {}),
+                            tone: "dark",
+                            disabled: designToolExportAction.disabled,
+                            onClick: () => {
+                              triggerDesignToolExportAction({
+                                tool: designAdjustmentTool,
+                                currentTarget: promptTarget,
+                                onExportSelectionToDesignTool
+                              });
+                            }
+                          }
+                        ) : null
+                      ]
+                    }
+                  ),
+                  !componentComposer ? /* @__PURE__ */ jsx11("div", { style: { flex: 1 } }) : null,
+                  showPromptCardExecutionActions && !componentComposer ? /* @__PURE__ */ jsxs10(
+                    "div",
+                    {
+                      "data-we-prompt-card-execution-actions": "true",
+                      style: { display: "flex", alignItems: "center", gap: 2 },
+                      children: [
+                        appendContextAction,
+                        !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype) ? /* @__PURE__ */ jsx11(
+                          IconActionButton,
+                          {
+                            title: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
+                            label: generateNewPrototype ? "\u751F\u6210\u7EC4\u4EF6\u72B6\u6001" : onDocumentComponent ? "AI \u751F\u6210\u539F\u578B" : void 0,
+                            icon: /* @__PURE__ */ jsx11(CaretRightFilled, {}),
+                            tone: "accent",
+                            loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
+                            disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
+                            onClick: () => {
+                              void handleConfirmSendCurrentElementPrompt();
+                            }
+                          }
+                        ) : null,
+                        clearEditsAction
+                      ]
+                    }
+                  ) : null,
+                  /* @__PURE__ */ jsxs10(
+                    "div",
+                    {
+                      style: {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        paddingLeft: 8,
+                        marginLeft: 2,
+                        borderLeft: `1px solid ${EDITOR_CHROME.border}`,
+                        flexShrink: 0
+                      },
+                      children: [
+                        !isMobileDevice() && onPinnedToTopRightChange ? /* @__PURE__ */ jsx11(
+                          IconActionButton,
+                          {
+                            title: pinnedToTopRight ? "\u53D6\u6D88\u56FA\u5B9A\uFF0C\u8DDF\u968F\u5143\u7D20" : "\u56FA\u5B9A\u5230\u53F3\u4E0A\u89D2",
+                            icon: pinnedToTopRight ? /* @__PURE__ */ jsx11(PushpinFilled, {}) : /* @__PURE__ */ jsx11(PushpinOutlined, {}),
+                            pressed: pinnedToTopRight,
+                            tone: pinnedToTopRight ? "accent" : "dark",
+                            onClick: () => onPinnedToTopRightChange(!pinnedToTopRight)
+                          }
+                        ) : null,
+                        /* @__PURE__ */ jsx11(
+                          IconActionButton,
+                          {
+                            title: promptCardCloseActionTitle,
+                            icon: /* @__PURE__ */ jsx11(CloseToolIcon, {}),
+                            tone: "dark",
+                            onClick: handlePromptCardClose
+                          }
+                        )
+                      ]
+                    }
+                  )
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs10(
+              "div",
+              {
+                "data-we-prompt-card-content-scroll": "true",
+                style: {
+                  display: "flex",
+                  flex: "1 1 auto",
+                  flexDirection: "column",
+                  minHeight: 0,
+                  overflowX: "hidden",
+                  overflowY: "auto",
+                  ...componentComposer ? { padding: "12px 12px 10px" } : {}
+                },
+                children: [
+                  !isAnnotationSession && !externalAnnotationMode && externalCommentsToolOpen && externalCommentGroups.length > 0 ? /* @__PURE__ */ jsxs10(
+                    "section",
+                    {
+                      "data-we-external-comments-tool": "true",
+                      "aria-label": "\u5916\u90E8\u6279\u6CE8",
+                      style: externalCommentsToolStyle,
+                      children: [
+                        /* @__PURE__ */ jsx11(
+                          "div",
+                          {
+                            style: {
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 5,
+                              paddingBottom: 6,
+                              color: EDITOR_CHROME.textSecondary,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              lineHeight: "16px"
+                            },
+                            children: /* @__PURE__ */ jsxs10(
                               "div",
                               {
+                                "data-we-component-composer": componentComposer ? "true" : void 0,
                                 style: {
-                                  position: "relative",
                                   display: "flex",
-                                  flexDirection: "column",
-                                  gap: selectedSkills.length > 0 ? 6 : 0,
-                                  minHeight: selectedSkills.length > 0 ? 64 : 44,
-                                  justifyContent: "center",
-                                  borderRadius: 12,
-                                  background: EDITOR_CHROME.surfaceMuted,
-                                  border: `1px solid ${EDITOR_CHROME.borderStrong}`
+                                  alignItems: "center",
+                                  gap: 5
                                 },
                                 children: [
-                                  selectedSkills.length > 0 ? /* @__PURE__ */ jsx9(
-                                    "div",
-                                    {
-                                      style: {
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        gap: 6,
-                                        padding: "8px 8px 0"
-                                      },
-                                      children: selectedSkills.map((skill) => /* @__PURE__ */ jsxs8(
-                                        "button",
-                                        {
-                                          type: "button",
-                                          "data-we-prompt-card-skill-tag": "true",
-                                          title: `\u79FB\u9664\u6280\u80FD\uFF1A${skill.label}`,
-                                          style: {
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: 5,
-                                            maxWidth: "100%",
-                                            border: `1px solid ${EDITOR_CHROME.border}`,
-                                            borderRadius: 999,
-                                            background: EDITOR_CHROME.surfaceInteractive,
-                                            color: EDITOR_CHROME.textSecondary,
-                                            padding: "3px 7px",
-                                            fontSize: 11,
-                                            lineHeight: 1.2,
-                                            cursor: "pointer"
-                                          },
-                                          onClick: () => handleSkillRemove(skill.id),
-                                          children: [
-                                            /* @__PURE__ */ jsx9(
-                                              "span",
-                                              {
-                                                style: {
-                                                  minWidth: 0,
-                                                  overflow: "hidden",
-                                                  textOverflow: "ellipsis",
-                                                  whiteSpace: "nowrap"
-                                                },
-                                                children: skill.label
-                                              }
-                                            ),
-                                            /* @__PURE__ */ jsx9(CloseOutlined2, { style: { fontSize: 9, color: EDITOR_CHROME.textMuted } })
-                                          ]
-                                        },
-                                        skill.id
-                                      ))
-                                    }
-                                  ) : null,
-                                  !componentComposer && onGenerateComponentStates && !isAnnotationSession && !externalAnnotationMode && !textCommentMode ? /* @__PURE__ */ jsxs8("div", { "data-we-component-states-option": "true", style: { padding: "7px 10px 2px", fontSize: 12, color: EDITOR_CHROME.textSecondary }, children: [
-                                    /* @__PURE__ */ jsxs8("label", { style: { display: "flex", alignItems: "center", gap: 6, cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" }, children: [
-                                      /* @__PURE__ */ jsx9("input", { type: "checkbox", "aria-label": "\u751F\u6210\u5230\u65B0\u539F\u578B", checked: generateNewPrototype, disabled: selectedElementCount !== 1 || sendingCurrentElementPrompt, style: { accentColor: EDITOR_CHROME.accent }, onChange: (event) => setGenerateNewPrototype(event.target.checked) }),
-                                      "\u751F\u6210\u5230\u65B0\u539F\u578B"
-                                    ] }),
-                                    generateNewPrototype ? /* @__PURE__ */ jsx9("div", { style: { paddingTop: 5, fontSize: 11, lineHeight: 1.6 }, children: "\u586B\u5199\u72B6\u6001\u8981\u6C42\uFF0C\u751F\u6210\u540E\u53EF\u9010\u4E2A\u67E5\u770B\u3001\u6BD4\u8F83\u548C\u6279\u6CE8\u3002" }) : null
-                                  ] }) : null,
-                                  /* @__PURE__ */ jsx9(
-                                    Input3.TextArea,
-                                    {
-                                      className: "we-runtime-prompt-card__textarea",
-                                      value: draftNote,
-                                      disabled: !canEditNote || savingComment,
-                                      readOnly: inlineTextEditing,
-                                      tabIndex: inlineTextEditing ? -1 : 0,
-                                      allowClear: true,
-                                      autoSize: { minRows: componentComposer ? 3 : 1, maxRows: componentComposer ? 6 : 4 },
-                                      placeholder: generateNewPrototype ? "\u4F8B\u5982\uFF1A\u672A\u767B\u5F55\u3001\u5DF2\u767B\u5F55\u3001\u8BED\u8A00\u83DC\u5355\u5C55\u5F00\uFF1B\u8BF4\u660E\u5404\u72B6\u6001\u7684\u53D8\u5316" : notePlaceholder,
-                                      variant: "borderless",
-                                      styles: {
-                                        textarea: {
-                                          color: EDITOR_CHROME.textPrimary,
-                                          background: "transparent",
-                                          minHeight: componentComposer ? 76 : 32,
-                                          padding: componentComposer ? "10px 12px" : "6px 10px",
-                                          fontSize: componentComposer ? 13 : 12.5,
-                                          lineHeight: 1.55,
-                                          caretColor: EDITOR_CHROME.textPrimary
-                                        }
-                                      },
-                                      style: {
-                                        borderRadius: 12,
-                                        background: "transparent",
-                                        borderColor: "transparent",
-                                        boxShadow: "none"
-                                      },
-                                      onChange: (event) => {
-                                        onDraftChange(event.target.value);
-                                      },
-                                      onFocus: (event) => {
-                                        if (!inlineTextEditing) return;
-                                        event.currentTarget.blur();
-                                      },
-                                      onPasteCapture: onNotePasteCapture,
-                                      onKeyDown: handlePromptKeyDown,
-                                      onBlur: (event) => {
-                                        if (generateNewPrototype) return;
-                                        const nextTarget = event.relatedTarget;
-                                        if (componentComposer && nextTarget instanceof Node && rootRef.current?.contains(nextTarget)) return;
-                                        if (nextTarget instanceof Node && noteComposerRef.current?.contains(nextTarget)) {
-                                          return;
-                                        }
-                                        if (!noteDirty && !selectedSkillsDirty) return;
-                                        void onConfirmNoteWithSelectedSkills();
-                                      }
-                                    }
-                                  )
+                                  /* @__PURE__ */ jsx11(MessageOutlined, {}),
+                                  /* @__PURE__ */ jsx11("span", { children: "\u5916\u90E8\u6279\u6CE8" }),
+                                  /* @__PURE__ */ jsx11("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: externalComments.length })
                                 ]
                               }
                             )
                           }
                         ),
-                        /* @__PURE__ */ jsx9(
-                          PromptImageStrip,
+                        externalCommentEntries.map(({ group, comment }, entryIndex) => /* @__PURE__ */ jsxs10(
+                          "div",
                           {
-                            images,
-                            readOnly: Boolean(savedNoteMeta?.readOnly),
-                            onRemoveImage: (imageId) => {
-                              void onRemoveImage(imageId);
-                            }
-                          }
-                        )
-                      ] }) : null,
-                      showAnnotationMarkdownEditor ? /* @__PURE__ */ jsxs8("div", { "data-we-prompt-primary-focus-exempt": "true", style: annotationEditorShellStyle, children: [
-                        /* @__PURE__ */ jsxs8("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
-                          /* @__PURE__ */ jsx9(
-                            "span",
-                            {
-                              style: {
-                                minWidth: 0,
-                                flex: 1,
-                                fontSize: 11,
-                                fontWeight: 600,
-                                lineHeight: 1.4,
-                                color: EDITOR_CHROME.textSecondary
-                              },
-                              children: documentSourceMarkdownEditor ? "Markdown \u6E90\u7801" : "\u9700\u6C42\u6807\u6CE8"
-                            }
-                          ),
-                          annotationDeleteAction
-                        ] }),
-                        /* @__PURE__ */ jsx9("div", { "data-we-annotation-markdown-editor": "true", style: annotationEditorInputStyle, children: /* @__PURE__ */ jsx9(
-                          Input3.TextArea,
-                          {
-                            className: "we-runtime-prompt-card__textarea",
-                            value: annotationDraftMarkdown,
-                            disabled: annotationLoading || annotationManualEditDisabled,
-                            autoSize: { minRows: 4, maxRows: 10 },
-                            placeholder: documentSourceMarkdownEditor ? DOCUMENT_SOURCE_MARKDOWN_PLACEHOLDER : annotationManualEditDisabled ? annotationManualEditMessage : ANNOTATION_MARKDOWN_PLACEHOLDER,
-                            variant: "borderless",
-                            styles: {
-                              textarea: {
-                                color: EDITOR_CHROME.textPrimary,
-                                background: "transparent",
-                                minHeight: 96,
-                                padding: "10px 12px",
-                                fontSize: 12,
-                                lineHeight: 1.55,
-                                caretColor: EDITOR_CHROME.textPrimary
-                              }
-                            },
+                            "data-we-external-comments-entry": comment.id,
+                            "data-we-external-comments-author": group.authorId,
+                            onMouseEnter: () => setHoveredExternalCommentId(comment.id),
+                            onMouseLeave: () => setHoveredExternalCommentId(null),
                             style: {
-                              background: "transparent",
-                              borderColor: "transparent",
-                              boxShadow: "none"
+                              display: "flex",
+                              position: "relative",
+                              alignItems: "flex-start",
+                              padding: "8px 0",
+                              borderTop: `1px solid ${EDITOR_CHROME.border}`,
+                              ...entryIndex === externalCommentEntries.length - 1 ? { paddingBottom: 7 } : {}
+                            },
+                            children: [
+                              /* @__PURE__ */ jsxs10("div", { style: { flex: 1, minWidth: 0 }, children: [
+                                /* @__PURE__ */ jsxs10(
+                                  "div",
+                                  {
+                                    "data-we-external-comments-author-label": "true",
+                                    "data-we-external-comments-author-kind": isExternalAuthorNetworkIdentifier(group.authorName) ? "network" : "display",
+                                    style: {
+                                      marginBottom: 2,
+                                      paddingRight: onDeleteExternalComment ? 20 : 0,
+                                      color: EDITOR_CHROME.textMuted,
+                                      fontSize: 10,
+                                      fontWeight: 600,
+                                      lineHeight: "14px",
+                                      letterSpacing: 0,
+                                      ...isExternalAuthorNetworkIdentifier(group.authorName) ? { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" } : {},
+                                      overflowWrap: "anywhere"
+                                    },
+                                    children: [
+                                      "\u8BC4\u5BA1\u8005 \xB7 ",
+                                      group.authorName
+                                    ]
+                                  }
+                                ),
+                                /* @__PURE__ */ jsx11(
+                                  "div",
+                                  {
+                                    style: {
+                                      color: EDITOR_CHROME.textPrimary,
+                                      fontSize: 11,
+                                      lineHeight: 1.55,
+                                      overflowWrap: "anywhere",
+                                      whiteSpace: "pre-wrap"
+                                    },
+                                    children: comment.content
+                                  }
+                                )
+                              ] }),
+                              onDeleteExternalComment ? /* @__PURE__ */ jsx11(
+                                IconActionButton,
+                                {
+                                  title: "\u5220\u9664\u8FD9\u6761\u5916\u90E8\u6279\u6CE8",
+                                  icon: /* @__PURE__ */ jsx11(DeleteOutlined2, {}),
+                                  tone: "dark",
+                                  onClick: () => {
+                                    void onDeleteExternalComment(comment.id);
+                                  },
+                                  style: {
+                                    width: 16,
+                                    minWidth: 16,
+                                    height: 16,
+                                    fontSize: 12,
+                                    position: "absolute",
+                                    top: 7,
+                                    right: 0,
+                                    background: "transparent",
+                                    opacity: hoveredExternalCommentId === comment.id ? 1 : 0,
+                                    pointerEvents: hoveredExternalCommentId === comment.id ? "auto" : "none",
+                                    transition: "opacity 160ms ease"
+                                  }
+                                }
+                              ) : null
+                            ]
+                          },
+                          comment.id
+                        ))
+                      ]
+                    }
+                  ) : null,
+                  elementToolError ? /* @__PURE__ */ jsx11(
+                    "div",
+                    {
+                      role: "alert",
+                      style: {
+                        padding: "6px 10px",
+                        borderRadius: 8,
+                        background: "rgba(255, 77, 79, 0.12)",
+                        color: EDITOR_CHROME.textDanger,
+                        fontSize: 11,
+                        lineHeight: 1.45,
+                        overflowWrap: "anywhere"
+                      },
+                      children: elementToolError.slice(0, 240)
+                    }
+                  ) : null,
+                  savedNoteMeta?.commenterName ? /* @__PURE__ */ jsxs10(
+                    "div",
+                    {
+                      "data-we-prompt-card-commenter": "true",
+                      style: {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginBottom: 6,
+                        padding: "5px 8px",
+                        borderLeft: `3px solid ${savedNoteMeta.commenterColor || EDITOR_CHROME.accent}`,
+                        borderRadius: 4,
+                        background: EDITOR_CHROME.surfaceMuted,
+                        color: EDITOR_CHROME.textSecondary,
+                        fontSize: 11,
+                        lineHeight: 1.35
+                      },
+                      children: [
+                        /* @__PURE__ */ jsx11("span", { style: { color: EDITOR_CHROME.textMuted }, children: "\u6279\u6CE8\u8005" }),
+                        /* @__PURE__ */ jsx11("span", { style: { color: savedNoteMeta.commenterColor || EDITOR_CHROME.textPrimary, fontWeight: 600 }, children: savedNoteMeta.commenterName })
+                      ]
+                    }
+                  ) : null,
+                  /* @__PURE__ */ jsxs10(
+                    "div",
+                    {
+                      ref: noteComposerRef,
+                      onFocusCapture: (event) => {
+                        if (inlineTextEditing) return;
+                        if (!shouldRestorePromptPrimaryFocusFromTarget(event.target)) return;
+                        window.requestAnimationFrame(() => {
+                          ensurePromptPrimaryFocus(3);
+                        });
+                      },
+                      onPointerDownCapture: (event) => {
+                        if (inlineTextEditing) return;
+                        if (!shouldRestorePromptPrimaryFocusFromTarget(event.target)) return;
+                        window.requestAnimationFrame(() => {
+                          ensurePromptPrimaryFocus(3);
+                        });
+                      },
+                      style: {
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        pointerEvents: inlineTextEditing ? "none" : "auto"
+                      },
+                      children: [
+                        showPromptTextInput ? /* @__PURE__ */ jsx11("div", { ref: textComposerRef, children: /* @__PURE__ */ jsx11(
+                          Input3,
+                          {
+                            value: draftText,
+                            placeholder: TEXT_INPUT_PLACEHOLDER,
+                            size: "small",
+                            style: {
+                              borderRadius: 12,
+                              minHeight: 32,
+                              background: EDITOR_CHROME.surfaceMuted,
+                              borderColor: EDITOR_CHROME.borderStrong,
+                              boxShadow: "none",
+                              color: EDITOR_CHROME.textPrimary
                             },
                             onChange: (event) => {
-                              onAnnotationDraftChange(event.target.value);
+                              onTextDraftChange(event.target.value);
                             },
-                            onKeyDown: (event) => {
-                              if (event.nativeEvent.isComposing) return;
-                              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                            onPressEnter: (event) => {
+                              if (isMobileDevice()) {
                                 event.preventDefault();
                                 event.stopPropagation();
-                                void saveAndCloseAnnotationMarkdownComposer();
                                 return;
                               }
-                              if (event.key === "Escape") {
-                                event.stopPropagation();
-                              }
+                              event.preventDefault();
+                              event.stopPropagation();
+                              void onConfirmText();
+                            },
+                            onKeyDown: (event) => {
+                              if (event.key !== "Escape") return;
+                              event.preventDefault();
+                              event.stopPropagation();
+                              if (dismissTerminalTaskAndSelection()) return;
+                              onCancelText();
+                            },
+                            onBlur: () => {
+                              if (!textDirty) return;
+                              void onConfirmText();
                             }
                           }
-                        ) })
-                      ] }) : null,
-                      showPromptDesignEditor && transactionManager ? /* @__PURE__ */ jsx9(
-                        PromptCardDesignEditor,
-                        {
-                          target: currentTarget,
-                          transactionManager,
-                          tokensService,
-                          refreshKey,
-                          disabled: currentTaskRunning,
-                          onRefreshRequest: () => {
-                            setRefreshKey((value) => value + 1);
-                          },
-                          onDeleteElement: options.onDeleteCurrentElement
-                        }
-                      ) : null,
-                      !isAnnotationSession && !bubbleStyleEditorOpen && styleSummaryLines.length > 0 ? /* @__PURE__ */ jsxs8(
-                        "div",
-                        {
-                          style: {
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 4,
-                            padding: "8px 10px",
-                            borderRadius: 12,
-                            background: "rgba(255, 255, 255, 0.04)",
-                            border: `1px solid ${EDITOR_CHROME.border}`
-                          },
-                          children: [
-                            /* @__PURE__ */ jsx9(
+                        ) }) : null,
+                        showNoteComposer ? /* @__PURE__ */ jsxs10(Fragment6, { children: [
+                          /* @__PURE__ */ jsx11(
+                            Dropdown,
+                            {
+                              open: skillMenuOpen,
+                              trigger: [],
+                              placement: "bottomLeft",
+                              autoAdjustOverflow: { adjustX: 1, adjustY: 1 },
+                              destroyOnHidden: true,
+                              getPopupContainer: resolveRuntimePopupContainer,
+                              styles: { root: { zIndex: POPUP_LAYER_Z_INDEX + 40 } },
+                              popupRender: () => /* @__PURE__ */ jsxs10(
+                                "div",
+                                {
+                                  "data-we-selection-lock-root": "true",
+                                  "data-we-prompt-card-skill-menu": "true",
+                                  style: {
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "stretch",
+                                    gap: 8,
+                                    padding: 10,
+                                    width: "min(420px, calc(100vw - 24px))",
+                                    maxWidth: "calc(100vw - 24px)",
+                                    maxHeight: "min(420px, calc(100vh - 120px))",
+                                    overflowX: "hidden",
+                                    overflowY: "auto",
+                                    borderRadius: 10,
+                                    background: EDITOR_CHROME.surfaceElevated,
+                                    border: `1px solid ${EDITOR_CHROME.borderStrong}`,
+                                    boxShadow: EDITOR_CHROME.shadowCompact
+                                  },
+                                  onPointerDownCapture: () => onSelectionInteractionLockChange(true),
+                                  onPointerEnter: () => {
+                                    onHoverSelectionSuppressedChange(true);
+                                  },
+                                  onPointerLeave: () => {
+                                    onHoverSelectionSuppressedChange(false);
+                                  },
+                                  children: [
+                                    /* @__PURE__ */ jsxs10(
+                                      "div",
+                                      {
+                                        "data-we-prompt-card-skill-menu-header": "true",
+                                        style: {
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: 2
+                                        },
+                                        children: [
+                                          /* @__PURE__ */ jsx11(
+                                            "span",
+                                            {
+                                              style: {
+                                                color: EDITOR_CHROME.textPrimary,
+                                                fontSize: 12,
+                                                fontWeight: 600,
+                                                lineHeight: 1.35
+                                              },
+                                              children: "\u9009\u62E9\u5904\u7406\u65B9\u5F0F"
+                                            }
+                                          ),
+                                          /* @__PURE__ */ jsx11(
+                                            "span",
+                                            {
+                                              style: {
+                                                color: EDITOR_CHROME.textMuted,
+                                                fontSize: 11,
+                                                lineHeight: 1.35
+                                              },
+                                              children: "\u70B9\u51FB\u6807\u7B7E\u5E94\u7528\uFF0C\u60AC\u505C\u67E5\u770B\u8BE6\u7EC6\u8BF4\u660E"
+                                            }
+                                          )
+                                        ]
+                                      }
+                                    ),
+                                    /* @__PURE__ */ jsx11(
+                                      "div",
+                                      {
+                                        "data-we-prompt-card-skill-options": "true",
+                                        style: {
+                                          display: "flex",
+                                          flexWrap: "wrap",
+                                          alignItems: "center",
+                                          gap: 6
+                                        },
+                                        children: filteredSkills.map((skill) => {
+                                          const selected = selectedSkills.some(
+                                            (selectedSkill) => selectedSkill.id === skill.id
+                                          );
+                                          return /* @__PURE__ */ jsx11(
+                                            Tooltip3,
+                                            {
+                                              title: skill.description,
+                                              placement: "topLeft",
+                                              mouseEnterDelay: 0.15,
+                                              getPopupContainer: resolveRuntimePopupContainer,
+                                              children: /* @__PURE__ */ jsx11(
+                                                "button",
+                                                {
+                                                  type: "button",
+                                                  "data-we-prompt-card-skill-tooltip": "true",
+                                                  disabled: selected,
+                                                  style: {
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    minHeight: 30,
+                                                    border: `1px solid ${selected ? EDITOR_CHROME.borderStrong : EDITOR_CHROME.border}`,
+                                                    borderRadius: 999,
+                                                    background: selected ? EDITOR_CHROME.surfaceInteractive : "transparent",
+                                                    color: selected ? EDITOR_CHROME.textMuted : EDITOR_CHROME.textPrimary,
+                                                    padding: "6px 10px",
+                                                    fontSize: 12,
+                                                    lineHeight: 1.2,
+                                                    whiteSpace: "nowrap",
+                                                    cursor: selected ? "default" : "pointer"
+                                                  },
+                                                  onMouseDown: (event) => {
+                                                    event.preventDefault();
+                                                  },
+                                                  onClick: () => {
+                                                    if (!selected) {
+                                                      handleSkillSelect(skill);
+                                                    }
+                                                  },
+                                                  children: skill.label
+                                                }
+                                              )
+                                            },
+                                            skill.id
+                                          );
+                                        })
+                                      }
+                                    )
+                                  ]
+                                }
+                              ),
+                              children: /* @__PURE__ */ jsxs10(
+                                "div",
+                                {
+                                  style: {
+                                    position: "relative",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: selectedSkills.length > 0 ? 6 : 0,
+                                    minHeight: selectedSkills.length > 0 ? 64 : 44,
+                                    justifyContent: "center",
+                                    borderRadius: 12,
+                                    background: EDITOR_CHROME.surfaceMuted,
+                                    border: `1px solid ${EDITOR_CHROME.borderStrong}`
+                                  },
+                                  children: [
+                                    selectedSkills.length > 0 ? /* @__PURE__ */ jsx11(
+                                      "div",
+                                      {
+                                        style: {
+                                          display: "flex",
+                                          flexWrap: "wrap",
+                                          gap: 6,
+                                          padding: "8px 8px 0"
+                                        },
+                                        children: selectedSkills.map((skill) => /* @__PURE__ */ jsxs10(
+                                          "button",
+                                          {
+                                            type: "button",
+                                            "data-we-prompt-card-skill-tag": "true",
+                                            title: `\u79FB\u9664\u6280\u80FD\uFF1A${skill.label}`,
+                                            style: {
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 5,
+                                              maxWidth: "100%",
+                                              border: `1px solid ${EDITOR_CHROME.border}`,
+                                              borderRadius: 999,
+                                              background: EDITOR_CHROME.surfaceInteractive,
+                                              color: EDITOR_CHROME.textSecondary,
+                                              padding: "3px 7px",
+                                              fontSize: 11,
+                                              lineHeight: 1.2,
+                                              cursor: "pointer"
+                                            },
+                                            onClick: () => handleSkillRemove(skill.id),
+                                            children: [
+                                              /* @__PURE__ */ jsx11(
+                                                "span",
+                                                {
+                                                  style: {
+                                                    minWidth: 0,
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                    whiteSpace: "nowrap"
+                                                  },
+                                                  children: skill.label
+                                                }
+                                              ),
+                                              /* @__PURE__ */ jsx11(CloseOutlined2, { style: { fontSize: 9, color: EDITOR_CHROME.textMuted } })
+                                            ]
+                                          },
+                                          skill.id
+                                        ))
+                                      }
+                                    ) : null,
+                                    !componentComposer && onGenerateComponentStates && !isAnnotationSession && !externalAnnotationMode && !textCommentMode ? /* @__PURE__ */ jsxs10("div", { "data-we-component-states-option": "true", style: { padding: "7px 10px 2px", fontSize: 12, color: EDITOR_CHROME.textSecondary }, children: [
+                                      /* @__PURE__ */ jsxs10("label", { style: { display: "flex", alignItems: "center", gap: 6, cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" }, children: [
+                                        /* @__PURE__ */ jsx11("input", { type: "checkbox", "aria-label": "\u751F\u6210\u5230\u65B0\u539F\u578B", checked: generateNewPrototype, disabled: selectedElementCount !== 1 || sendingCurrentElementPrompt, style: { accentColor: EDITOR_CHROME.accent }, onChange: (event) => setGenerateNewPrototype(event.target.checked) }),
+                                        "\u751F\u6210\u5230\u65B0\u539F\u578B"
+                                      ] }),
+                                      generateNewPrototype ? /* @__PURE__ */ jsx11("div", { style: { paddingTop: 5, fontSize: 11, lineHeight: 1.6 }, children: "\u586B\u5199\u72B6\u6001\u8981\u6C42\uFF0C\u751F\u6210\u540E\u53EF\u9010\u4E2A\u67E5\u770B\u3001\u6BD4\u8F83\u548C\u6279\u6CE8\u3002" }) : null
+                                    ] }) : null,
+                                    /* @__PURE__ */ jsx11(
+                                      Input3.TextArea,
+                                      {
+                                        className: "we-runtime-prompt-card__textarea",
+                                        value: draftNote,
+                                        disabled: !canEditNote || savingComment,
+                                        readOnly: inlineTextEditing,
+                                        tabIndex: inlineTextEditing ? -1 : 0,
+                                        allowClear: true,
+                                        autoSize: { minRows: componentComposer ? 3 : 1, maxRows: componentComposer ? 6 : 4 },
+                                        placeholder: generateNewPrototype ? "\u4F8B\u5982\uFF1A\u672A\u767B\u5F55\u3001\u5DF2\u767B\u5F55\u3001\u8BED\u8A00\u83DC\u5355\u5C55\u5F00\uFF1B\u8BF4\u660E\u5404\u72B6\u6001\u7684\u53D8\u5316" : notePlaceholder,
+                                        variant: "borderless",
+                                        styles: {
+                                          textarea: {
+                                            color: EDITOR_CHROME.textPrimary,
+                                            background: "transparent",
+                                            minHeight: componentComposer ? 76 : 32,
+                                            padding: componentComposer ? "10px 12px" : "6px 10px",
+                                            fontSize: componentComposer ? 13 : 12.5,
+                                            lineHeight: 1.55,
+                                            caretColor: EDITOR_CHROME.textPrimary
+                                          }
+                                        },
+                                        style: {
+                                          borderRadius: 12,
+                                          background: "transparent",
+                                          borderColor: "transparent",
+                                          boxShadow: "none"
+                                        },
+                                        onChange: (event) => {
+                                          onDraftChange(event.target.value);
+                                        },
+                                        onFocus: (event) => {
+                                          if (!inlineTextEditing) return;
+                                          event.currentTarget.blur();
+                                        },
+                                        onPasteCapture: onNotePasteCapture,
+                                        onKeyDown: handlePromptKeyDown,
+                                        onBlur: (event) => {
+                                          if (generateNewPrototype) return;
+                                          const nextTarget = event.relatedTarget;
+                                          if (componentComposer && nextTarget instanceof Node && rootRef.current?.contains(nextTarget)) return;
+                                          if (nextTarget instanceof Node && noteComposerRef.current?.contains(nextTarget)) {
+                                            return;
+                                          }
+                                          if (!noteDirty && !selectedSkillsDirty) return;
+                                          void onConfirmNoteWithSelectedSkills();
+                                        }
+                                      }
+                                    )
+                                  ]
+                                }
+                              )
+                            }
+                          ),
+                          /* @__PURE__ */ jsx11(
+                            PromptImageStrip,
+                            {
+                              images,
+                              readOnly: Boolean(savedNoteMeta?.readOnly),
+                              onRemoveImage: (imageId) => {
+                                void onRemoveImage(imageId);
+                              }
+                            }
+                          )
+                        ] }) : null,
+                        showAnnotationMarkdownEditor ? /* @__PURE__ */ jsxs10("div", { "data-we-prompt-primary-focus-exempt": "true", style: annotationEditorShellStyle, children: [
+                          /* @__PURE__ */ jsxs10("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+                            /* @__PURE__ */ jsx11(
                               "span",
                               {
                                 style: {
+                                  minWidth: 0,
+                                  flex: 1,
                                   fontSize: 11,
                                   fontWeight: 600,
                                   lineHeight: 1.4,
                                   color: EDITOR_CHROME.textSecondary
                                 },
-                                children: "\u6837\u5F0F\u7F16\u8F91"
+                                children: documentSourceMarkdownEditor ? "Markdown \u6E90\u7801" : "\u9700\u6C42\u6807\u6CE8"
                               }
                             ),
-                            styleSummaryLines.map((line) => /* @__PURE__ */ jsx9(
-                              "span",
-                              {
-                                style: {
-                                  fontSize: 11,
-                                  lineHeight: 1.45,
-                                  color: EDITOR_CHROME.textMuted,
-                                  wordBreak: "break-word"
-                                },
-                                children: line
+                            annotationDeleteAction
+                          ] }),
+                          /* @__PURE__ */ jsx11("div", { "data-we-annotation-markdown-editor": "true", style: annotationEditorInputStyle, children: /* @__PURE__ */ jsx11(
+                            Input3.TextArea,
+                            {
+                              className: "we-runtime-prompt-card__textarea",
+                              value: annotationDraftMarkdown,
+                              disabled: annotationLoading || annotationManualEditDisabled,
+                              autoSize: { minRows: 4, maxRows: 10 },
+                              placeholder: documentSourceMarkdownEditor ? DOCUMENT_SOURCE_MARKDOWN_PLACEHOLDER : annotationManualEditDisabled ? annotationManualEditMessage : ANNOTATION_MARKDOWN_PLACEHOLDER,
+                              variant: "borderless",
+                              styles: {
+                                textarea: {
+                                  color: EDITOR_CHROME.textPrimary,
+                                  background: "transparent",
+                                  minHeight: 96,
+                                  padding: "10px 12px",
+                                  fontSize: 12,
+                                  lineHeight: 1.55,
+                                  caretColor: EDITOR_CHROME.textPrimary
+                                }
                               },
-                              line
-                            ))
-                          ]
-                        }
-                      ) : null,
-                      currentAgentTask ? /* @__PURE__ */ jsxs8(
-                        "div",
-                        {
-                          style: {
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: 6,
-                            padding: "2px 4px 0",
-                            marginTop: -2
-                          },
-                          children: [
-                            currentAgentTask.status === "completed" ? /* @__PURE__ */ jsx9(CheckCircleFilled, { style: { color: "#22c55e", fontSize: 13, marginTop: 3 } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ jsx9(ExclamationCircleFilled, { style: { color: "#ef4444", fontSize: 13, marginTop: 3 } }) : /* @__PURE__ */ jsx9("div", { style: { marginTop: 2 }, children: /* @__PURE__ */ jsx9(AgentSparkleIcon, {}) }),
-                            /* @__PURE__ */ jsxs8(
-                              "div",
-                              {
-                                style: {
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  flex: 1,
-                                  minWidth: 0,
-                                  overflow: "hidden"
-                                },
-                                children: [
-                                  /* @__PURE__ */ jsxs8(
-                                    "div",
-                                    {
-                                      style: {
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 4,
-                                        minWidth: 0
-                                      },
-                                      children: [
-                                        /* @__PURE__ */ jsx9(
-                                          "span",
-                                          {
-                                            style: {
-                                              fontSize: 12,
-                                              fontWeight: 500,
-                                              color: currentAgentTask.status === "error" ? "#ef4444" : EDITOR_CHROME.textPrimary
-                                            },
-                                            children: currentAgentTask.status === "pending" ? "AI \u51C6\u5907\u4E2D" : currentAgentTask.status === "created" ? "AI \u6B63\u5728\u4FEE\u6539" : currentAgentTask.status === "completed" ? "AI \u4FEE\u6539\u5B8C\u6210" : "AI \u4FEE\u6539\u5931\u8D25"
-                                          }
-                                        ),
-                                        currentAgentTask.status === "error" && currentTaskErrorMessage ? /* @__PURE__ */ jsx9(
-                                          IconActionButton,
-                                          {
-                                            title: "\u590D\u5236\u9519\u8BEF\u4FE1\u606F",
-                                            icon: /* @__PURE__ */ jsx9(CopyOutlined, {}),
-                                            tone: "danger",
-                                            style: {
-                                              width: 20,
-                                              minWidth: 20,
-                                              height: 20,
-                                              fontSize: 12,
-                                              marginLeft: 1
-                                            },
-                                            onClick: () => {
-                                              void copyPromptCardTextToClipboard(currentTaskErrorMessage).catch(
-                                                () => void 0
-                                              );
-                                            }
-                                          }
-                                        ) : null
-                                      ]
-                                    }
-                                  ),
-                                  currentTaskDescription ? /* @__PURE__ */ jsxs8(
-                                    "span",
-                                    {
-                                      style: {
-                                        fontSize: 11,
-                                        lineHeight: 1.5,
-                                        color: EDITOR_CHROME.textMuted,
-                                        marginTop: 1,
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis"
-                                      },
-                                      children: [
-                                        currentTaskDescription,
-                                        currentAgentTask.sessionId ? ` \xB7 Session ${currentAgentTask.sessionId}` : ""
-                                      ]
-                                    }
-                                  ) : null
-                                ]
+                              style: {
+                                background: "transparent",
+                                borderColor: "transparent",
+                                boxShadow: "none"
+                              },
+                              onChange: (event) => {
+                                onAnnotationDraftChange(event.target.value);
+                              },
+                              onKeyDown: (event) => {
+                                if (event.nativeEvent.isComposing) return;
+                                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  void saveAndCloseAnnotationMarkdownComposer();
+                                  return;
+                                }
+                                if (event.key === "Escape") {
+                                  event.stopPropagation();
+                                }
                               }
-                            )
-                          ]
-                        }
-                      ) : null
-                    ]
-                  }
-                )
-              ]
-            }
-          ),
-          componentComposer && showPromptCardExecutionActions ? /* @__PURE__ */ jsx9(
-            ComponentPromptFooter,
-            {
-              newPrototypeAvailable: Boolean(onGenerateComponentStates) && showNoteComposer,
-              newPrototype: generateNewPrototype,
-              onNewPrototypeChange: setGenerateNewPrototype,
-              selectedElementCount,
-              actionVisible: !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype),
-              disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
-              loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
-              actionTitle: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
-              onSend: () => {
-                void handleConfirmSendCurrentElementPrompt();
-              },
-              onSave: () => {
-                void handleSaveComment();
-              },
-              saveDisabled: !canEditNote || !draftNote.trim() || sendingCurrentElementPrompt,
-              saving: savingComment,
-              shortcut: /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? "") ? "\u2318 Enter" : "Ctrl Enter",
-              leadingActions: /* @__PURE__ */ jsxs8(Fragment5, { children: [
-                appendContextAction,
-                clearEditsAction
-              ] })
-            }
-          ) : null
+                            }
+                          ) })
+                        ] }) : null,
+                        showPromptDesignEditor && transactionManager ? /* @__PURE__ */ jsx11(
+                          PromptCardDesignEditor,
+                          {
+                            target: currentTarget,
+                            transactionManager,
+                            tokensService,
+                            refreshKey,
+                            disabled: currentTaskRunning,
+                            onRefreshRequest: () => {
+                              setRefreshKey((value) => value + 1);
+                            },
+                            onDeleteElement: options.onDeleteCurrentElement
+                          }
+                        ) : null,
+                        !isAnnotationSession && !bubbleStyleEditorOpen && styleSummaryLines.length > 0 ? /* @__PURE__ */ jsxs10(
+                          "div",
+                          {
+                            style: {
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 4,
+                              padding: "8px 10px",
+                              borderRadius: 12,
+                              background: "rgba(255, 255, 255, 0.04)",
+                              border: `1px solid ${EDITOR_CHROME.border}`
+                            },
+                            children: [
+                              /* @__PURE__ */ jsx11(
+                                "span",
+                                {
+                                  style: {
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    lineHeight: 1.4,
+                                    color: EDITOR_CHROME.textSecondary
+                                  },
+                                  children: "\u6837\u5F0F\u7F16\u8F91"
+                                }
+                              ),
+                              styleSummaryLines.map((line) => /* @__PURE__ */ jsx11(
+                                "span",
+                                {
+                                  style: {
+                                    fontSize: 11,
+                                    lineHeight: 1.45,
+                                    color: EDITOR_CHROME.textMuted,
+                                    wordBreak: "break-word"
+                                  },
+                                  children: line
+                                },
+                                line
+                              ))
+                            ]
+                          }
+                        ) : null,
+                        currentAgentTask ? /* @__PURE__ */ jsxs10(
+                          "div",
+                          {
+                            style: {
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: 6,
+                              padding: "2px 4px 0",
+                              marginTop: -2
+                            },
+                            children: [
+                              currentAgentTask.status === "completed" ? /* @__PURE__ */ jsx11(CheckCircleFilled, { style: { color: "#22c55e", fontSize: 13, marginTop: 3 } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ jsx11(ExclamationCircleFilled, { style: { color: "#ef4444", fontSize: 13, marginTop: 3 } }) : /* @__PURE__ */ jsx11("div", { style: { marginTop: 2 }, children: /* @__PURE__ */ jsx11(AgentSparkleIcon, {}) }),
+                              /* @__PURE__ */ jsxs10(
+                                "div",
+                                {
+                                  style: {
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    flex: 1,
+                                    minWidth: 0,
+                                    overflow: "hidden"
+                                  },
+                                  children: [
+                                    /* @__PURE__ */ jsxs10(
+                                      "div",
+                                      {
+                                        style: {
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 4,
+                                          minWidth: 0
+                                        },
+                                        children: [
+                                          /* @__PURE__ */ jsx11(
+                                            "span",
+                                            {
+                                              style: {
+                                                fontSize: 12,
+                                                fontWeight: 500,
+                                                color: currentAgentTask.status === "error" ? "#ef4444" : EDITOR_CHROME.textPrimary
+                                              },
+                                              children: currentAgentTask.status === "pending" ? "AI \u51C6\u5907\u4E2D" : currentAgentTask.status === "created" ? "AI \u6B63\u5728\u4FEE\u6539" : currentAgentTask.status === "completed" ? "AI \u4FEE\u6539\u5B8C\u6210" : "AI \u4FEE\u6539\u5931\u8D25"
+                                            }
+                                          ),
+                                          currentAgentTask.status === "error" && currentTaskErrorMessage ? /* @__PURE__ */ jsx11(
+                                            IconActionButton,
+                                            {
+                                              title: "\u590D\u5236\u9519\u8BEF\u4FE1\u606F",
+                                              icon: /* @__PURE__ */ jsx11(CopyOutlined, {}),
+                                              tone: "danger",
+                                              style: {
+                                                width: 20,
+                                                minWidth: 20,
+                                                height: 20,
+                                                fontSize: 12,
+                                                marginLeft: 1
+                                              },
+                                              onClick: () => {
+                                                void copyPromptCardTextToClipboard(currentTaskErrorMessage).catch(
+                                                  () => void 0
+                                                );
+                                              }
+                                            }
+                                          ) : null
+                                        ]
+                                      }
+                                    ),
+                                    currentTaskDescription ? /* @__PURE__ */ jsxs10(
+                                      "span",
+                                      {
+                                        style: {
+                                          fontSize: 11,
+                                          lineHeight: 1.5,
+                                          color: EDITOR_CHROME.textMuted,
+                                          marginTop: 1,
+                                          whiteSpace: "nowrap",
+                                          overflow: "hidden",
+                                          textOverflow: "ellipsis"
+                                        },
+                                        children: [
+                                          currentTaskDescription,
+                                          currentAgentTask.sessionId ? ` \xB7 Session ${currentAgentTask.sessionId}` : ""
+                                        ]
+                                      }
+                                    ) : null
+                                  ]
+                                }
+                              )
+                            ]
+                          }
+                        ) : null
+                      ]
+                    }
+                  )
+                ]
+              }
+            ),
+            componentComposer && showPromptCardExecutionActions ? /* @__PURE__ */ jsx11(
+              ComponentPromptFooter,
+              {
+                newPrototypeAvailable: Boolean(onGenerateComponentStates) && showNoteComposer,
+                newPrototype: generateNewPrototype,
+                onNewPrototypeChange: setGenerateNewPrototype,
+                selectedElementCount,
+                actionVisible: !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype),
+                disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
+                loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
+                actionTitle: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
+                onSend: () => {
+                  void handleConfirmSendCurrentElementPrompt();
+                },
+                onSave: () => {
+                  void handleSaveComment();
+                },
+                saveDisabled: !canEditNote || !draftNote.trim() || sendingCurrentElementPrompt,
+                saving: savingComment,
+                shortcut: /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? "") ? "\u2318 Enter" : "Ctrl Enter",
+                leadingActions: /* @__PURE__ */ jsxs10(Fragment6, { children: [
+                  appendContextAction,
+                  clearEditsAction
+                ] })
+              }
+            ) : null
+          ] })
         ]
       }
     );
-    const overlayNode = /* @__PURE__ */ jsx9(
+    const overlayNode = /* @__PURE__ */ jsx11(
       MobileSelectionOverlay,
       {
         currentTarget,
@@ -18050,14 +19019,14 @@ var PromptCardView = React9.forwardRef(
     );
     if (portalContainer) {
       return createPortal(
-        /* @__PURE__ */ jsxs8(Fragment5, { children: [
+        /* @__PURE__ */ jsxs10(Fragment6, { children: [
           overlayNode,
           promptCardNode
         ] }),
         portalContainer
       );
     }
-    return /* @__PURE__ */ jsxs8(Fragment5, { children: [
+    return /* @__PURE__ */ jsxs10(Fragment6, { children: [
       overlayNode,
       promptCardNode
     ] });
@@ -18065,7 +19034,7 @@ var PromptCardView = React9.forwardRef(
 );
 
 // src/ui/runtime/property-panel-view.tsx
-import React13 from "react";
+import React15 from "react";
 import {
   CheckCircleFilled as CheckCircleFilled2,
   CopyOutlined as CopyOutlined2,
@@ -18077,7 +19046,7 @@ import {
   FileTextOutlined as FileTextOutlined2,
   FolderOpenOutlined,
   HomeOutlined,
-  ArrowUpOutlined as ArrowUpOutlined2,
+  ArrowUpOutlined as ArrowUpOutlined3,
   CloseOutlined as CloseOutlined3,
   HistoryOutlined,
   QuestionCircleOutlined,
@@ -18207,6 +19176,7 @@ import {
 } from "antd";
 
 // src/utils/page-zoom-toggle.ts
+var PAGE_LAYOUT_CHANGE_EVENT = "commentary:page-layout-change";
 var state = {
   enabled: false,
   reservedRightWidth: 0,
@@ -18215,6 +19185,59 @@ var state = {
   editorHostMountSnapshot: null,
   resizeHandler: null
 };
+var reservations = /* @__PURE__ */ new Map();
+var manualScale = null;
+var panX = 0;
+var panY = 0;
+var appliedScale = 1;
+var appliedX = 0;
+var contentLeft = 0;
+var originX = 0;
+var originY = 0;
+var contentWidth = 0;
+var baseTransform = "";
+var nativeSuspension = null;
+function suspendPageZoomForNativePanel() {
+  if (!state.enabled) return;
+  nativeSuspension = {
+    body: document.body,
+    href: window.location?.href ?? "",
+    bodyStyles: new Map(state.bodySnapshots),
+    htmlStyles: new Map(state.htmlSnapshots)
+  };
+}
+function getPageZoomView() {
+  return { scale: appliedScale, mode: manualScale === null ? "fit" : "manual", panX, panY, reservedRightWidth: state.reservedRightWidth };
+}
+var fitOffset = (scale) => -Math.max(0, contentLeft * scale - 16);
+function setPageZoomView(scale, anchor) {
+  if (!state.enabled) return;
+  if (scale === "fit") {
+    manualScale = null;
+    panX = 0;
+    panY = 0;
+  } else {
+    const next = Number.isFinite(scale) ? Math.min(3, Math.max(0.1, scale)) : appliedScale;
+    if (anchor) {
+      const ratio = next / appliedScale;
+      const x = anchor.x + (window.scrollX || 0) - originX;
+      const y = anchor.y + (window.scrollY || 0) - originY;
+      panX = x - (x - appliedX) * ratio - fitOffset(next);
+      panY = y - (y - panY) * ratio;
+    } else {
+      panX = 0;
+      panY = 0;
+    }
+    manualScale = next;
+  }
+  applyPageZoom(scale === "fit");
+}
+function panPageZoom(x, y) {
+  if (!state.enabled || !Number.isFinite(x) || !Number.isFinite(y)) return;
+  panX += x;
+  panY += y;
+  applyPageZoom(false);
+}
 function readInlineStyle(style, property) {
   return {
     value: style.getPropertyValue(property),
@@ -18304,28 +19327,42 @@ function measureVisibleContentLeft(viewportWidth) {
   }
   return Number.isFinite(minLeft) ? Math.max(0, minLeft) : 0;
 }
-function applyPageZoom() {
+function applyPageZoom(remeasure = true) {
   if (typeof window === "undefined" || typeof document === "undefined") return;
   if (!document.body || !document.documentElement) return;
   hoistEditorHostOutsideBodyTransform();
   const body = document.body;
   const html = document.documentElement;
-  const reservedRightWidth = Math.max(0, Math.round(state.reservedRightWidth));
   const viewportWidth = Math.max(0, window.innerWidth || html.clientWidth || 0);
-  const contentWidth = Math.max(body.scrollWidth || 0, html.clientWidth || 0, viewportWidth);
+  if (remeasure) {
+    restoreInlineStyle(body.style, "transform", state.bodySnapshots.get("transform"));
+    restoreInlineStyle(body.style, "transform-origin", state.bodySnapshots.get("transform-origin"));
+    const originalStyle = typeof window.getComputedStyle === "function" ? window.getComputedStyle(body) : null;
+    const originalTransform = state.bodySnapshots.get("transform")?.value || originalStyle?.transform || "";
+    const [baseX = "0px", baseY = "0px"] = (originalStyle?.transformOrigin || "0px 0px").split(" ");
+    baseTransform = originalTransform && originalTransform !== "none" ? `translate(${baseX}, ${baseY}) ${originalTransform} translate(calc(-1 * ${baseX}), calc(-1 * ${baseY}))` : "";
+    body.style.setProperty("transform", "none", "important");
+    const origin = body.getBoundingClientRect?.();
+    originX = (origin?.left ?? 0) + (window.scrollX || 0);
+    originY = (origin?.top ?? 0) + (window.scrollY || 0);
+    restoreInlineStyle(body.style, "transform", state.bodySnapshots.get("transform"));
+    contentWidth = Math.max(body.scrollWidth || 0, html.clientWidth || 0, viewportWidth);
+    contentLeft = measureVisibleContentLeft(viewportWidth);
+  }
+  const reservedRightWidth = Math.max(0, Math.round(state.reservedRightWidth));
   const availableWidth = Math.max(0, viewportWidth - reservedRightWidth);
-  const scale = contentWidth > 0 ? Math.min(1, availableWidth / contentWidth) : 1;
-  const normalizedScale = Number.isFinite(scale) ? Math.max(0, scale) : 1;
-  const contentLeft = measureVisibleContentLeft(viewportWidth);
-  const desiredLeft = 16;
-  const translateX = Math.max(0, contentLeft * normalizedScale - desiredLeft);
+  const scale = manualScale ?? (contentWidth > 0 ? Math.min(1, availableWidth / contentWidth) : 1);
+  const normalizedScale = Number.isFinite(scale) ? Math.max(0.01, scale) : 1;
+  appliedScale = normalizedScale;
+  appliedX = fitOffset(normalizedScale) + panX;
   body.style.setProperty("transform-origin", "top left", "important");
   body.style.setProperty(
     "transform",
-    `translateX(-${translateX}px) scale(${normalizedScale})`,
+    `translate(${appliedX}px, ${panY}px) scale(${normalizedScale}) ${baseTransform}`.trim(),
     "important"
   );
   html.style.setProperty("overflow-x", "hidden", "important");
+  window.dispatchEvent(new Event(PAGE_LAYOUT_CHANGE_EVENT));
 }
 function attachResizeHandler() {
   if (typeof window === "undefined" || state.resizeHandler) return;
@@ -18343,7 +19380,19 @@ function detachResizeHandler() {
 function setPageZoomEnabled(enabled, options = {}) {
   if (typeof document === "undefined" || typeof window === "undefined") return;
   if (!document.body || !document.documentElement) return;
-  if (!enabled) {
+  if (enabled && !state.enabled && nativeSuspension) {
+    const snapshot = nativeSuspension;
+    nativeSuspension = null;
+    if (snapshot.body === document.body && snapshot.href === (window.location?.href ?? "")) {
+      for (const [key, value] of snapshot.bodyStyles) restoreInlineStyle(document.body.style, key, value);
+      for (const [key, value] of snapshot.htmlStyles) restoreInlineStyle(document.documentElement.style, key, value);
+    }
+  }
+  const owner = options.owner ?? "property-panel";
+  if (enabled) reservations.set(owner, Math.max(0, options.reservedRightWidth ?? 0));
+  else reservations.delete(owner);
+  if (!reservations.size) {
+    if (!state.enabled) return;
     const bodyStyle = document.body.style;
     const htmlStyle = document.documentElement.style;
     restoreInlineStyle(bodyStyle, "transform", state.bodySnapshots.get("transform"));
@@ -18355,11 +19404,17 @@ function setPageZoomEnabled(enabled, options = {}) {
     state.reservedRightWidth = 0;
     state.bodySnapshots.clear();
     state.htmlSnapshots.clear();
+    manualScale = null;
+    panX = 0;
+    panY = 0;
+    appliedScale = 1;
+    appliedX = 0;
+    window.dispatchEvent(new Event(PAGE_LAYOUT_CHANGE_EVENT));
     return;
   }
   captureSnapshots();
   state.enabled = true;
-  state.reservedRightWidth = Math.max(0, options.reservedRightWidth ?? 0);
+  state.reservedRightWidth = Math.max(...reservations.values());
   applyPageZoom();
   attachResizeHandler();
 }
@@ -18857,12 +19912,12 @@ function dockFloatingPanelRight(options) {
 }
 
 // src/ui/property-panel/react-page-tweak-panel.tsx
-import React11 from "react";
+import React13 from "react";
 import { DeleteOutlined as DeleteOutlined3, LinkOutlined as LinkOutlined2 } from "@ant-design/icons";
 import { Button as Button4, Collapse as Collapse2, Empty as Empty4, Tooltip as Tooltip5 } from "antd";
 
 // src/ui/property-panel/react-tweak-panel.tsx
-import React10 from "react";
+import React12 from "react";
 import { CaretRightOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import {
   ColorPicker as ColorPicker2,
@@ -18875,17 +19930,17 @@ import {
   Tooltip as Tooltip4,
   Typography
 } from "antd";
-import { jsx as jsx10, jsxs as jsxs9 } from "react/jsx-runtime";
+import { jsx as jsx12, jsxs as jsxs11 } from "react/jsx-runtime";
 function InfoTooltipIcon(props) {
   const { title } = props;
-  return /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(
     Tooltip4,
     {
       title,
       placement: "left",
       arrow: { pointAtCenter: true },
       getPopupContainer: resolveRuntimePopupContainer,
-      children: /* @__PURE__ */ jsx10(InfoCircleOutlined, { className: "we-runtime-config-panel__info-icon" })
+      children: /* @__PURE__ */ jsx12(InfoCircleOutlined, { className: "we-runtime-config-panel__info-icon" })
     }
   );
 }
@@ -18921,23 +19976,23 @@ function asBooleanValue(value) {
 function AttrLabel(props) {
   const { config, canCollapse = false, collapsed = false, onClick } = props;
   if (!config.displayName) return null;
-  return /* @__PURE__ */ jsxs9(
+  return /* @__PURE__ */ jsxs11(
     "div",
     {
       className: "we-runtime-config-panel__attr-label",
       style: { cursor: onClick ? "pointer" : "default" },
       onClick,
       children: [
-        canCollapse ? /* @__PURE__ */ jsx10(
+        canCollapse ? /* @__PURE__ */ jsx12(
           CaretRightOutlined,
           {
             rotate: collapsed ? 0 : 90,
             className: "we-runtime-config-panel__collapse-icon"
           }
         ) : null,
-        /* @__PURE__ */ jsx10("div", { className: "we-runtime-config-panel__label-main", children: /* @__PURE__ */ jsxs9("span", { className: "we-runtime-config-panel__label-inline", children: [
-          /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__label-text", children: config.displayName }),
-          config.info ? /* @__PURE__ */ jsx10(InfoTooltipIcon, { title: config.info }) : null
+        /* @__PURE__ */ jsx12("div", { className: "we-runtime-config-panel__label-main", children: /* @__PURE__ */ jsxs11("span", { className: "we-runtime-config-panel__label-inline", children: [
+          /* @__PURE__ */ jsx12("span", { className: "we-runtime-config-panel__label-text", children: config.displayName }),
+          config.info ? /* @__PURE__ */ jsx12(InfoTooltipIcon, { title: config.info }) : null
         ] }) })
       ]
     }
@@ -18945,14 +20000,14 @@ function AttrLabel(props) {
 }
 function BaseComponent(props) {
   const { config, multiline = false, controlClassName, children } = props;
-  return /* @__PURE__ */ jsxs9(
+  return /* @__PURE__ */ jsxs11(
     "div",
     {
       className: "we-runtime-config-panel__attr-component",
       "data-multiline": multiline ? "true" : "false",
       children: [
-        /* @__PURE__ */ jsx10(AttrLabel, { config }),
-        /* @__PURE__ */ jsx10(
+        /* @__PURE__ */ jsx12(AttrLabel, { config }),
+        /* @__PURE__ */ jsx12(
           "div",
           {
             className: ["we-runtime-config-panel__control", controlClassName].filter(Boolean).join(" "),
@@ -18967,7 +20022,7 @@ function TextComponent(props) {
   const { config, attributes } = props;
   const value = asStringValue(readValue(attributes, config));
   if (config.hint) {
-    return /* @__PURE__ */ jsx10("div", { className: "we-runtime-config-panel__hint", children: /* @__PURE__ */ jsx10(
+    return /* @__PURE__ */ jsx12("div", { className: "we-runtime-config-panel__hint", children: /* @__PURE__ */ jsx12(
       Typography.Text,
       {
         className: "we-runtime-config-panel__hint-text",
@@ -18976,9 +20031,9 @@ function TextComponent(props) {
       }
     ) });
   }
-  return /* @__PURE__ */ jsxs9("div", { className: "we-runtime-config-panel__text-row", children: [
-    config.displayName ? /* @__PURE__ */ jsx10(AttrLabel, { config }) : null,
-    /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsxs11("div", { className: "we-runtime-config-panel__text-row", children: [
+    config.displayName ? /* @__PURE__ */ jsx12(AttrLabel, { config }) : null,
+    /* @__PURE__ */ jsx12(
       Typography.Text,
       {
         className: "we-runtime-config-panel__text",
@@ -18990,7 +20045,7 @@ function TextComponent(props) {
 }
 function InputComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx10(BaseComponent, { config, children: /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(BaseComponent, { config, children: /* @__PURE__ */ jsx12(
     Input4,
     {
       variant: "filled",
@@ -19007,13 +20062,13 @@ function InputComponent(props) {
 }
 function CustomTextAreaComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(
     BaseComponent,
     {
       config,
       multiline: true,
       controlClassName: "we-runtime-config-panel__control--full",
-      children: /* @__PURE__ */ jsx10(
+      children: /* @__PURE__ */ jsx12(
         Input4.TextArea,
         {
           variant: "filled",
@@ -19035,7 +20090,7 @@ function CustomTextAreaComponent(props) {
 }
 function InputNumberComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx10(BaseComponent, { config, children: /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(BaseComponent, { config, children: /* @__PURE__ */ jsx12(
     InputNumber2,
     {
       variant: "filled",
@@ -19057,7 +20112,7 @@ function InputNumberComponent(props) {
 }
 function SelectComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx10(BaseComponent, { config, children: /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(BaseComponent, { config, children: /* @__PURE__ */ jsx12(
     Select2,
     {
       allowClear: true,
@@ -19080,13 +20135,13 @@ function SelectComponent(props) {
 }
 function SegmentedComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(
     BaseComponent,
     {
       config,
       multiline: true,
       controlClassName: "we-runtime-config-panel__control--full",
-      children: /* @__PURE__ */ jsx10(
+      children: /* @__PURE__ */ jsx12(
         Segmented3,
         {
           block: true,
@@ -19095,9 +20150,9 @@ function SegmentedComponent(props) {
           value: readValue(attributes, config),
           options: (config.options ?? []).map((option) => ({
             value: option.value,
-            label: /* @__PURE__ */ jsxs9("span", { className: "we-runtime-config-panel__segmented-option", children: [
-              /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__segmented-option-label", children: option.label }),
-              option.description ? /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__segmented-option-description", children: option.description }) : null
+            label: /* @__PURE__ */ jsxs11("span", { className: "we-runtime-config-panel__segmented-option", children: [
+              /* @__PURE__ */ jsx12("span", { className: "we-runtime-config-panel__segmented-option-label", children: option.label }),
+              option.description ? /* @__PURE__ */ jsx12("span", { className: "we-runtime-config-panel__segmented-option-description", children: option.description }) : null
             ] })
           })),
           disabled: config.disabled,
@@ -19113,13 +20168,13 @@ function SegmentedComponent(props) {
 function CardSelectComponent(props) {
   const { config, attributes, onChange } = props;
   const currentValue = readValue(attributes, config);
-  return /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(
     BaseComponent,
     {
       config,
       multiline: true,
       controlClassName: "we-runtime-config-panel__control--full",
-      children: /* @__PURE__ */ jsx10(
+      children: /* @__PURE__ */ jsx12(
         "div",
         {
           className: "we-runtime-config-panel__card-list",
@@ -19127,7 +20182,7 @@ function CardSelectComponent(props) {
           "aria-label": config.displayName ?? "\u5361\u7247\u9009\u62E9",
           children: (config.options ?? []).map((option) => {
             const selected = currentValue === option.value;
-            return /* @__PURE__ */ jsxs9(
+            return /* @__PURE__ */ jsxs11(
               "button",
               {
                 type: "button",
@@ -19144,8 +20199,8 @@ function CardSelectComponent(props) {
                   void onChange({ [config.attributeId]: option.value });
                 },
                 children: [
-                  /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__card-option-title", children: option.label }),
-                  option.description ? /* @__PURE__ */ jsx10("span", { className: "we-runtime-config-panel__card-option-description", children: option.description }) : null
+                  /* @__PURE__ */ jsx12("span", { className: "we-runtime-config-panel__card-option-title", children: option.label }),
+                  option.description ? /* @__PURE__ */ jsx12("span", { className: "we-runtime-config-panel__card-option-description", children: option.description }) : null
                 ]
               },
               String(option.value)
@@ -19158,7 +20213,7 @@ function CardSelectComponent(props) {
 }
 function SwitchComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ jsx10(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ jsx12(
     Switch,
     {
       size: "small",
@@ -19174,7 +20229,7 @@ function SwitchComponent(props) {
 function ColorPickerComponent(props) {
   const { config, attributes, onChange } = props;
   const value = asStringValue(readValue(attributes, config)) || void 0;
-  return /* @__PURE__ */ jsx10(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ jsx12(
     ColorPicker2,
     {
       size: "small",
@@ -19191,8 +20246,8 @@ function ColorPickerComponent(props) {
 }
 function GroupComponent(props) {
   const { config, attributes, onChange } = props;
-  const [collapsed, setCollapsed] = React10.useState(config.defaultExpanded === false);
-  return /* @__PURE__ */ jsxs9(
+  const [collapsed, setCollapsed] = React12.useState(config.defaultExpanded === false);
+  return /* @__PURE__ */ jsxs11(
     "div",
     {
       className: [
@@ -19200,7 +20255,7 @@ function GroupComponent(props) {
         config.displayType === "inline" ? "we-runtime-config-panel__group--inline" : ""
       ].filter(Boolean).join(" "),
       children: [
-        /* @__PURE__ */ jsx10(
+        /* @__PURE__ */ jsx12(
           AttrLabel,
           {
             config,
@@ -19209,14 +20264,14 @@ function GroupComponent(props) {
             onClick: () => setCollapsed((previous) => !previous)
           }
         ),
-        /* @__PURE__ */ jsx10(
+        /* @__PURE__ */ jsx12(
           "div",
           {
             className: [
               "we-runtime-config-panel__group-content",
               collapsed ? "we-runtime-config-panel__group-content--collapsed" : ""
             ].filter(Boolean).join(" "),
-            children: (config.children ?? []).map((child, index) => /* @__PURE__ */ jsx10(
+            children: (config.children ?? []).map((child, index) => /* @__PURE__ */ jsx12(
               AttributeTree,
               {
                 attributes,
@@ -19249,7 +20304,7 @@ function AttributeTree(props) {
     return null;
   }
   const Component = configComponents[titleCase(config.type)];
-  return Component ? /* @__PURE__ */ jsx10(Component, { ...props }) : null;
+  return Component ? /* @__PURE__ */ jsx12(Component, { ...props }) : null;
 }
 function convertFieldToConfig(field, values, disabled) {
   const common = {
@@ -19333,7 +20388,7 @@ function buildConfigNodes(schema, values, disabled) {
 function ReactTweakPanel(props) {
   const { schema, values, disabled = false, onChange } = props;
   if (!schema?.fields?.length) {
-    return /* @__PURE__ */ jsx10(
+    return /* @__PURE__ */ jsx12(
       Empty3,
       {
         image: Empty3.PRESENTED_IMAGE_SIMPLE,
@@ -19344,7 +20399,7 @@ function ReactTweakPanel(props) {
   }
   const attributes = values ?? {};
   const configNodes = buildConfigNodes(schema, values, disabled);
-  return /* @__PURE__ */ jsx10("div", { className: "we-runtime-prop-panel__body we-runtime-config-panel", children: configNodes.map((config, index) => /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12("div", { className: "we-runtime-prop-panel__body we-runtime-config-panel", children: configNodes.map((config, index) => /* @__PURE__ */ jsx12(
     AttributeTree,
     {
       attributes,
@@ -19358,7 +20413,7 @@ function ReactTweakPanel(props) {
 }
 
 // src/ui/property-panel/react-page-tweak-panel.tsx
-import { jsx as jsx11, jsxs as jsxs10 } from "react/jsx-runtime";
+import { jsx as jsx13, jsxs as jsxs12 } from "react/jsx-runtime";
 function resolveNextActivePageTweakKeys(params) {
   const { previousKeys, allKeys, initialized } = params;
   const validKeySet = new Set(allKeys);
@@ -19386,14 +20441,14 @@ function stopHeaderActionEvent(event) {
 }
 function HeaderActionButton(props) {
   const { title, icon, disabled = false, onClick } = props;
-  return /* @__PURE__ */ jsx11(
+  return /* @__PURE__ */ jsx13(
     Tooltip5,
     {
       title,
       placement: "left",
       arrow: { pointAtCenter: true },
       getPopupContainer: resolveRuntimePopupContainer,
-      children: /* @__PURE__ */ jsx11("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx11(
+      children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
         Button4,
         {
           type: "text",
@@ -19416,29 +20471,29 @@ function CollapseHeaderLabel(props) {
     onClear,
     onLocate
   } = props;
-  return /* @__PURE__ */ jsxs10("span", { className: "we-runtime-page-tweak-panel__header-row", children: [
-    /* @__PURE__ */ jsx11("span", { className: "we-runtime-page-tweak-panel__header-label", children: /* @__PURE__ */ jsx11("span", { className: "we-runtime-page-tweak-panel__header-label-text", children: title }) }),
-    /* @__PURE__ */ jsxs10(
+  return /* @__PURE__ */ jsxs12("span", { className: "we-runtime-page-tweak-panel__header-row", children: [
+    /* @__PURE__ */ jsx13("span", { className: "we-runtime-page-tweak-panel__header-label", children: /* @__PURE__ */ jsx13("span", { className: "we-runtime-page-tweak-panel__header-label-text", children: title }) }),
+    /* @__PURE__ */ jsxs12(
       "span",
       {
         className: "we-runtime-page-tweak-panel__header-actions",
         onClick: stopHeaderActionEvent,
         onPointerDown: stopHeaderActionEvent,
         children: [
-          /* @__PURE__ */ jsx11(
+          /* @__PURE__ */ jsx13(
             HeaderActionButton,
             {
               title: "\u6E05\u7A7A\u5F53\u524D\u5206\u7EC4\u7F16\u8F91",
-              icon: /* @__PURE__ */ jsx11(DeleteOutlined3, {}),
+              icon: /* @__PURE__ */ jsx13(DeleteOutlined3, {}),
               disabled: disabled || !onClear,
               onClick: onClear
             }
           ),
-          /* @__PURE__ */ jsx11(
+          /* @__PURE__ */ jsx13(
             HeaderActionButton,
             {
               title: "\u5B9A\u4F4D\u5F53\u524D\u5143\u7D20",
-              icon: /* @__PURE__ */ jsx11(LinkOutlined2, {}),
+              icon: /* @__PURE__ */ jsx13(LinkOutlined2, {}),
               disabled: disabled || !onLocate,
               onClick: onLocate
             }
@@ -19456,15 +20511,15 @@ function ReactPageTweakPanel(props) {
     onClearEntry,
     onLocateEntry
   } = props;
-  const allKeys = React11.useMemo(
+  const allKeys = React13.useMemo(
     () => entries.map((entry, index) => `${index}:${entry.schema.title ?? describeElement(entry.element)}`),
     [entries]
   );
-  const [activeKeys, setActiveKeys] = React11.useState(
+  const [activeKeys, setActiveKeys] = React13.useState(
     () => allKeys
   );
-  const activeKeysInitializedRef = React11.useRef(allKeys.length > 0);
-  React11.useEffect(() => {
+  const activeKeysInitializedRef = React13.useRef(allKeys.length > 0);
+  React13.useEffect(() => {
     setActiveKeys((previous) => {
       const resolved = resolveNextActivePageTweakKeys({
         previousKeys: previous,
@@ -19476,7 +20531,7 @@ function ReactPageTweakPanel(props) {
     });
   }, [allKeys]);
   if (entries.length <= 0) {
-    return /* @__PURE__ */ jsx11(
+    return /* @__PURE__ */ jsx13(
       Empty4,
       {
         image: Empty4.PRESENTED_IMAGE_SIMPLE,
@@ -19485,7 +20540,7 @@ function ReactPageTweakPanel(props) {
       }
     );
   }
-  return /* @__PURE__ */ jsx11("div", { className: "we-runtime-prop-panel__body", style: { gap: 8 }, children: /* @__PURE__ */ jsx11(
+  return /* @__PURE__ */ jsx13("div", { className: "we-runtime-prop-panel__body", style: { gap: 8 }, children: /* @__PURE__ */ jsx13(
     Collapse2,
     {
       className: "we-runtime-prop-panel__collapse",
@@ -19502,7 +20557,7 @@ function ReactPageTweakPanel(props) {
         const bodySchema = entry.schema.title ? { ...entry.schema, title: void 0, description: void 0 } : entry.schema;
         return {
           key,
-          label: /* @__PURE__ */ jsx11(
+          label: /* @__PURE__ */ jsx13(
             CollapseHeaderLabel,
             {
               title: headerLabel,
@@ -19515,7 +20570,7 @@ function ReactPageTweakPanel(props) {
               } : void 0
             }
           ),
-          children: /* @__PURE__ */ jsx11(
+          children: /* @__PURE__ */ jsx13(
             ReactTweakPanel,
             {
               schema: bodySchema,
@@ -19533,8 +20588,8 @@ function ReactPageTweakPanel(props) {
 }
 
 // src/ui/runtime/shortcut-capture-card.tsx
-import React12 from "react";
-import { jsx as jsx12, jsxs as jsxs11 } from "react/jsx-runtime";
+import React14 from "react";
+import { jsx as jsx14, jsxs as jsxs13 } from "react/jsx-runtime";
 var shortcutCaptureHintStyle = {
   fontSize: 11,
   color: EDITOR_CHROME.textMuted,
@@ -19556,10 +20611,10 @@ var shortcutCaptureCardStyle = {
   cursor: "pointer",
   font: "inherit"
 };
-var ShortcutCaptureCard = React12.forwardRef(
+var ShortcutCaptureCard = React14.forwardRef(
   function ShortcutCaptureCard2(props, ref) {
     const { label, value, capturing, onActivate, onCapture, onCancelCapture, onClear } = props;
-    return /* @__PURE__ */ jsxs11(
+    return /* @__PURE__ */ jsxs13(
       "button",
       {
         ref,
@@ -19583,10 +20638,10 @@ var ShortcutCaptureCard = React12.forwardRef(
           onCapture(normalized);
         },
         children: [
-          /* @__PURE__ */ jsx12("span", { style: { fontSize: 12, fontWeight: 600, color: EDITOR_CHROME.textSecondary }, children: label }),
-          /* @__PURE__ */ jsx12("span", { style: { fontSize: 18, fontWeight: 600, color: EDITOR_CHROME.textPrimary }, children: capturing ? "\u6309\u4E0B\u4FEE\u9970\u952E\u2026" : formatModifierShortcutLabel(value) }),
-          /* @__PURE__ */ jsx12("span", { style: shortcutCaptureHintStyle, children: capturing ? "\u4EC5\u652F\u6301 Shift / Alt / Ctrl / Command\uFF0C\u6309 Esc \u53D6\u6D88\u3002" : "\u70B9\u51FB\u540E\u5F55\u5165\u4E00\u4E2A\u4FEE\u9970\u952E\u3002" }),
-          value ? /* @__PURE__ */ jsx12(
+          /* @__PURE__ */ jsx14("span", { style: { fontSize: 12, fontWeight: 600, color: EDITOR_CHROME.textSecondary }, children: label }),
+          /* @__PURE__ */ jsx14("span", { style: { fontSize: 18, fontWeight: 600, color: EDITOR_CHROME.textPrimary }, children: capturing ? "\u6309\u4E0B\u4FEE\u9970\u952E\u2026" : formatModifierShortcutLabel(value) }),
+          /* @__PURE__ */ jsx14("span", { style: shortcutCaptureHintStyle, children: capturing ? "\u4EC5\u652F\u6301 Shift / Alt / Ctrl / Command\uFF0C\u6309 Esc \u53D6\u6D88\u3002" : "\u70B9\u51FB\u540E\u5F55\u5165\u4E00\u4E2A\u4FEE\u9970\u952E\u3002" }),
+          value ? /* @__PURE__ */ jsx14(
             "span",
             {
               style: { ...shortcutCaptureHintStyle, color: EDITOR_CHROME.accent },
@@ -19698,7 +20753,7 @@ function buildAiWorkspaceBreadcrumbs(workspacePath) {
 }
 
 // src/ui/runtime/property-panel-view.tsx
-import { Fragment as Fragment6, jsx as jsx13, jsxs as jsxs12 } from "react/jsx-runtime";
+import { Fragment as Fragment7, jsx as jsx15, jsxs as jsxs14 } from "react/jsx-runtime";
 var AGENT_WAKE_FAILURE_MESSAGE = "AI \u5524\u9192\u5931\u8D25\uFF0C\u8BF7\u5728\u7EC8\u7AEF\u6267\u884C npx @axhub/acp@latest\uFF0C\u518D\u91CD\u8BD5";
 var AGENT_WAKE_TIMEOUT_MS = 12e3;
 var AGENT_INTERRUPT_TIMEOUT_MS = 12e3;
@@ -19718,11 +20773,11 @@ function CommenterNameSettingsInput({
   value,
   onChange
 }) {
-  const [draft, setDraft] = React13.useState(value);
-  React13.useEffect(() => {
+  const [draft, setDraft] = React15.useState(value);
+  React15.useEffect(() => {
     setDraft(value);
   }, [value]);
-  return /* @__PURE__ */ jsx13(
+  return /* @__PURE__ */ jsx15(
     Input5,
     {
       "aria-label": "\u6279\u6CE8\u8005\u540D\u79F0",
@@ -19889,7 +20944,7 @@ var readLocalDirectoryBrowserResult = (value) => {
     directories
   };
 };
-var PropertyPanelView = React13.forwardRef(
+var PropertyPanelView = React15.forwardRef(
   function PropertyPanelView2(props, ref) {
     const {
       options,
@@ -19941,99 +20996,99 @@ var PropertyPanelView = React13.forwardRef(
     const externalAnnotationMode = Boolean(options.externalAnnotationMode);
     const hostSurfaceVisibilityControl = options.hostSurfaceVisibilityControl;
     const selectionModeAvailable = interactionProfile !== "text-comment";
-    const rootRef = React13.useRef(null);
-    const pagePanelRef = React13.useRef(null);
-    const pagePanelBodyRef = React13.useRef(null);
-    const pagePanelHeaderRef = React13.useRef(null);
-    const toolbarHeaderRef = React13.useRef(null);
-    const minimizedButtonRef = React13.useRef(null);
-    const textComposerRef = React13.useRef(null);
-    const noteComposerRef = React13.useRef(null);
-    const inlineTextEditingRef = React13.useRef(inlineTextEditing);
-    const shortcutCardRefs = React13.useRef([]);
-    const styleObserverRef = React13.useRef(null);
-    const styleObserverRafIdRef = React13.useRef(null);
-    const currentTargetRef = React13.useRef(currentTarget);
-    const toolbarPositionRef = React13.useRef(null);
-    const pagePanelPositionRef = React13.useRef(
+    const rootRef = React15.useRef(null);
+    const pagePanelRef = React15.useRef(null);
+    const pagePanelBodyRef = React15.useRef(null);
+    const pagePanelHeaderRef = React15.useRef(null);
+    const toolbarHeaderRef = React15.useRef(null);
+    const minimizedButtonRef = React15.useRef(null);
+    const textComposerRef = React15.useRef(null);
+    const noteComposerRef = React15.useRef(null);
+    const inlineTextEditingRef = React15.useRef(inlineTextEditing);
+    const shortcutCardRefs = React15.useRef([]);
+    const styleObserverRef = React15.useRef(null);
+    const styleObserverRafIdRef = React15.useRef(null);
+    const currentTargetRef = React15.useRef(currentTarget);
+    const toolbarPositionRef = React15.useRef(null);
+    const pagePanelPositionRef = React15.useRef(
       options.initialPosition ?? null
     );
-    const onDismissSelectionRef = React13.useRef(onDismissSelection);
-    const onTargetChangeRef = React13.useRef(onTargetChange);
-    const hostToolbarListenersRef = React13.useRef(
+    const onDismissSelectionRef = React15.useRef(onDismissSelection);
+    const onTargetChangeRef = React15.useRef(onTargetChange);
+    const hostToolbarListenersRef = React15.useRef(
       /* @__PURE__ */ new Set()
     );
-    const [undoCount, setUndoCount] = React13.useState(0);
-    const [redoCount, setRedoCount] = React13.useState(0);
-    const [modifiedCount, setModifiedCount] = React13.useState(
+    const [undoCount, setUndoCount] = React15.useState(0);
+    const [redoCount, setRedoCount] = React15.useState(0);
+    const [modifiedCount, setModifiedCount] = React15.useState(
       Math.max(0, options.getModifiedElementCount?.() ?? 0)
     );
-    const [actionBusy, setActionBusy] = React13.useState(false);
-    const [hostSurfaceVisible, setHostSurfaceVisible] = React13.useState(
+    const [actionBusy, setActionBusy] = React15.useState(false);
+    const [hostSurfaceVisible, setHostSurfaceVisible] = React15.useState(
       () => hostSurfaceVisibilityControl?.initialVisible !== false
     );
-    const [markdownSourceEditorOpen, setMarkdownSourceEditorOpen] = React13.useState(
+    const [markdownSourceEditorOpen, setMarkdownSourceEditorOpen] = React15.useState(
       () => options.getMarkdownSourceEditorOpen?.() === true
     );
-    const [agentPromptSending, setAgentPromptSending] = React13.useState(false);
-    const [agentPromptInterrupting, setAgentPromptInterrupting] = React13.useState(false);
-    const [agentWakeChecking, setAgentWakeChecking] = React13.useState(false);
-    const [sessionActivityCardOpen, setSessionActivityCardOpen] = React13.useState(false);
-    const [sessionActivities, setSessionActivities] = React13.useState([]);
-    const [toolbarPosition, setToolbarPosition] = React13.useState(null);
-    const [pagePanelPosition, setPagePanelPosition] = React13.useState(
+    const [agentPromptSending, setAgentPromptSending] = React15.useState(false);
+    const [agentPromptInterrupting, setAgentPromptInterrupting] = React15.useState(false);
+    const [agentWakeChecking, setAgentWakeChecking] = React15.useState(false);
+    const [sessionActivityCardOpen, setSessionActivityCardOpen] = React15.useState(false);
+    const [sessionActivities, setSessionActivities] = React15.useState([]);
+    const [toolbarPosition, setToolbarPosition] = React15.useState(null);
+    const [pagePanelPosition, setPagePanelPosition] = React15.useState(
       options.initialPosition ?? null
     );
-    const [toolbarDragging, setToolbarDragging] = React13.useState(false);
-    const [viewportSize, setViewportSize] = React13.useState(() => ({
+    const [toolbarDragging, setToolbarDragging] = React15.useState(false);
+    const [viewportSize, setViewportSize] = React15.useState(() => ({
       width: window.innerWidth,
       height: window.innerHeight
     }));
-    const [compactAnchorRect, setCompactAnchorRect] = React13.useState(null);
-    const [shortcutDialogOpen, setShortcutDialogOpen] = React13.useState(false);
-    const [shortcutDraft, setShortcutDraft] = React13.useState(
+    const [compactAnchorRect, setCompactAnchorRect] = React15.useState(null);
+    const [shortcutDialogOpen, setShortcutDialogOpen] = React15.useState(false);
+    const [shortcutDraft, setShortcutDraft] = React15.useState(
       options.getCommentShortcutSettings?.() ?? {
         ...DEFAULT_COMMENT_SHORTCUT_SETTINGS
       }
     );
-    const [capturingShortcutIndex, setCapturingShortcutIndex] = React13.useState(null);
-    const [panelRefreshKey, setPanelRefreshKey] = React13.useState(0);
-    const [tweakRevision, setTweakRevision] = React13.useState(0);
-    const [agentPromptSendingElementKey, setAgentPromptSendingElementKey] = React13.useState(null);
-    const [settingsPopoverOpen, setSettingsPopoverOpen] = React13.useState(false);
-    const [skillInstallPromptCopied, setSkillInstallPromptCopied] = React13.useState(false);
-    const skillInstallFeedbackTimerRef = React13.useRef(null);
-    const [keyboardShortcutsDialogOpen, setKeyboardShortcutsDialogOpen] = React13.useState(false);
-    const [annotationToolbarTick, setAnnotationToolbarTick] = React13.useState(0);
-    const uiSettings = React13.useMemo(
+    const [capturingShortcutIndex, setCapturingShortcutIndex] = React15.useState(null);
+    const [panelRefreshKey, setPanelRefreshKey] = React15.useState(0);
+    const [tweakRevision, setTweakRevision] = React15.useState(0);
+    const [agentPromptSendingElementKey, setAgentPromptSendingElementKey] = React15.useState(null);
+    const [settingsPopoverOpen, setSettingsPopoverOpen] = React15.useState(false);
+    const [skillInstallPromptCopied, setSkillInstallPromptCopied] = React15.useState(false);
+    const skillInstallFeedbackTimerRef = React15.useRef(null);
+    const [keyboardShortcutsDialogOpen, setKeyboardShortcutsDialogOpen] = React15.useState(false);
+    const [annotationToolbarTick, setAnnotationToolbarTick] = React15.useState(0);
+    const uiSettings = React15.useMemo(
       () => options.getUiSettings?.() ?? propUiSettings,
       [options, panelRefreshKey, propUiSettings]
     );
-    const [aiExecutionWorkspacePath, setAiExecutionWorkspacePath] = React13.useState(
+    const [aiExecutionWorkspacePath, setAiExecutionWorkspacePath] = React15.useState(
       () => normalizeAiExecutionWorkspacePath(options.aiExecutionWorkspacePath)
     );
-    const [directoryPickerOpen, setDirectoryPickerOpen] = React13.useState(false);
-    const [directoryPickerBusy, setDirectoryPickerBusy] = React13.useState(false);
-    const [directoryPickerError, setDirectoryPickerError] = React13.useState("");
-    const [directoryPickerState, setDirectoryPickerState] = React13.useState(null);
-    const [directoryPickerPathInput, setDirectoryPickerPathInput] = React13.useState("");
-    const [directoryPickerRecentWorkspaces, setDirectoryPickerRecentWorkspaces] = React13.useState([]);
-    const [directoryPickerRecentOpen, setDirectoryPickerRecentOpen] = React13.useState(false);
-    const [directoryPickerRecentQuery, setDirectoryPickerRecentQuery] = React13.useState("");
-    const [directoryPickerRecentActiveIndex, setDirectoryPickerRecentActiveIndex] = React13.useState(0);
-    const [directoryPickerRecentError, setDirectoryPickerRecentError] = React13.useState("");
-    const directoryPickerPathFieldRef = React13.useRef(null);
-    const directoryPickerBreadcrumbRef = React13.useRef(null);
-    const agentProviderAvailabilityMap = React13.useMemo(
+    const [directoryPickerOpen, setDirectoryPickerOpen] = React15.useState(false);
+    const [directoryPickerBusy, setDirectoryPickerBusy] = React15.useState(false);
+    const [directoryPickerError, setDirectoryPickerError] = React15.useState("");
+    const [directoryPickerState, setDirectoryPickerState] = React15.useState(null);
+    const [directoryPickerPathInput, setDirectoryPickerPathInput] = React15.useState("");
+    const [directoryPickerRecentWorkspaces, setDirectoryPickerRecentWorkspaces] = React15.useState([]);
+    const [directoryPickerRecentOpen, setDirectoryPickerRecentOpen] = React15.useState(false);
+    const [directoryPickerRecentQuery, setDirectoryPickerRecentQuery] = React15.useState("");
+    const [directoryPickerRecentActiveIndex, setDirectoryPickerRecentActiveIndex] = React15.useState(0);
+    const [directoryPickerRecentError, setDirectoryPickerRecentError] = React15.useState("");
+    const directoryPickerPathFieldRef = React15.useRef(null);
+    const directoryPickerBreadcrumbRef = React15.useRef(null);
+    const agentProviderAvailabilityMap = React15.useMemo(
       () => new Map(agentProviderAvailabilities.map((item) => [item.provider, item])),
       [agentProviderAvailabilities]
     );
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       setAiExecutionWorkspacePath(
         normalizeAiExecutionWorkspacePath(options.aiExecutionWorkspacePath)
       );
     }, [options.aiExecutionWorkspacePath]);
-    React13.useEffect(
+    React15.useEffect(
       () => () => {
         if (skillInstallFeedbackTimerRef.current !== null) {
           window.clearTimeout(skillInstallFeedbackTimerRef.current);
@@ -20041,26 +21096,26 @@ var PropertyPanelView = React13.forwardRef(
       },
       []
     );
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       inlineTextEditingRef.current = inlineTextEditing;
     }, [inlineTextEditing]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       setHostSurfaceVisible(hostSurfaceVisibilityControl?.initialVisible !== false);
     }, [hostSurfaceVisibilityControl?.initialVisible]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       onDismissSelectionRef.current = onDismissSelection;
     }, [onDismissSelection]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       onTargetChangeRef.current = onTargetChange;
     }, [onTargetChange]);
     currentTargetRef.current = currentTarget;
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (!options.subscribeTweak) return;
       return options.subscribeTweak(() => {
         setTweakRevision((value) => value + 1);
       });
     }, [options]);
-    const pageTweakEntries = React13.useMemo(
+    const pageTweakEntries = React15.useMemo(
       () => options.getPageTweakEntries?.() ?? [],
       [options, tweakRevision]
     );
@@ -20088,7 +21143,7 @@ var PropertyPanelView = React13.forwardRef(
     const visibleExecutionTerminalTaskCount = (options.getVisibleElementAgentTaskStates?.() ?? []).filter((task) => task.status === "completed" || task.status === "error").length;
     const visibleTerminalTaskCount = hideExecutionControls ? 0 : visibleExecutionTerminalTaskCount;
     const currentAgentConversation = options.getCurrentAgentConversationState?.() ?? null;
-    const sessionActivityTarget = React13.useMemo(
+    const sessionActivityTarget = React15.useMemo(
       () => resolveSessionActivityTarget({
         requestId: currentAgentTask?.requestId ?? null,
         sessionId: currentAgentTask?.sessionId ?? null,
@@ -20111,14 +21166,14 @@ var PropertyPanelView = React13.forwardRef(
     const currentTaskIsSending = Boolean(
       agentPromptSending && currentAgentTask && agentPromptSendingElementKey && currentAgentTask.elementKey === agentPromptSendingElementKey
     );
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (!agentPromptSending) return;
       if (currentTaskRunning && currentTaskSessionReady) {
         setAgentPromptSending(false);
         setAgentPromptSendingElementKey(null);
       }
     }, [currentTaskRunning, currentTaskSessionReady, agentPromptSending]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (!sessionActivityCardOpen) {
         setSessionActivities([]);
         return;
@@ -20132,11 +21187,11 @@ var PropertyPanelView = React13.forwardRef(
         setSessionActivities((previous) => appendRecentSessionActivities(previous, item));
       });
     }, [options, sessionActivityCardOpen, sessionActivityTarget]);
-    const visibleSessionActivities = React13.useMemo(
+    const visibleSessionActivities = React15.useMemo(
       () => limitVisibleSessionActivities(sessionActivities),
       [sessionActivities]
     );
-    const disconnectStyleObserver = React13.useCallback(() => {
+    const disconnectStyleObserver = React15.useCallback(() => {
       if (styleObserverRafIdRef.current !== null) {
         window.cancelAnimationFrame(styleObserverRafIdRef.current);
         styleObserverRafIdRef.current = null;
@@ -20147,17 +21202,17 @@ var PropertyPanelView = React13.forwardRef(
       }
       styleObserverRef.current = null;
     }, [options.skillInstallSource]);
-    const requestPanelRefresh = React13.useCallback(() => {
+    const requestPanelRefresh = React15.useCallback(() => {
       setPanelRefreshKey((value) => value + 1);
     }, [options.skillInstallSource]);
-    const scheduleLiveStyleRefresh = React13.useCallback(() => {
+    const scheduleLiveStyleRefresh = React15.useCallback(() => {
       if (styleObserverRafIdRef.current !== null) return;
       styleObserverRafIdRef.current = window.requestAnimationFrame(() => {
         styleObserverRafIdRef.current = null;
         requestPanelRefresh();
       });
     }, [requestPanelRefresh]);
-    const connectStyleObserver = React13.useCallback(
+    const connectStyleObserver = React15.useCallback(
       (element) => {
         disconnectStyleObserver();
         if (!element || !element.isConnected || typeof MutationObserver === "undefined") return;
@@ -20180,7 +21235,7 @@ var PropertyPanelView = React13.forwardRef(
       },
       [disconnectStyleObserver, scheduleLiveStyleRefresh]
     );
-    const clampToViewport = React13.useCallback(
+    const clampToViewport = React15.useCallback(
       (position, sizeOverride) => {
         const root = rootRef.current;
         const rect = root?.getBoundingClientRect();
@@ -20195,7 +21250,7 @@ var PropertyPanelView = React13.forwardRef(
       },
       [toolMinimized, viewportSize]
     );
-    const applyToolbarPosition = React13.useCallback(
+    const applyToolbarPosition = React15.useCallback(
       (nextPosition) => {
         toolbarPositionRef.current = nextPosition ? clampToViewport(nextPosition, {
           width: COMPACT_TOOL_SIZE,
@@ -20205,7 +21260,7 @@ var PropertyPanelView = React13.forwardRef(
       },
       [clampToViewport]
     );
-    const clampPagePanelToViewport = React13.useCallback(
+    const clampPagePanelToViewport = React15.useCallback(
       (position, sizeOverride) => {
         const pagePanel = pagePanelRef.current;
         const rect = pagePanel ? pagePanel.getBoundingClientRect() : null;
@@ -20219,7 +21274,7 @@ var PropertyPanelView = React13.forwardRef(
       },
       [viewportSize]
     );
-    const applyPanelPosition = React13.useCallback(
+    const applyPanelPosition = React15.useCallback(
       (nextPosition) => {
         pagePanelPositionRef.current = nextPosition ? clampPagePanelToViewport(nextPosition) : null;
         setPagePanelPosition(pagePanelPositionRef.current);
@@ -20227,7 +21282,7 @@ var PropertyPanelView = React13.forwardRef(
       },
       [clampPagePanelToViewport, options]
     );
-    const dockPagePanelRight = React13.useCallback(() => {
+    const dockPagePanelRight = React15.useCallback(() => {
       const pagePanel = pagePanelRef.current;
       const rect = pagePanel ? pagePanel.getBoundingClientRect() : null;
       const size = rect ? { width: rect.width, height: rect.height } : { width: PAGE_CONFIG_PANEL_WIDTH, height: 160 };
@@ -20242,10 +21297,10 @@ var PropertyPanelView = React13.forwardRef(
         })
       );
     }, [applyPanelPosition, viewportSize]);
-    const syncPanelMetaState = React13.useCallback(() => {
+    const syncPanelMetaState = React15.useCallback(() => {
       setModifiedCount(Math.max(0, options.getModifiedElementCount?.() ?? 0));
     }, [options]);
-    const runAction = React13.useCallback(
+    const runAction = React15.useCallback(
       async (action) => {
         if (!action) return;
         setActionBusy(true);
@@ -20258,7 +21313,7 @@ var PropertyPanelView = React13.forwardRef(
       },
       [syncPanelMetaState]
     );
-    const handleHtmlFileSaveAction = React13.useCallback(async () => {
+    const handleHtmlFileSaveAction = React15.useCallback(async () => {
       if (actionBusy || !options.htmlFileSaveEnabled || !options.onHostToolbarAction) return;
       try {
         let result = false;
@@ -20278,7 +21333,7 @@ var PropertyPanelView = React13.forwardRef(
         );
       }
     }, [actionBusy, options.htmlFileSaveEnabled, options.onHostToolbarAction, runAction]);
-    const handleToggleHostSurfaceVisibility = React13.useCallback(async () => {
+    const handleToggleHostSurfaceVisibility = React15.useCallback(async () => {
       if (actionBusy || !hostSurfaceVisibilityControl || !options.onHostToolbarAction) return;
       const requestedVisible = !hostSurfaceVisible;
       try {
@@ -20309,7 +21364,7 @@ var PropertyPanelView = React13.forwardRef(
       runAction
     ]);
     const agentAwake = effectiveVisualState === "awake";
-    const wakeAgentForAction = React13.useCallback(async () => {
+    const wakeAgentForAction = React15.useCallback(async () => {
       if (agentWakeChecking) {
         return false;
       }
@@ -20338,7 +21393,7 @@ var PropertyPanelView = React13.forwardRef(
         setAgentWakeChecking(false);
       }
     }, [agentAwake, agentWakeChecking, onAgentVisualStateChange, options]);
-    const handleConfirmSendPromptToAgent = React13.useCallback(async () => {
+    const handleConfirmSendPromptToAgent = React15.useCallback(async () => {
       if (!options.onSendPromptToAgent) return;
       const ready = await wakeAgentForAction();
       if (!ready) return;
@@ -20361,7 +21416,7 @@ var PropertyPanelView = React13.forwardRef(
       syncPanelMetaState,
       wakeAgentForAction
     ]);
-    const handleInterruptSendPromptToAgent = React13.useCallback(
+    const handleInterruptSendPromptToAgent = React15.useCallback(
       async (target) => {
         if (!options.onAbortAgentPrompt) return;
         setAgentPromptInterrupting(true);
@@ -20380,15 +21435,15 @@ var PropertyPanelView = React13.forwardRef(
       },
       [currentTarget, options]
     );
-    const restoreTool = React13.useCallback(() => {
+    const restoreTool = React15.useCallback(() => {
       setCompactAnchorRect(null);
       onToolMinimizedChange(false);
     }, [onToolMinimizedChange]);
-    const minimizeTool = React13.useCallback(() => {
+    const minimizeTool = React15.useCallback(() => {
       setCompactAnchorRect(null);
       onToolMinimizedChange(true);
     }, [onToolMinimizedChange]);
-    const handleTogglePropertyPanel = React13.useCallback(
+    const handleTogglePropertyPanel = React15.useCallback(
       (nextOpen = !propertyPanelOpen) => {
         if (nextOpen && toolMinimized) {
           restoreTool();
@@ -20397,12 +21452,12 @@ var PropertyPanelView = React13.forwardRef(
       },
       [onPropertyPanelOpenChange, propertyPanelOpen, restoreTool, toolMinimized]
     );
-    const closeShortcutDialog = React13.useCallback(() => {
+    const closeShortcutDialog = React15.useCallback(() => {
       setShortcutDialogOpen(false);
       setCapturingShortcutIndex(null);
       options.onCommentShortcutDialogOpenChange?.(false);
     }, [options]);
-    const shortcutValidationError = React13.useMemo(() => {
+    const shortcutValidationError = React15.useMemo(() => {
       const [first, second] = shortcutDraft.shortcuts;
       if (first && second && first === second) {
         return "\u4E24\u4E2A\u5FEB\u6377\u952E\u4E0D\u80FD\u914D\u7F6E\u4E3A\u540C\u4E00\u4E2A\u4FEE\u9970\u952E\u3002";
@@ -20411,15 +21466,15 @@ var PropertyPanelView = React13.forwardRef(
     }, [shortcutDraft.shortcuts]);
     const showExpandedPanel = !toolMinimized && propertyPanelOpen;
     const pageZoomActive = showExpandedPanel && uiSettings.pageZoomEnabled;
-    const previousPageZoomEnabledRef = React13.useRef(uiSettings.pageZoomEnabled);
-    const previousPageZoomActiveRef = React13.useRef(pageZoomActive);
-    const handleShortcutDraftChange = React13.useCallback(
+    const previousPageZoomEnabledRef = React15.useRef(uiSettings.pageZoomEnabled);
+    const previousPageZoomActiveRef = React15.useRef(pageZoomActive);
+    const handleShortcutDraftChange = React15.useCallback(
       (updater) => {
         setShortcutDraft((prev) => sanitizeCommentShortcutSettings(updater(prev)));
       },
       []
     );
-    const handleShortcutSave = React13.useCallback(() => {
+    const handleShortcutSave = React15.useCallback(() => {
       if (shortcutValidationError) return;
       const nextSettings = sanitizeCommentShortcutSettings(shortcutDraft);
       const currentSettings = sanitizeCommentShortcutSettings(
@@ -20430,7 +21485,7 @@ var PropertyPanelView = React13.forwardRef(
       }
       closeShortcutDialog();
     }, [closeShortcutDialog, options, shortcutDraft, shortcutValidationError]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       const root = rootRef.current;
       if (!root) return;
       setToolbarDragging(false);
@@ -20474,7 +21529,7 @@ var PropertyPanelView = React13.forwardRef(
         cleanups.forEach((cleanup) => cleanup());
       };
     }, [applyToolbarPosition, showExpandedPanel, toolMinimized]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       const pagePanel = pagePanelRef.current;
       const pagePanelHeader = pagePanelHeaderRef.current;
       if (!pagePanel || !pagePanelHeader || !showExpandedPanel || toolMinimized) return;
@@ -20490,7 +21545,7 @@ var PropertyPanelView = React13.forwardRef(
         }
       });
     }, [applyPanelPosition, showExpandedPanel, toolMinimized]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       const updateViewport = () => {
         setViewportSize({ width: window.innerWidth, height: window.innerHeight });
       };
@@ -20499,7 +21554,7 @@ var PropertyPanelView = React13.forwardRef(
         window.removeEventListener("resize", updateViewport);
       };
     }, []);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       const onWindowWheel = (event) => {
         const body = pagePanelBodyRef.current;
         if (!body || !showExpandedPanel) return;
@@ -20522,32 +21577,32 @@ var PropertyPanelView = React13.forwardRef(
         window.removeEventListener("wheel", onWindowWheel, { capture: true });
       };
     }, [showExpandedPanel]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       connectStyleObserver(currentTarget);
       return () => {
         disconnectStyleObserver();
       };
     }, [connectStyleObserver, currentTarget, disconnectStyleObserver]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       requestPanelRefresh();
     }, [currentTarget, requestPanelRefresh]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       return () => {
         options.onCommentShortcutDialogOpenChange?.(false);
       };
     }, [options]);
     const blockingLayerOpen = settingsPopoverOpen || shortcutDialogOpen || keyboardShortcutsDialogOpen || directoryPickerOpen;
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       onBlockingLayerOpenChange?.(blockingLayerOpen);
       return () => {
         onBlockingLayerOpenChange?.(false);
       };
     }, [blockingLayerOpen, onBlockingLayerOpenChange]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (!directoryPickerOpen) return void 0;
       return lockPageScrollForRuntimeModal();
     }, [directoryPickerOpen]);
-    const focusPanelTextInput = React13.useCallback(() => {
+    const focusPanelTextInput = React15.useCallback(() => {
       if (inlineTextEditingRef.current) return false;
       const input = textComposerRef.current?.querySelector("input");
       if (!(input instanceof HTMLInputElement) || input.disabled) return false;
@@ -20559,7 +21614,7 @@ var PropertyPanelView = React13.forwardRef(
       }
       return true;
     }, []);
-    const focusPanelNoteTextarea = React13.useCallback(() => {
+    const focusPanelNoteTextarea = React15.useCallback(() => {
       if (inlineTextEditingRef.current) return false;
       const textarea = noteComposerRef.current?.querySelector("textarea");
       if (!(textarea instanceof HTMLTextAreaElement) || textarea.disabled) return false;
@@ -20571,7 +21626,7 @@ var PropertyPanelView = React13.forwardRef(
       }
       return true;
     }, []);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (inlineTextEditing || toolMinimized || !showExpandedPanel) return;
       const rafId = window.requestAnimationFrame(() => {
         focusPanelTextInput();
@@ -20580,7 +21635,7 @@ var PropertyPanelView = React13.forwardRef(
         window.cancelAnimationFrame(rafId);
       };
     }, [focusPanelTextInput, inlineTextEditing, showExpandedPanel, toolMinimized]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (!inlineTextEditing) return;
       const textarea = noteComposerRef.current?.querySelector("textarea");
       if (textarea instanceof HTMLTextAreaElement) {
@@ -20591,7 +21646,7 @@ var PropertyPanelView = React13.forwardRef(
         input.blur();
       }
     }, [inlineTextEditing]);
-    const saveAndCloseNoteComposer = React13.useCallback(async () => {
+    const saveAndCloseNoteComposer = React15.useCallback(async () => {
       await onConfirmNote();
       const textarea = noteComposerRef.current?.querySelector("textarea");
       if (textarea instanceof HTMLTextAreaElement) {
@@ -20599,52 +21654,52 @@ var PropertyPanelView = React13.forwardRef(
       }
       onDismissSelection?.();
     }, [onConfirmNote, onDismissSelection]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (toolMinimized) {
         onHoverSelectionSuppressedChange(false);
       }
     }, [onHoverSelectionSuppressedChange, toolMinimized]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (toolMinimized) {
         onSelectionInteractionLockChange(false);
       }
     }, [onSelectionInteractionLockChange, toolMinimized]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (!toolMinimized) return;
       setSessionActivityCardOpen(false);
       setSettingsPopoverOpen(false);
       setDirectoryPickerOpen(false);
     }, [toolMinimized]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       return () => {
         onHoverSelectionSuppressedChange(false);
         onSelectionInteractionLockChange(false);
       };
     }, [onHoverSelectionSuppressedChange, onSelectionInteractionLockChange]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       syncPanelMetaState();
     }, [syncPanelMetaState]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       setPageAnimationsDisabled(uiSettings.disablePageAnimations);
       return () => {
         setPageAnimationsDisabled(false);
       };
     }, [uiSettings.disablePageAnimations]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (previousPageZoomEnabledRef.current !== uiSettings.pageZoomEnabled) {
         onDismissSelection?.();
         onTargetChange(null);
       }
       previousPageZoomEnabledRef.current = uiSettings.pageZoomEnabled;
     }, [onDismissSelection, onTargetChange, uiSettings.pageZoomEnabled]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (previousPageZoomActiveRef.current !== pageZoomActive) {
         onDismissSelection?.();
         onTargetChange(null);
       }
       previousPageZoomActiveRef.current = pageZoomActive;
     }, [onDismissSelection, onTargetChange, pageZoomActive]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       setPageZoomEnabled(pageZoomActive, {
         reservedRightWidth: PAGE_CONFIG_PANEL_WIDTH + PROPERTY_PANEL_RIGHT + 24
       });
@@ -20652,7 +21707,7 @@ var PropertyPanelView = React13.forwardRef(
         setPageZoomEnabled(false);
       };
     }, [pageZoomActive]);
-    React13.useEffect(
+    React15.useEffect(
       () => () => {
         if (!previousPageZoomActiveRef.current) return;
         onDismissSelectionRef.current?.();
@@ -20660,13 +21715,13 @@ var PropertyPanelView = React13.forwardRef(
       },
       []
     );
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (!toolMinimized) return;
       if (shortcutDialogOpen) {
         closeShortcutDialog();
       }
     }, [closeShortcutDialog, shortcutDialogOpen, toolMinimized]);
-    React13.useLayoutEffect(() => {
+    React15.useLayoutEffect(() => {
       if (toolMinimized) return;
       const updateAnchor = () => {
         const rect = rootRef.current?.getBoundingClientRect();
@@ -20701,7 +21756,7 @@ var PropertyPanelView = React13.forwardRef(
       uiMode,
       undoCount
     ]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (capturingShortcutIndex === null) return;
       const button = shortcutCardRefs.current[capturingShortcutIndex];
       if (!button) return;
@@ -20741,15 +21796,15 @@ var PropertyPanelView = React13.forwardRef(
       currentAgentTask,
       options.externalEditingStatusDescription
     );
-    const handleOpenCurrentTaskSession = React13.useCallback(() => {
+    const handleOpenCurrentTaskSession = React15.useCallback(() => {
       if (!currentTaskSessionHref) return;
       window.open(currentTaskSessionHref, "_blank", "noopener,noreferrer");
     }, [currentTaskSessionHref]);
-    const handleDismissCurrentTaskState = React13.useCallback(() => {
+    const handleDismissCurrentTaskState = React15.useCallback(() => {
       if (!currentTarget || !options.dismissElementAgentTaskState) return;
       options.dismissElementAgentTaskState(currentTarget);
     }, [currentTarget, options]);
-    const agentTaskStatusCard = currentAgentTask ? /* @__PURE__ */ jsxs12(
+    const agentTaskStatusCard = currentAgentTask ? /* @__PURE__ */ jsxs14(
       "div",
       {
         style: {
@@ -20763,9 +21818,9 @@ var PropertyPanelView = React13.forwardRef(
           boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.03)"
         },
         children: [
-          /* @__PURE__ */ jsxs12("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
-            currentAgentTask.status === "completed" ? /* @__PURE__ */ jsx13(CheckCircleFilled2, { style: { color: "#22c55e" } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ jsx13(ExclamationCircleFilled2, { style: { color: "#ef4444" } }) : /* @__PURE__ */ jsx13(AgentSparkleIcon, {}),
-            /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsxs14("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+            currentAgentTask.status === "completed" ? /* @__PURE__ */ jsx15(CheckCircleFilled2, { style: { color: "#22c55e" } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ jsx15(ExclamationCircleFilled2, { style: { color: "#ef4444" } }) : /* @__PURE__ */ jsx15(AgentSparkleIcon, {}),
+            /* @__PURE__ */ jsx15(
               "span",
               {
                 style: {
@@ -20777,7 +21832,7 @@ var PropertyPanelView = React13.forwardRef(
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs12(
+          /* @__PURE__ */ jsxs14(
             "span",
             {
               style: {
@@ -20794,13 +21849,13 @@ var PropertyPanelView = React13.forwardRef(
               ]
             }
           ),
-          /* @__PURE__ */ jsxs12(Space2, { size: 8, wrap: true, children: [
-            !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsxs14(Space2, { size: 8, wrap: true, children: [
+            !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ jsx15(
               Button5,
               {
                 size: "small",
                 danger: true,
-                icon: /* @__PURE__ */ jsx13(StopOutlined, {}),
+                icon: /* @__PURE__ */ jsx15(StopOutlined, {}),
                 disabled: !agentPromptCanInterrupt || agentPromptInterrupting,
                 loading: agentPromptInterrupting,
                 onClick: () => {
@@ -20809,11 +21864,11 @@ var PropertyPanelView = React13.forwardRef(
                 children: "\u4E2D\u65AD"
               }
             ) : null,
-            !hideExecutionControls && currentAgentTask.status === "error" ? /* @__PURE__ */ jsx13(
+            !hideExecutionControls && currentAgentTask.status === "error" ? /* @__PURE__ */ jsx15(
               Button5,
               {
                 size: "small",
-                icon: /* @__PURE__ */ jsx13(ReloadOutlined, {}),
+                icon: /* @__PURE__ */ jsx15(ReloadOutlined, {}),
                 disabled: agentPromptToolbarAction.sendDisabled || actionBusy,
                 onClick: () => {
                   void handleConfirmSendPromptToAgent();
@@ -20821,13 +21876,13 @@ var PropertyPanelView = React13.forwardRef(
                 children: "\u91CD\u8BD5"
               }
             ) : null,
-            currentTaskSessionHref ? /* @__PURE__ */ jsx13(Button5, { size: "small", icon: /* @__PURE__ */ jsx13(LinkOutlined3, {}), onClick: handleOpenCurrentTaskSession, children: "\u6253\u5F00\u4F1A\u8BDD" }) : null,
-            currentTaskTerminal ? /* @__PURE__ */ jsx13(Button5, { size: "small", icon: /* @__PURE__ */ jsx13(CloseToolIcon, {}), onClick: handleDismissCurrentTaskState, children: "\u5173\u95ED\u63D0\u793A" }) : null
+            currentTaskSessionHref ? /* @__PURE__ */ jsx15(Button5, { size: "small", icon: /* @__PURE__ */ jsx15(LinkOutlined3, {}), onClick: handleOpenCurrentTaskSession, children: "\u6253\u5F00\u4F1A\u8BDD" }) : null,
+            currentTaskTerminal ? /* @__PURE__ */ jsx15(Button5, { size: "small", icon: /* @__PURE__ */ jsx15(CloseToolIcon, {}), onClick: handleDismissCurrentTaskState, children: "\u5173\u95ED\u63D0\u793A" }) : null
           ] })
         ]
       }
     ) : null;
-    const compactPosition = React13.useMemo(
+    const compactPosition = React15.useMemo(
       () => computeCompactPanelPosition({
         actionRect: compactAnchorRect,
         floatingPosition: toolbarPosition,
@@ -20846,7 +21901,7 @@ var PropertyPanelView = React13.forwardRef(
       }),
       [compactAnchorRect, toolbarPosition, toolMinimized, viewportSize]
     );
-    const clampedExpandedToolbarPosition = React13.useMemo(
+    const clampedExpandedToolbarPosition = React15.useMemo(
       () => toolbarPosition ? clampToViewport(toolbarPosition, {
         width: COMPACT_TOOLBAR_WIDTH,
         height: COMPACT_TOOLBAR_HEIGHT
@@ -20929,11 +21984,11 @@ var PropertyPanelView = React13.forwardRef(
     const hasClearableEdits = modifiedCount + visibleTerminalTaskCount > 0 || hasPrototypeClearableEdits;
     const clearAllEditsDisabled = actionBusy || !hasClearableEdits || !options.onClearEdits;
     const copyPromptDisabled = clearAllEditsDisabled || copyBlocked || copyPromptUnavailable;
-    const copyToolbarButton = showCopyPromptAction ? /* @__PURE__ */ jsx13(
+    const copyToolbarButton = showCopyPromptAction ? /* @__PURE__ */ jsx15(
       AgentToolbarIconButton,
       {
         title: copyReason ?? "\u590D\u5236 Prompt",
-        icon: /* @__PURE__ */ jsx13(CopyOutlined2, {}),
+        icon: /* @__PURE__ */ jsx15(CopyOutlined2, {}),
         awake: agentShellAwake,
         disabled: copyPromptDisabled,
         onClick: () => {
@@ -20945,7 +22000,7 @@ var PropertyPanelView = React13.forwardRef(
     const inlineSendVisible = !hideExecutionControls && agentPromptToolbarAction.sendVisible;
     const inlineInterruptVisible = !hideExecutionControls && agentPromptToolbarAction.interruptVisible;
     const hostSendVisible = agentPromptToolbarAction.sendVisible;
-    const sessionActivityCardContent = /* @__PURE__ */ jsxs12(
+    const sessionActivityCardContent = /* @__PURE__ */ jsxs14(
       "div",
       {
         style: {
@@ -20956,7 +22011,7 @@ var PropertyPanelView = React13.forwardRef(
           padding: 4
         },
         children: [
-          /* @__PURE__ */ jsxs12(
+          /* @__PURE__ */ jsxs14(
             "div",
             {
               style: {
@@ -20966,7 +22021,7 @@ var PropertyPanelView = React13.forwardRef(
                 gap: 12
               },
               children: [
-                /* @__PURE__ */ jsx13(
+                /* @__PURE__ */ jsx15(
                   "span",
                   {
                     style: {
@@ -20977,12 +22032,12 @@ var PropertyPanelView = React13.forwardRef(
                     children: "\u6700\u8FD1\u52A8\u6001"
                   }
                 ),
-                !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ jsx13(
+                !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ jsx15(
                   Button5,
                   {
                     size: "small",
                     danger: true,
-                    icon: /* @__PURE__ */ jsx13(StopOutlined, {}),
+                    icon: /* @__PURE__ */ jsx15(StopOutlined, {}),
                     disabled: !agentPromptCanInterrupt || agentPromptInterrupting,
                     loading: agentPromptInterrupting,
                     onClick: () => {
@@ -20994,12 +22049,12 @@ var PropertyPanelView = React13.forwardRef(
               ]
             }
           ),
-          visibleSessionActivities.length > 0 ? /* @__PURE__ */ jsx13(
+          visibleSessionActivities.length > 0 ? /* @__PURE__ */ jsx15(
             Timeline,
             {
               items: visibleSessionActivities.map((item) => ({
                 key: item.id,
-                children: /* @__PURE__ */ jsxs12(
+                children: /* @__PURE__ */ jsxs14(
                   "div",
                   {
                     style: {
@@ -21009,7 +22064,7 @@ var PropertyPanelView = React13.forwardRef(
                       paddingBottom: 4
                     },
                     children: [
-                      /* @__PURE__ */ jsx13(
+                      /* @__PURE__ */ jsx15(
                         "span",
                         {
                           style: {
@@ -21026,7 +22081,7 @@ var PropertyPanelView = React13.forwardRef(
                           children: item.text
                         }
                       ),
-                      /* @__PURE__ */ jsx13(
+                      /* @__PURE__ */ jsx15(
                         "span",
                         {
                           style: {
@@ -21042,7 +22097,7 @@ var PropertyPanelView = React13.forwardRef(
                 )
               }))
             }
-          ) : /* @__PURE__ */ jsx13(
+          ) : /* @__PURE__ */ jsx15(
             "div",
             {
               style: {
@@ -21058,15 +22113,15 @@ var PropertyPanelView = React13.forwardRef(
     );
     const agentPrimaryMenuLabel = agentPromptToolbarAction.sendTitle.includes("\u8FFD\u52A0") ? "\u8FFD\u52A0" : "\u5FEB\u901F\u6267\u884C";
     const clearEditsTitle = externalAnnotationMode ? "\u6E05\u7A7A\u6211\u7684\u5916\u90E8\u6279\u6CE8" : hasPrototypeClearableEdits ? "\u6E05\u7A7A\u6279\u6CE8" : "\u6E05\u7A7A\u5168\u90E8\u7F16\u8F91";
-    const clearAllEditsToolbarButton = options.hideClearEditsAction ? null : clearAllEditsDisabled ? /* @__PURE__ */ jsx13(
+    const clearAllEditsToolbarButton = options.hideClearEditsAction ? null : clearAllEditsDisabled ? /* @__PURE__ */ jsx15(
       AgentToolbarIconButton,
       {
         title: clearEditsTitle,
-        icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
+        icon: /* @__PURE__ */ jsx15(DeleteOutlined4, {}),
         awake: agentShellAwake,
         disabled: true
       }
-    ) : externalAnnotationMode ? /* @__PURE__ */ jsx13(
+    ) : externalAnnotationMode ? /* @__PURE__ */ jsx15(
       Popconfirm3,
       {
         title: "\u6E05\u7A7A\u6211\u7684\u5916\u90E8\u6279\u6CE8",
@@ -21083,22 +22138,22 @@ var PropertyPanelView = React13.forwardRef(
             target: "all"
           })
         ),
-        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
+        children: /* @__PURE__ */ jsx15("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx15(
           AgentToolbarIconButton,
           {
             title: clearEditsTitle,
-            icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
+            icon: /* @__PURE__ */ jsx15(DeleteOutlined4, {}),
             awake: agentShellAwake
           }
         ) })
       }
-    ) : hasPrototypeClearableEdits ? /* @__PURE__ */ jsx13(
+    ) : hasPrototypeClearableEdits ? /* @__PURE__ */ jsx15(
       Popconfirm3,
       {
         title: "\u6E05\u7A7A\u5F53\u524D\u539F\u578B\u6279\u6CE8",
-        description: /* @__PURE__ */ jsxs12(Fragment6, { children: [
+        description: /* @__PURE__ */ jsxs14(Fragment7, { children: [
           "\u8BF7\u9009\u62E9\u6E05\u7A7A\u8303\u56F4\uFF1A\u5DF2\u5B8C\u6210\u6279\u6CE8\uFF0C\u6216\u5168\u90E8\u6279\u6CE8\u3002",
-          /* @__PURE__ */ jsx13("br", {}),
+          /* @__PURE__ */ jsx15("br", {}),
           "\u5DF2\u4FDD\u5B58\u7684\u4EE3\u7801\u4FEE\u6539\u4E0D\u53D7\u5F71\u54CD\u3002"
         ] }),
         arrow: { pointAtCenter: true },
@@ -21122,16 +22177,16 @@ var PropertyPanelView = React13.forwardRef(
             })
           );
         },
-        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
+        children: /* @__PURE__ */ jsx15("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx15(
           AgentToolbarIconButton,
           {
             title: clearEditsTitle,
-            icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
+            icon: /* @__PURE__ */ jsx15(DeleteOutlined4, {}),
             awake: agentShellAwake
           }
         ) })
       }
-    ) : /* @__PURE__ */ jsx13(
+    ) : /* @__PURE__ */ jsx15(
       Popconfirm3,
       {
         title: "\u6E05\u7A7A\u5168\u90E8\u7F16\u8F91",
@@ -21142,22 +22197,22 @@ var PropertyPanelView = React13.forwardRef(
         cancelText: "\u53D6\u6D88",
         okButtonProps: { danger: true },
         onConfirm: () => runAction(() => options.onClearEdits?.({ skipConfirm: true })),
-        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
+        children: /* @__PURE__ */ jsx15("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx15(
           AgentToolbarIconButton,
           {
             title: clearEditsTitle,
-            icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
+            icon: /* @__PURE__ */ jsx15(DeleteOutlined4, {}),
             awake: agentShellAwake
           }
         ) })
       }
     );
-    const htmlFileSaveToolbarButton = options.htmlFileSaveEnabled && options.onHostToolbarAction ? /* @__PURE__ */ jsx13(
+    const htmlFileSaveToolbarButton = options.htmlFileSaveEnabled && options.onHostToolbarAction ? /* @__PURE__ */ jsx15(
       AgentToolbarIconButton,
       {
         title: "\u4FDD\u5B58\u6587\u672C\u548C\u6837\u5F0F",
         ariaLabel: "\u4FDD\u5B58\u6587\u672C\u548C\u6837\u5F0F",
-        icon: /* @__PURE__ */ jsx13(SaveOutlined, {}),
+        icon: /* @__PURE__ */ jsx15(SaveOutlined, {}),
         awake: agentShellAwake,
         disabled: actionBusy,
         onClick: () => {
@@ -21165,7 +22220,7 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     ) : null;
-    const agentExecutionToolbarButton = hideExecutionControls ? null : inlineInterruptVisible ? /* @__PURE__ */ jsx13(
+    const agentExecutionToolbarButton = hideExecutionControls ? null : inlineInterruptVisible ? /* @__PURE__ */ jsx15(
       Popconfirm3,
       {
         title: "\u7EC8\u6B62\u5168\u90E8\u4FEE\u6539",
@@ -21178,12 +22233,12 @@ var PropertyPanelView = React13.forwardRef(
         onConfirm: () => {
           void handleInterruptSendPromptToAgent(null);
         },
-        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
+        children: /* @__PURE__ */ jsx15("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx15(
           AgentToolbarIconButton,
           {
             title: agentPromptToolbarAction.interruptTitle,
             ariaLabel: "\u7EC8\u6B62\u5168\u90E8\u4FEE\u6539",
-            icon: /* @__PURE__ */ jsx13(PoweroffOutlined, {}),
+            icon: /* @__PURE__ */ jsx15(PoweroffOutlined, {}),
             awake: agentShellAwake,
             active: !agentPromptToolbarAction.interruptDisabled,
             disabled: agentPromptToolbarAction.interruptDisabled,
@@ -21191,12 +22246,12 @@ var PropertyPanelView = React13.forwardRef(
           }
         ) })
       }
-    ) : /* @__PURE__ */ jsx13(
+    ) : /* @__PURE__ */ jsx15(
       AgentToolbarIconButton,
       {
         title: agentPromptToolbarAction.sendDisabled ? agentPromptToolbarAction.sendTitle : agentPrimaryMenuLabel,
         ariaLabel: agentPrimaryMenuLabel,
-        icon: /* @__PURE__ */ jsx13(CaretRightFilled2, {}),
+        icon: /* @__PURE__ */ jsx15(CaretRightFilled2, {}),
         awake: agentShellAwake,
         active: inlineSendVisible && !agentPromptToolbarAction.sendDisabled,
         disabled: !inlineSendVisible || agentPromptToolbarAction.sendDisabled || actionBusy,
@@ -21206,12 +22261,12 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     );
-    const hostSurfaceVisibilityToolbarButton = hostSurfaceVisibilityControl && options.onHostToolbarAction ? /* @__PURE__ */ jsx13(
+    const hostSurfaceVisibilityToolbarButton = hostSurfaceVisibilityControl && options.onHostToolbarAction ? /* @__PURE__ */ jsx15(
       AgentToolbarIconButton,
       {
         title: hostSurfaceVisible ? hostSurfaceVisibilityControl.hideTitle || "\u9690\u85CF\u7A97\u53E3" : hostSurfaceVisibilityControl.showTitle || "\u663E\u793A\u7A97\u53E3",
         ariaLabel: hostSurfaceVisible ? hostSurfaceVisibilityControl.hideTitle || "\u9690\u85CF\u7A97\u53E3" : hostSurfaceVisibilityControl.showTitle || "\u663E\u793A\u7A97\u53E3",
-        icon: hostSurfaceVisible ? /* @__PURE__ */ jsx13(EyeOutlined, {}) : /* @__PURE__ */ jsx13(EyeInvisibleOutlined, {}),
+        icon: hostSurfaceVisible ? /* @__PURE__ */ jsx15(EyeOutlined, {}) : /* @__PURE__ */ jsx15(EyeInvisibleOutlined, {}),
         awake: agentShellAwake,
         active: hostSurfaceVisible,
         disabled: actionBusy,
@@ -21220,7 +22275,7 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     ) : null;
-    const handleCopySkillInstallPrompt = React13.useCallback(async () => {
+    const handleCopySkillInstallPrompt = React15.useCallback(async () => {
       const text = buildSkillInstallPrompt(options.skillInstallSource);
       try {
         await copyRuntimeTextToClipboard(text);
@@ -21238,7 +22293,7 @@ var PropertyPanelView = React13.forwardRef(
         notifyRuntimeMessage("error", "\u590D\u5236\u5931\u8D25");
       }
     }, [options.skillInstallSource]);
-    const handleCopyGlobalPanelPrompt = React13.useCallback(async () => {
+    const handleCopyGlobalPanelPrompt = React15.useCallback(async () => {
       const pageUrl = typeof window !== "undefined" && typeof window.location?.href === "string" ? window.location.href : "";
       const text = buildGlobalPanelPrompt(options.skillInstallSource, pageUrl);
       try {
@@ -21252,7 +22307,7 @@ var PropertyPanelView = React13.forwardRef(
         notifyRuntimeMessage("error", "\u590D\u5236\u5931\u8D25");
       }
     }, []);
-    const handleRefreshAiExecutionWorkspace = React13.useCallback(async () => {
+    const handleRefreshAiExecutionWorkspace = React15.useCallback(async () => {
       if (!options.onHostToolbarAction) return;
       try {
         const result = await options.onHostToolbarAction({
@@ -21268,7 +22323,7 @@ var PropertyPanelView = React13.forwardRef(
         notifyRuntimeMessage("warning", error instanceof Error ? error.message : String(error));
       }
     }, [options]);
-    const browseAiExecutionDirectories = React13.useCallback(
+    const browseAiExecutionDirectories = React15.useCallback(
       async (path) => {
         if (!options.onHostToolbarAction) return;
         setDirectoryPickerBusy(true);
@@ -21296,7 +22351,7 @@ var PropertyPanelView = React13.forwardRef(
       },
       [options]
     );
-    const loadAiExecutionRecentWorkspaces = React13.useCallback(async () => {
+    const loadAiExecutionRecentWorkspaces = React15.useCallback(async () => {
       if (!options.onHostToolbarAction) return;
       setDirectoryPickerRecentError("");
       try {
@@ -21308,7 +22363,7 @@ var PropertyPanelView = React13.forwardRef(
         setDirectoryPickerRecentError(error instanceof Error ? error.message : String(error));
       }
     }, [options]);
-    const handleOpenDirectoryPicker = React13.useCallback(async () => {
+    const handleOpenDirectoryPicker = React15.useCallback(async () => {
       setDirectoryPickerOpen(true);
       setSettingsPopoverOpen(false);
       setDirectoryPickerRecentOpen(false);
@@ -21322,23 +22377,23 @@ var PropertyPanelView = React13.forwardRef(
         await browseAiExecutionDirectories(void 0);
       }
     }, [aiExecutionWorkspacePath, browseAiExecutionDirectories, loadAiExecutionRecentWorkspaces]);
-    const filteredDirectoryPickerRecentWorkspaces = React13.useMemo(
+    const filteredDirectoryPickerRecentWorkspaces = React15.useMemo(
       () => filterAiExecutionRecentWorkspaces(
         directoryPickerRecentWorkspaces,
         directoryPickerRecentQuery
       ),
       [directoryPickerRecentQuery, directoryPickerRecentWorkspaces]
     );
-    const directoryPickerBreadcrumbs = React13.useMemo(
+    const directoryPickerBreadcrumbs = React15.useMemo(
       () => buildAiWorkspaceBreadcrumbs(directoryPickerState?.path || ""),
       [directoryPickerState?.path]
     );
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (!directoryPickerState?.path) return;
       const navigation = directoryPickerBreadcrumbRef.current;
       if (navigation) navigation.scrollLeft = navigation.scrollWidth;
     }, [directoryPickerState?.path]);
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       if (!directoryPickerRecentOpen) return;
       directoryPickerPathFieldRef.current?.querySelector(`#we-runtime-directory-picker-recent-${directoryPickerRecentActiveIndex}`)?.scrollIntoView({ block: "nearest" });
     }, [
@@ -21346,14 +22401,14 @@ var PropertyPanelView = React13.forwardRef(
       directoryPickerRecentOpen,
       filteredDirectoryPickerRecentWorkspaces.length
     ]);
-    const handleDirectoryPickerPathSubmit = React13.useCallback(() => {
+    const handleDirectoryPickerPathSubmit = React15.useCallback(() => {
       const path = normalizeAiExecutionWorkspacePath(directoryPickerPathInput);
       if (path && !directoryPickerBusy) {
         setDirectoryPickerRecentOpen(false);
         void browseAiExecutionDirectories(path);
       }
     }, [browseAiExecutionDirectories, directoryPickerBusy, directoryPickerPathInput]);
-    const handleDirectoryPickerPathClick = React13.useCallback(() => {
+    const handleDirectoryPickerPathClick = React15.useCallback(() => {
       if (directoryPickerBusy) return;
       if (!directoryPickerRecentOpen) {
         setDirectoryPickerRecentQuery("");
@@ -21363,14 +22418,14 @@ var PropertyPanelView = React13.forwardRef(
         setDirectoryPickerRecentOpen(true);
       }
     }, [directoryPickerBusy, directoryPickerRecentOpen, directoryPickerRecentWorkspaces.length]);
-    const handleDirectoryPickerPathBlur = React13.useCallback(() => {
+    const handleDirectoryPickerPathBlur = React15.useCallback(() => {
       window.requestAnimationFrame(() => {
         if (!directoryPickerPathFieldRef.current?.contains(document.activeElement)) {
           setDirectoryPickerRecentOpen(false);
         }
       });
     }, []);
-    const handleDirectoryPickerRecentBrowse = React13.useCallback(
+    const handleDirectoryPickerRecentBrowse = React15.useCallback(
       (workspacePath) => {
         if (directoryPickerBusy) return;
         setDirectoryPickerPathInput(workspacePath);
@@ -21380,7 +22435,7 @@ var PropertyPanelView = React13.forwardRef(
       },
       [browseAiExecutionDirectories, directoryPickerBusy]
     );
-    const handleDirectoryPickerRecentRemove = React13.useCallback(
+    const handleDirectoryPickerRecentRemove = React15.useCallback(
       (workspacePath) => {
         const next = removeAiExecutionRecentWorkspace(
           directoryPickerRecentWorkspaces,
@@ -21401,7 +22456,7 @@ var PropertyPanelView = React13.forwardRef(
       },
       [directoryPickerRecentWorkspaces, options]
     );
-    const handleDirectoryPickerPathKeyDown = React13.useCallback(
+    const handleDirectoryPickerPathKeyDown = React15.useCallback(
       (event) => {
         if (event.key === "Escape" && directoryPickerRecentOpen) {
           event.preventDefault();
@@ -21443,7 +22498,7 @@ var PropertyPanelView = React13.forwardRef(
         handleDirectoryPickerRecentBrowse
       ]
     );
-    const handleConfirmDirectoryPicker = React13.useCallback(async () => {
+    const handleConfirmDirectoryPicker = React15.useCallback(async () => {
       const selectedPath = normalizeAiExecutionWorkspacePath(directoryPickerState?.path);
       if (!selectedPath) return;
       setDirectoryPickerBusy(true);
@@ -21484,7 +22539,7 @@ var PropertyPanelView = React13.forwardRef(
       }
     }, [directoryPickerRecentWorkspaces, directoryPickerState?.path, options]);
     const aiExecutionWorkspaceDisplayName = getPathDisplayName(aiExecutionWorkspacePath);
-    const toggleSelectionMode = React13.useCallback(() => {
+    const toggleSelectionMode = React15.useCallback(() => {
       const nextSelectionModeActive = !selectionModeActive;
       if (!nextSelectionModeActive) {
         onDismissSelection?.();
@@ -21508,17 +22563,17 @@ var PropertyPanelView = React13.forwardRef(
     const commentarySkillInstallSettingsItem = {
       key: "commentary-skill-install",
       compactControl: true,
-      label: /* @__PURE__ */ jsxs12("span", { className: "we-runtime-settings-card__skill-label", children: [
-        /* @__PURE__ */ jsx13("span", { children: "\u6279\u6CE8\u6280\u80FD" }),
-        /* @__PURE__ */ jsx13("span", { className: "we-runtime-settings-card__recommended-badge", children: "\u63A8\u8350" })
+      label: /* @__PURE__ */ jsxs14("span", { className: "we-runtime-settings-card__skill-label", children: [
+        /* @__PURE__ */ jsx15("span", { children: "\u6279\u6CE8\u6280\u80FD" }),
+        /* @__PURE__ */ jsx15("span", { className: "we-runtime-settings-card__recommended-badge", children: "\u63A8\u8350" })
       ] }),
-      control: /* @__PURE__ */ jsx13(
+      control: /* @__PURE__ */ jsx15(
         Tooltip6,
         {
           title: skillInstallPromptCopied ? "\u5B89\u88C5\u63D0\u793A\u8BCD\u5DF2\u590D\u5236" : "\u590D\u5236\u5B89\u88C5\u63D0\u793A\u8BCD",
           placement: "bottomRight",
           getPopupContainer: resolveRuntimePopupContainer,
-          children: /* @__PURE__ */ jsx13(
+          children: /* @__PURE__ */ jsx15(
             "button",
             {
               type: "button",
@@ -21538,14 +22593,14 @@ var PropertyPanelView = React13.forwardRef(
       key: "ai-workspace",
       label: "AI \u5DE5\u4F5C\u76EE\u5F55",
       action: handleOpenDirectoryPicker,
-      control: /* @__PURE__ */ jsxs12(
+      control: /* @__PURE__ */ jsxs14(
         "span",
         {
           className: "we-runtime-settings-card__value we-runtime-settings-card__workspace-value",
           title: aiExecutionWorkspacePath || void 0,
           children: [
-            /* @__PURE__ */ jsx13("span", { className: "we-runtime-settings-card__workspace-value-text", children: aiExecutionWorkspaceDisplayName || "\u672A\u914D\u7F6E" }),
-            /* @__PURE__ */ jsx13(RightOutlined, { style: { fontSize: 10 } })
+            /* @__PURE__ */ jsx15("span", { className: "we-runtime-settings-card__workspace-value-text", children: aiExecutionWorkspaceDisplayName || "\u672A\u914D\u7F6E" }),
+            /* @__PURE__ */ jsx15(RightOutlined, { style: { fontSize: 10 } })
           ]
         }
       )
@@ -21553,7 +22608,7 @@ var PropertyPanelView = React13.forwardRef(
     const propertyPanelSettingsItem = !externalAnnotationMode && showPropertyPanelSettingsItem ? {
       key: "property-panel",
       label: "\u8BBE\u8BA1\u51B3\u7B56",
-      control: /* @__PURE__ */ jsx13(
+      control: /* @__PURE__ */ jsx15(
         Switch2,
         {
           checked: propertyPanelOpen,
@@ -21568,7 +22623,7 @@ var PropertyPanelView = React13.forwardRef(
         {
           key: "commenter-name",
           label: "\u6279\u6CE8\u8005",
-          control: /* @__PURE__ */ jsx13(
+          control: /* @__PURE__ */ jsx15(
             CommenterNameSettingsInput,
             {
               value: options.commenterName ?? "",
@@ -21586,7 +22641,7 @@ var PropertyPanelView = React13.forwardRef(
         {
           key: "capture-target-screenshot",
           label: "\u9644\u5E26\u76EE\u6807\u622A\u56FE",
-          control: /* @__PURE__ */ jsx13(
+          control: /* @__PURE__ */ jsx15(
             Switch2,
             {
               checked: uiSettings.captureTargetScreenshot,
@@ -21604,7 +22659,7 @@ var PropertyPanelView = React13.forwardRef(
         {
           key: "disable-page-animations",
           label: "\u5173\u95ED\u9875\u9762\u52A8\u753B",
-          control: /* @__PURE__ */ jsx13(
+          control: /* @__PURE__ */ jsx15(
             Switch2,
             {
               checked: uiSettings.disablePageAnimations,
@@ -21621,7 +22676,7 @@ var PropertyPanelView = React13.forwardRef(
           {
             key: "document-comment-mode",
             label: "\u6587\u6863\u6279\u6CE8\u6A21\u5F0F",
-            control: /* @__PURE__ */ jsx13(
+            control: /* @__PURE__ */ jsx15(
               Switch2,
               {
                 checked: uiSettings.documentCommentMode,
@@ -21643,7 +22698,7 @@ var PropertyPanelView = React13.forwardRef(
           setKeyboardShortcutsDialogOpen(true);
           setSettingsPopoverOpen(false);
         },
-        control: /* @__PURE__ */ jsxs12(
+        control: /* @__PURE__ */ jsxs14(
           "span",
           {
             style: {
@@ -21654,35 +22709,35 @@ var PropertyPanelView = React13.forwardRef(
               gap: 6
             },
             children: [
-              /* @__PURE__ */ jsx13("span", { children: "\u67E5\u770B" }),
-              /* @__PURE__ */ jsx13(RightOutlined, { style: { fontSize: 10 } })
+              /* @__PURE__ */ jsx15("span", { children: "\u67E5\u770B" }),
+              /* @__PURE__ */ jsx15(RightOutlined, { style: { fontSize: 10 } })
             ]
           }
         )
       }
     ];
-    const settingsCardContent = /* @__PURE__ */ jsxs12(
+    const settingsCardContent = /* @__PURE__ */ jsxs14(
       "div",
       {
         className: "we-runtime-settings-card",
         onPointerDownCapture: (event) => event.stopPropagation(),
         children: [
-          /* @__PURE__ */ jsxs12("div", { className: "we-runtime-settings-card__header", children: [
-            /* @__PURE__ */ jsx13("span", { className: "we-runtime-settings-card__title", children: "Axhub \u6279\u6CE8" }),
-            /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsxs14("div", { className: "we-runtime-settings-card__header", children: [
+            /* @__PURE__ */ jsx15("span", { className: "we-runtime-settings-card__title", children: "Axhub \u6279\u6CE8" }),
+            /* @__PURE__ */ jsx15(
               Tooltip6,
               {
                 title: uiSettings.darkMode ? "\u5173\u95ED\u6DF1\u8272\u6A21\u5F0F" : "\u5F00\u542F\u6DF1\u8272\u6A21\u5F0F",
                 placement: "bottomRight",
                 getPopupContainer: resolveRuntimePopupContainer,
-                children: /* @__PURE__ */ jsx13(
+                children: /* @__PURE__ */ jsx15(
                   Button5,
                   {
                     type: "text",
                     size: "small",
                     className: "we-runtime-settings-dark-mode-button",
                     "aria-label": uiSettings.darkMode ? "\u5173\u95ED\u6DF1\u8272\u6A21\u5F0F" : "\u5F00\u542F\u6DF1\u8272\u6A21\u5F0F",
-                    icon: /* @__PURE__ */ jsx13(MoonOutlined, { style: { fontSize: 18 } }),
+                    icon: /* @__PURE__ */ jsx15(MoonOutlined, { style: { fontSize: 18 } }),
                     onClick: (event) => {
                       event.stopPropagation();
                       onUiSettingsChange({
@@ -21704,7 +22759,7 @@ var PropertyPanelView = React13.forwardRef(
               }
             )
           ] }),
-          /* @__PURE__ */ jsx13("div", { className: "we-runtime-settings-card__list", children: settingsItems.map((item) => /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsx15("div", { className: "we-runtime-settings-card__list", children: settingsItems.map((item) => /* @__PURE__ */ jsx15(
             "div",
             {
               className: [
@@ -21718,9 +22773,9 @@ var PropertyPanelView = React13.forwardRef(
                   void item.action();
                 }
               },
-              children: item.fullWidth ? /* @__PURE__ */ jsx13("div", { className: "we-runtime-settings-card__full-control", children: item.control }) : /* @__PURE__ */ jsxs12(Fragment6, { children: [
-                /* @__PURE__ */ jsx13("span", { className: "we-runtime-settings-card__label", children: item.label }),
-                /* @__PURE__ */ jsx13("div", { className: "we-runtime-settings-card__row-control", children: item.control })
+              children: item.fullWidth ? /* @__PURE__ */ jsx15("div", { className: "we-runtime-settings-card__full-control", children: item.control }) : /* @__PURE__ */ jsxs14(Fragment7, { children: [
+                /* @__PURE__ */ jsx15("span", { className: "we-runtime-settings-card__label", children: item.label }),
+                /* @__PURE__ */ jsx15("div", { className: "we-runtime-settings-card__row-control", children: item.control })
               ] })
             },
             item.key
@@ -21728,7 +22783,7 @@ var PropertyPanelView = React13.forwardRef(
         ]
       }
     );
-    const settingsToolbarButton = /* @__PURE__ */ jsx13(
+    const settingsToolbarButton = /* @__PURE__ */ jsx15(
       Popover2,
       {
         trigger: "click",
@@ -21744,11 +22799,11 @@ var PropertyPanelView = React13.forwardRef(
         },
         content: settingsCardContent,
         getPopupContainer: resolveRuntimePopupContainer,
-        children: /* @__PURE__ */ jsx13("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx13(
+        children: /* @__PURE__ */ jsx15("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ jsx15(
           AgentToolbarIconButton,
           {
             title: "\u8BBE\u7F6E",
-            icon: /* @__PURE__ */ jsx13(SettingOutlined, {}),
+            icon: /* @__PURE__ */ jsx15(SettingOutlined, {}),
             awake: agentShellAwake,
             disabled: actionBusy
           }
@@ -21756,11 +22811,11 @@ var PropertyPanelView = React13.forwardRef(
       }
     );
     const selectionModeToolbarTitle = `${selectionModeActive ? "\u5173\u95ED\u9009\u62E9\u5143\u7D20" : "\u5F00\u542F\u9009\u62E9\u5143\u7D20"}\uFF08${SELECTION_MODE_TOGGLE_SHORTCUT_LABEL}\uFF09`;
-    const selectionModeToolbarButton = selectionModeAvailable ? /* @__PURE__ */ jsx13(
+    const selectionModeToolbarButton = selectionModeAvailable ? /* @__PURE__ */ jsx15(
       AgentToolbarIconButton,
       {
         title: selectionModeToolbarTitle,
-        icon: /* @__PURE__ */ jsx13(SelectOutlined, {}),
+        icon: /* @__PURE__ */ jsx15(SelectOutlined, {}),
         ariaLabel: selectionModeActive ? "\u5173\u95ED\u9009\u62E9\u5143\u7D20" : "\u5F00\u542F\u9009\u62E9\u5143\u7D20",
         awake: agentShellAwake,
         active: selectionModeActive,
@@ -21768,11 +22823,11 @@ var PropertyPanelView = React13.forwardRef(
         onClick: toggleSelectionMode
       }
     ) : null;
-    const markdownSourceEditorToolbarButton = options.markdownSourceEditorAvailable ? /* @__PURE__ */ jsx13(
+    const markdownSourceEditorToolbarButton = options.markdownSourceEditorAvailable ? /* @__PURE__ */ jsx15(
       AgentToolbarIconButton,
       {
         title: markdownSourceEditorOpen ? "\u9690\u85CF Markdown \u539F\u6587" : "\u663E\u793A Markdown \u539F\u6587",
-        icon: /* @__PURE__ */ jsx13(FileTextOutlined2, {}),
+        icon: /* @__PURE__ */ jsx15(FileTextOutlined2, {}),
         ariaLabel: markdownSourceEditorOpen ? "\u9690\u85CF Markdown \u539F\u6587" : "\u663E\u793A Markdown \u539F\u6587",
         awake: agentShellAwake,
         active: markdownSourceEditorOpen,
@@ -21801,11 +22856,11 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     ) : null;
-    const closeToolbarButton = /* @__PURE__ */ jsx13(
+    const closeToolbarButton = /* @__PURE__ */ jsx15(
       AgentToolbarIconButton,
       {
         title: options.onRequestFullExit ? "\u9000\u51FA\u6279\u6CE8" : "\u5173\u95ED\u5DE5\u5177\u680F",
-        icon: /* @__PURE__ */ jsx13(CloseToolIcon, {}),
+        icon: /* @__PURE__ */ jsx15(CloseToolIcon, {}),
         ariaLabel: options.onRequestFullExit ? "\u9000\u51FA\u6279\u6CE8" : "\u5173\u95ED\u5DE5\u5177\u680F",
         awake: agentShellAwake,
         disabled: actionBusy,
@@ -21818,7 +22873,7 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     );
-    const propertyPanelEmptyState = /* @__PURE__ */ jsxs12(
+    const propertyPanelEmptyState = /* @__PURE__ */ jsxs14(
       "div",
       {
         className: "we-runtime-prop-panel__empty-state",
@@ -21829,7 +22884,7 @@ var PropertyPanelView = React13.forwardRef(
           gap: 8
         },
         children: [
-          /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsx15(
             Typography2.Text,
             {
               style: {
@@ -21840,12 +22895,12 @@ var PropertyPanelView = React13.forwardRef(
               children: "\u6682\u65F6\u6CA1\u6709\u9700\u8981\u5904\u7406\u7684\u8BBE\u8BA1\u51B3\u7B56\u3002\u53EF\u4EE5\u5148\u751F\u6210\u591A\u4E2A\u8BBE\u8BA1\u65B9\u6848\uFF0C\u518D\u8FDB\u884C\u5BF9\u6BD4\u548C\u51B3\u7B56\u3002"
             }
           ),
-          showCopyPromptAction ? /* @__PURE__ */ jsx13(
+          showCopyPromptAction ? /* @__PURE__ */ jsx15(
             Button5,
             {
               type: "default",
               size: "small",
-              icon: /* @__PURE__ */ jsx13(CopyOutlined2, {}),
+              icon: /* @__PURE__ */ jsx15(CopyOutlined2, {}),
               onClick: () => {
                 void handleCopyGlobalPanelPrompt();
               },
@@ -21856,11 +22911,11 @@ var PropertyPanelView = React13.forwardRef(
         ]
       }
     );
-    const propertyPanelToggleButton = showPropertyPanelToolbarButton ? /* @__PURE__ */ jsx13(
+    const propertyPanelToggleButton = showPropertyPanelToolbarButton ? /* @__PURE__ */ jsx15(
       AgentToolbarIconButton,
       {
         title: propertyPanelOpen ? "\u5173\u95ED\u8BBE\u8BA1\u51B3\u7B56" : "\u6253\u5F00\u8BBE\u8BA1\u51B3\u7B56",
-        icon: /* @__PURE__ */ jsx13(SlidersOutlined, {}),
+        icon: /* @__PURE__ */ jsx15(SlidersOutlined, {}),
         ariaLabel: "\u8BBE\u8BA1\u51B3\u7B56",
         awake: agentShellAwake,
         active: propertyPanelOpen,
@@ -21868,7 +22923,7 @@ var PropertyPanelView = React13.forwardRef(
         onClick: () => handleTogglePropertyPanel()
       }
     ) : null;
-    const handleTogglePageZoom = React13.useCallback(() => {
+    const handleTogglePageZoom = React15.useCallback(() => {
       onDismissSelection?.();
       onTargetChange(null);
       const nextPageZoomEnabled = !uiSettings.pageZoomEnabled;
@@ -21878,7 +22933,7 @@ var PropertyPanelView = React13.forwardRef(
       onUiSettingsChange({ ...uiSettings, pageZoomEnabled: nextPageZoomEnabled });
     }, [dockPagePanelRight, onDismissSelection, onTargetChange, onUiSettingsChange, uiSettings]);
     const annotationSaveStatus = options.getAnnotationSaveStatus?.() ?? "saved";
-    const hostToolbarState = React13.useMemo(() => {
+    const hostToolbarState = React15.useMemo(() => {
       const agentOptions = [
         { value: null, label: "\u9ED8\u8BA4" },
         ...AGENT_MENU_OPTIONS.map((item) => {
@@ -21983,7 +23038,7 @@ var PropertyPanelView = React13.forwardRef(
     ]);
     const onHostToolbarStateChange = props.onHostToolbarStateChange;
     const optionHostToolbarStateChange = options.onHostToolbarStateChange;
-    React13.useEffect(() => {
+    React15.useEffect(() => {
       onHostToolbarStateChange?.(hostToolbarState);
       optionHostToolbarStateChange?.(hostToolbarState);
       for (const listener of hostToolbarListenersRef.current) {
@@ -21993,7 +23048,7 @@ var PropertyPanelView = React13.forwardRef(
         }
       }
     }, [hostToolbarState, onHostToolbarStateChange, optionHostToolbarStateChange]);
-    const runHostToolbarAction = React13.useCallback(
+    const runHostToolbarAction = React15.useCallback(
       async (action) => {
         switch (action.type) {
           case "wake-agent":
@@ -22154,7 +23209,7 @@ var PropertyPanelView = React13.forwardRef(
         wakeAgentForAction
       ]
     );
-    React13.useImperativeHandle(
+    React15.useImperativeHandle(
       ref,
       () => ({
         setTarget(element) {
@@ -22222,22 +23277,22 @@ var PropertyPanelView = React13.forwardRef(
         toolMinimized
       ]
     );
-    const pageConfigPanelHeader = showExpandedPanel ? /* @__PURE__ */ jsxs12(
+    const pageConfigPanelHeader = showExpandedPanel ? /* @__PURE__ */ jsxs14(
       "div",
       {
         ref: pagePanelHeaderRef,
         className: "we-runtime-page-config-panel__header we-runtime-prop-panel__drag-handle",
         children: [
-          /* @__PURE__ */ jsxs12("div", { className: "we-runtime-prop-panel__header-title-group", children: [
-            /* @__PURE__ */ jsx13("span", { className: "we-runtime-prop-panel__header-title", children: "\u8BBE\u8BA1\u51B3\u7B56" }),
-            /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsxs14("div", { className: "we-runtime-prop-panel__header-title-group", children: [
+            /* @__PURE__ */ jsx15("span", { className: "we-runtime-prop-panel__header-title", children: "\u8BBE\u8BA1\u51B3\u7B56" }),
+            /* @__PURE__ */ jsx15(
               Tooltip6,
               {
                 title: PROPERTY_PANEL_HELP_TOOLTIP,
                 placement: "bottomRight",
                 arrow: { pointAtCenter: true },
                 getPopupContainer: resolveRuntimePopupContainer,
-                children: /* @__PURE__ */ jsx13(
+                children: /* @__PURE__ */ jsx15(
                   Button5,
                   {
                     type: "text",
@@ -22245,18 +23300,18 @@ var PropertyPanelView = React13.forwardRef(
                     className: "we-runtime-prop-panel__header-action we-runtime-prop-panel__header-help",
                     "aria-label": "\u8BBE\u8BA1\u51B3\u7B56\u8BF4\u660E",
                     title: "\u8BBE\u8BA1\u51B3\u7B56\u8BF4\u660E",
-                    icon: /* @__PURE__ */ jsx13(QuestionCircleOutlined, {})
+                    icon: /* @__PURE__ */ jsx15(QuestionCircleOutlined, {})
                   }
                 )
               }
             )
           ] }),
-          /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsx15(
             "div",
             {
               className: "we-runtime-prop-panel__header-actions",
               onPointerDownCapture: (event) => event.stopPropagation(),
-              children: /* @__PURE__ */ jsx13(
+              children: /* @__PURE__ */ jsx15(
                 Button5,
                 {
                   type: "text",
@@ -22264,7 +23319,7 @@ var PropertyPanelView = React13.forwardRef(
                   className: "we-runtime-prop-panel__header-action",
                   "aria-label": "\u590D\u5236\u63D0\u793A\u8BCD",
                   title: "\u590D\u5236\u63D0\u793A\u8BCD",
-                  icon: /* @__PURE__ */ jsx13(CopyOutlined2, {}),
+                  icon: /* @__PURE__ */ jsx15(CopyOutlined2, {}),
                   onClick: () => {
                     void handleCopyGlobalPanelPrompt();
                   }
@@ -22275,7 +23330,7 @@ var PropertyPanelView = React13.forwardRef(
         ]
       }
     ) : null;
-    const expandedToolbar = /* @__PURE__ */ jsx13(
+    const expandedToolbar = /* @__PURE__ */ jsx15(
       AgentToolbarShell,
       {
         awake: agentShellAwake,
@@ -22287,7 +23342,7 @@ var PropertyPanelView = React13.forwardRef(
           maxWidth: "calc(100% - 8px)",
           margin: 0
         },
-        children: /* @__PURE__ */ jsx13(
+        children: /* @__PURE__ */ jsx15(
           "div",
           {
             style: {
@@ -22298,9 +23353,9 @@ var PropertyPanelView = React13.forwardRef(
               width: "auto",
               minWidth: 0
             },
-            children: /* @__PURE__ */ jsxs12(Space2, { size: 4, style: { minWidth: 0, flex: "0 0 auto" }, children: [
+            children: /* @__PURE__ */ jsxs14(Space2, { size: 4, style: { minWidth: 0, flex: "0 0 auto" }, children: [
               selectionModeToolbarButton,
-              compactToolbar ? toolbarExtraContent : /* @__PURE__ */ jsxs12(Fragment6, { children: [
+              compactToolbar ? toolbarExtraContent : /* @__PURE__ */ jsxs14(Fragment7, { children: [
                 markdownSourceEditorToolbarButton,
                 hostSurfaceVisibilityToolbarButton ?? agentExecutionToolbarButton,
                 copyToolbarButton,
@@ -22315,7 +23370,7 @@ var PropertyPanelView = React13.forwardRef(
         )
       }
     );
-    const minimizedToolbar = /* @__PURE__ */ jsxs12(
+    const minimizedToolbar = /* @__PURE__ */ jsxs14(
       "button",
       {
         className: "we-runtime-prop-panel__minimized-trigger we-runtime-prop-panel__drag-handle",
@@ -22344,7 +23399,7 @@ var PropertyPanelView = React13.forwardRef(
           transition: "opacity 220ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 220ms ease"
         },
         children: [
-          /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsx15(
             "span",
             {
               "aria-hidden": "true",
@@ -22357,7 +23412,7 @@ var PropertyPanelView = React13.forwardRef(
               }
             }
           ),
-          /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsx15(
             "span",
             {
               "aria-hidden": "true",
@@ -22370,7 +23425,7 @@ var PropertyPanelView = React13.forwardRef(
               }
             }
           ),
-          /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsx15(
             "span",
             {
               style: {
@@ -22384,10 +23439,10 @@ var PropertyPanelView = React13.forwardRef(
                 color: EDITOR_CHROME.textSecondary,
                 transition: "background-color 220ms ease, color 220ms ease, transform 220ms ease"
               },
-              children: /* @__PURE__ */ jsx13(AgentSparkleIcon, {})
+              children: /* @__PURE__ */ jsx15(AgentSparkleIcon, {})
             }
           ),
-          modifiedCount > 0 ? /* @__PURE__ */ jsx13(
+          modifiedCount > 0 ? /* @__PURE__ */ jsx15(
             "span",
             {
               style: {
@@ -22425,7 +23480,7 @@ var PropertyPanelView = React13.forwardRef(
         bottom: "auto"
       } : { right: PROPERTY_PANEL_RIGHT, top: PROPERTY_PANEL_TOP }
     };
-    const pageConfigPanel = showExpandedPanel ? /* @__PURE__ */ jsxs12(
+    const pageConfigPanel = showExpandedPanel ? /* @__PURE__ */ jsxs14(
       "div",
       {
         ref: pagePanelRef,
@@ -22444,19 +23499,19 @@ var PropertyPanelView = React13.forwardRef(
         onPointerLeave: () => onHoverSelectionSuppressedChange(false),
         children: [
           pageConfigPanelHeader,
-          /* @__PURE__ */ jsx13(
+          /* @__PURE__ */ jsx15(
             "div",
             {
               ref: pagePanelBodyRef,
               className: "we-runtime-page-config-panel__body",
               style: pageConfigPanelBodyStyle,
               "aria-hidden": false,
-              children: /* @__PURE__ */ jsx13(
+              children: /* @__PURE__ */ jsx15(
                 "div",
                 {
                   onPointerDownCapture: (event) => event.stopPropagation(),
                   style: { display: "flex", flexDirection: "column", gap: 10 },
-                  children: hasPageTweakEntries ? /* @__PURE__ */ jsx13(
+                  children: hasPageTweakEntries ? /* @__PURE__ */ jsx15(
                     ReactPageTweakPanel,
                     {
                       entries: pageTweakEntries,
@@ -22484,8 +23539,8 @@ var PropertyPanelView = React13.forwardRef(
         ]
       }
     ) : null;
-    return /* @__PURE__ */ jsxs12(Fragment6, { children: [
-      /* @__PURE__ */ jsxs12(
+    return /* @__PURE__ */ jsxs14(Fragment7, { children: [
+      /* @__PURE__ */ jsxs14(
         "div",
         {
           ref: rootRef,
@@ -22510,9 +23565,9 @@ var PropertyPanelView = React13.forwardRef(
           },
           onPointerLeave: () => onHoverSelectionSuppressedChange(false),
           children: [
-            /* @__PURE__ */ jsx13("style", { nonce: resolveCspNonce(), children: PROPERTY_PANEL_LOCAL_STYLES }),
+            /* @__PURE__ */ jsx15("style", { nonce: resolveCspNonce(), children: PROPERTY_PANEL_LOCAL_STYLES }),
             isHostToolbarMode ? null : toolMinimized ? minimizedToolbar : expandedToolbar,
-            /* @__PURE__ */ jsx13(
+            /* @__PURE__ */ jsx15(
               Modal2,
               {
                 title: "\u8BED\u97F3\u5FEB\u6377\u952E",
@@ -22522,8 +23577,8 @@ var PropertyPanelView = React13.forwardRef(
                 maskClosable: true,
                 onCancel: closeShortcutDialog,
                 footer: [
-                  /* @__PURE__ */ jsx13(Button5, { onClick: closeShortcutDialog, children: "\u53D6\u6D88" }, "cancel"),
-                  /* @__PURE__ */ jsx13(
+                  /* @__PURE__ */ jsx15(Button5, { onClick: closeShortcutDialog, children: "\u53D6\u6D88" }, "cancel"),
+                  /* @__PURE__ */ jsx15(
                     Button5,
                     {
                       type: "primary",
@@ -22534,8 +23589,8 @@ var PropertyPanelView = React13.forwardRef(
                     "save"
                   )
                 ],
-                children: /* @__PURE__ */ jsxs12("div", { style: { display: "flex", flexDirection: "column", gap: 16 }, children: [
-                  /* @__PURE__ */ jsxs12(
+                children: /* @__PURE__ */ jsxs14("div", { style: { display: "flex", flexDirection: "column", gap: 16 }, children: [
+                  /* @__PURE__ */ jsxs14(
                     "div",
                     {
                       style: {
@@ -22546,8 +23601,8 @@ var PropertyPanelView = React13.forwardRef(
                         padding: "12px 0"
                       },
                       children: [
-                        /* @__PURE__ */ jsxs12("div", { children: [
-                          /* @__PURE__ */ jsx13(
+                        /* @__PURE__ */ jsxs14("div", { children: [
+                          /* @__PURE__ */ jsx15(
                             "div",
                             {
                               style: {
@@ -22558,9 +23613,9 @@ var PropertyPanelView = React13.forwardRef(
                               children: "\u542F\u7528\u8BED\u97F3\u5FEB\u6377\u952E"
                             }
                           ),
-                          /* @__PURE__ */ jsx13("div", { style: shortcutCaptureHintStyle, children: "\u5F00\u542F\u540E\u624D\u4F1A\u54CD\u5E94\u957F\u6309\u4FEE\u9970\u952E\u548C\u9F20\u6807\u4E2D\u952E\u3002" })
+                          /* @__PURE__ */ jsx15("div", { style: shortcutCaptureHintStyle, children: "\u5F00\u542F\u540E\u624D\u4F1A\u54CD\u5E94\u957F\u6309\u4FEE\u9970\u952E\u548C\u9F20\u6807\u4E2D\u952E\u3002" })
                         ] }),
-                        /* @__PURE__ */ jsx13(
+                        /* @__PURE__ */ jsx15(
                           Switch2,
                           {
                             checked: shortcutDraft.enabled,
@@ -22575,7 +23630,7 @@ var PropertyPanelView = React13.forwardRef(
                       ]
                     }
                   ),
-                  /* @__PURE__ */ jsxs12(
+                  /* @__PURE__ */ jsxs14(
                     "div",
                     {
                       style: {
@@ -22588,8 +23643,8 @@ var PropertyPanelView = React13.forwardRef(
                         borderBottom: `1px solid ${EDITOR_CHROME.border}`
                       },
                       children: [
-                        /* @__PURE__ */ jsxs12("div", { children: [
-                          /* @__PURE__ */ jsx13(
+                        /* @__PURE__ */ jsxs14("div", { children: [
+                          /* @__PURE__ */ jsx15(
                             "div",
                             {
                               style: {
@@ -22600,9 +23655,9 @@ var PropertyPanelView = React13.forwardRef(
                               children: "\u542F\u7528\u9F20\u6807\u4E2D\u952E\u76D1\u542C"
                             }
                           ),
-                          /* @__PURE__ */ jsx13("div", { style: shortcutCaptureHintStyle, children: "\u9F20\u6807\u4E2D\u952E\u5355\u51FB\u4F1A\u76F4\u63A5\u8FDB\u5165\u6279\u6CE8\u6C14\u6CE1\u5361\u7247\u3002" })
+                          /* @__PURE__ */ jsx15("div", { style: shortcutCaptureHintStyle, children: "\u9F20\u6807\u4E2D\u952E\u5355\u51FB\u4F1A\u76F4\u63A5\u8FDB\u5165\u6279\u6CE8\u6C14\u6CE1\u5361\u7247\u3002" })
                         ] }),
-                        /* @__PURE__ */ jsx13(
+                        /* @__PURE__ */ jsx15(
                           Switch2,
                           {
                             checked: shortcutDraft.middleClickEnabled,
@@ -22617,7 +23672,7 @@ var PropertyPanelView = React13.forwardRef(
                       ]
                     }
                   ),
-                  /* @__PURE__ */ jsx13(
+                  /* @__PURE__ */ jsx15(
                     "div",
                     {
                       style: {
@@ -22625,7 +23680,7 @@ var PropertyPanelView = React13.forwardRef(
                         gridTemplateColumns: "1fr 1fr",
                         gap: 12
                       },
-                      children: [0, 1].map((index) => /* @__PURE__ */ jsx13(
+                      children: [0, 1].map((index) => /* @__PURE__ */ jsx15(
                         ShortcutCaptureCard,
                         {
                           ref: (node) => {
@@ -22666,34 +23721,34 @@ var PropertyPanelView = React13.forwardRef(
                       ))
                     }
                   ),
-                  /* @__PURE__ */ jsxs12("div", { style: shortcutCaptureHintStyle, children: [
+                  /* @__PURE__ */ jsxs14("div", { style: shortcutCaptureHintStyle, children: [
                     "\u4EC5\u652F\u6301 Shift / Alt / Ctrl / Command\uFF0C\u957F\u6309 ",
                     COMMENT_SHORTCUT_LONG_PRESS_MS,
                     "ms \u89E6\u53D1\u3002"
                   ] }),
-                  shortcutValidationError ? /* @__PURE__ */ jsx13("div", { style: { fontSize: 12, color: EDITOR_CHROME.textDanger }, children: shortcutValidationError }) : null
+                  shortcutValidationError ? /* @__PURE__ */ jsx15("div", { style: { fontSize: 12, color: EDITOR_CHROME.textDanger }, children: shortcutValidationError }) : null
                 ] })
               }
             ),
-            /* @__PURE__ */ jsx13(
+            /* @__PURE__ */ jsx15(
               Modal2,
               {
-                title: /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__title", children: [
-                  /* @__PURE__ */ jsx13("div", { children: "\u9009\u62E9 AI \u5DE5\u4F5C\u76EE\u5F55" }),
-                  /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__description", children: "\u9009\u62E9\u6279\u6CE8\u548C AI \u6587\u4EF6\u64CD\u4F5C\u6240\u5728\u7684\u9879\u76EE\u76EE\u5F55\u3002" })
+                title: /* @__PURE__ */ jsxs14("div", { className: "we-runtime-directory-picker__title", children: [
+                  /* @__PURE__ */ jsx15("div", { children: "\u9009\u62E9 AI \u5DE5\u4F5C\u76EE\u5F55" }),
+                  /* @__PURE__ */ jsx15("div", { className: "we-runtime-directory-picker__description", children: "\u9009\u62E9\u6279\u6CE8\u548C AI \u6587\u4EF6\u64CD\u4F5C\u6240\u5728\u7684\u9879\u76EE\u76EE\u5F55\u3002" })
                 ] }),
                 open: directoryPickerOpen,
                 centered: true,
                 width: 720,
                 className: "we-runtime-directory-picker-modal",
                 getContainer: false,
-                closeIcon: /* @__PURE__ */ jsx13(
+                closeIcon: /* @__PURE__ */ jsx15(
                   Tooltip6,
                   {
                     title: "\u5173\u95ED\u76EE\u5F55\u9009\u62E9\u5668",
                     placement: "bottomRight",
                     getPopupContainer: resolveRuntimePopupContainer,
-                    children: /* @__PURE__ */ jsx13(CloseOutlined3, { "aria-label": "\u5173\u95ED\u76EE\u5F55\u9009\u62E9\u5668" })
+                    children: /* @__PURE__ */ jsx15(CloseOutlined3, { "aria-label": "\u5173\u95ED\u76EE\u5F55\u9009\u62E9\u5668" })
                   }
                 ),
                 keyboard: !directoryPickerBusy && !directoryPickerRecentOpen,
@@ -22705,7 +23760,7 @@ var PropertyPanelView = React13.forwardRef(
                   }
                 },
                 footer: [
-                  /* @__PURE__ */ jsx13(
+                  /* @__PURE__ */ jsx15(
                     Button5,
                     {
                       disabled: directoryPickerBusy,
@@ -22714,7 +23769,7 @@ var PropertyPanelView = React13.forwardRef(
                     },
                     "cancel"
                   ),
-                  /* @__PURE__ */ jsx13(
+                  /* @__PURE__ */ jsx15(
                     Button5,
                     {
                       type: "primary",
@@ -22728,7 +23783,7 @@ var PropertyPanelView = React13.forwardRef(
                     "select"
                   )
                 ],
-                children: /* @__PURE__ */ jsxs12(
+                children: /* @__PURE__ */ jsxs14(
                   "div",
                   {
                     className: "we-runtime-directory-picker",
@@ -22739,7 +23794,7 @@ var PropertyPanelView = React13.forwardRef(
                       }
                     },
                     children: [
-                      /* @__PURE__ */ jsxs12(
+                      /* @__PURE__ */ jsxs14(
                         "form",
                         {
                           className: "we-runtime-directory-picker__path-row",
@@ -22749,13 +23804,13 @@ var PropertyPanelView = React13.forwardRef(
                             handleDirectoryPickerPathSubmit();
                           },
                           children: [
-                            /* @__PURE__ */ jsxs12(
+                            /* @__PURE__ */ jsxs14(
                               "div",
                               {
                                 ref: directoryPickerPathFieldRef,
                                 className: "we-runtime-directory-picker__path-field",
                                 children: [
-                                  /* @__PURE__ */ jsx13(
+                                  /* @__PURE__ */ jsx15(
                                     Input5,
                                     {
                                       size: "large",
@@ -22784,7 +23839,7 @@ var PropertyPanelView = React13.forwardRef(
                                       onKeyDown: handleDirectoryPickerPathKeyDown
                                     }
                                   ),
-                                  directoryPickerRecentOpen ? /* @__PURE__ */ jsxs12(
+                                  directoryPickerRecentOpen ? /* @__PURE__ */ jsxs14(
                                     "div",
                                     {
                                       id: "we-runtime-directory-picker-recent-list",
@@ -22792,10 +23847,10 @@ var PropertyPanelView = React13.forwardRef(
                                       "aria-label": "\u6700\u8FD1\u9879\u76EE",
                                       className: "we-runtime-directory-picker__recent-list",
                                       children: [
-                                        /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__recent-heading", children: "\u6700\u8FD1\u9879\u76EE" }),
+                                        /* @__PURE__ */ jsx15("div", { className: "we-runtime-directory-picker__recent-heading", children: "\u6700\u8FD1\u9879\u76EE" }),
                                         filteredDirectoryPickerRecentWorkspaces.length > 0 ? filteredDirectoryPickerRecentWorkspaces.map((workspace, index) => {
                                           const workspaceName = getAiExecutionRecentWorkspaceName(workspace.path);
-                                          return /* @__PURE__ */ jsxs12(
+                                          return /* @__PURE__ */ jsxs14(
                                             "div",
                                             {
                                               id: `we-runtime-directory-picker-recent-${index}`,
@@ -22804,7 +23859,7 @@ var PropertyPanelView = React13.forwardRef(
                                               className: `we-runtime-directory-picker__recent-item${index === directoryPickerRecentActiveIndex ? " we-runtime-directory-picker__recent-item--active" : ""}`,
                                               onPointerMove: () => setDirectoryPickerRecentActiveIndex(index),
                                               children: [
-                                                /* @__PURE__ */ jsxs12(
+                                                /* @__PURE__ */ jsxs14(
                                                   "button",
                                                   {
                                                     type: "button",
@@ -22812,10 +23867,10 @@ var PropertyPanelView = React13.forwardRef(
                                                     onMouseDown: (event) => event.preventDefault(),
                                                     onClick: () => handleDirectoryPickerRecentBrowse(workspace.path),
                                                     children: [
-                                                      /* @__PURE__ */ jsx13(HistoryOutlined, { "aria-hidden": "true" }),
-                                                      /* @__PURE__ */ jsxs12("span", { className: "we-runtime-directory-picker__recent-copy", children: [
-                                                        /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__recent-name", children: workspaceName }),
-                                                        /* @__PURE__ */ jsx13(
+                                                      /* @__PURE__ */ jsx15(HistoryOutlined, { "aria-hidden": "true" }),
+                                                      /* @__PURE__ */ jsxs14("span", { className: "we-runtime-directory-picker__recent-copy", children: [
+                                                        /* @__PURE__ */ jsx15("span", { className: "we-runtime-directory-picker__recent-name", children: workspaceName }),
+                                                        /* @__PURE__ */ jsx15(
                                                           "span",
                                                           {
                                                             className: "we-runtime-directory-picker__recent-path",
@@ -22827,20 +23882,20 @@ var PropertyPanelView = React13.forwardRef(
                                                     ]
                                                   }
                                                 ),
-                                                /* @__PURE__ */ jsx13(
+                                                /* @__PURE__ */ jsx15(
                                                   Tooltip6,
                                                   {
                                                     title: "\u4ECE\u6700\u8FD1\u9879\u76EE\u4E2D\u79FB\u9664",
                                                     placement: "left",
                                                     getPopupContainer: resolveRuntimePopupContainer,
-                                                    children: /* @__PURE__ */ jsx13(
+                                                    children: /* @__PURE__ */ jsx15(
                                                       Button5,
                                                       {
                                                         type: "text",
                                                         size: "small",
                                                         className: "we-runtime-directory-picker__recent-remove",
                                                         "aria-label": `\u4ECE\u6700\u8FD1\u9879\u76EE\u4E2D\u79FB\u9664\uFF1A${workspaceName}`,
-                                                        icon: /* @__PURE__ */ jsx13(DeleteOutlined4, {}),
+                                                        icon: /* @__PURE__ */ jsx15(DeleteOutlined4, {}),
                                                         onMouseDown: (event) => event.preventDefault(),
                                                         onClick: (event) => {
                                                           event.stopPropagation();
@@ -22854,14 +23909,14 @@ var PropertyPanelView = React13.forwardRef(
                                             },
                                             workspace.path
                                           );
-                                        }) : /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__recent-empty", children: "\u6CA1\u6709\u5339\u914D\u7684\u6700\u8FD1\u9879\u76EE" })
+                                        }) : /* @__PURE__ */ jsx15("div", { className: "we-runtime-directory-picker__recent-empty", children: "\u6CA1\u6709\u5339\u914D\u7684\u6700\u8FD1\u9879\u76EE" })
                                       ]
                                     }
                                   ) : null
                                 ]
                               }
                             ),
-                            /* @__PURE__ */ jsx13(
+                            /* @__PURE__ */ jsx15(
                               Button5,
                               {
                                 size: "large",
@@ -22874,25 +23929,25 @@ var PropertyPanelView = React13.forwardRef(
                           ]
                         }
                       ),
-                      /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__location", children: [
-                        /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__location-label", children: "\u4F4D\u7F6E" }),
-                        /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__divider" }),
-                        /* @__PURE__ */ jsx13(
+                      /* @__PURE__ */ jsxs14("div", { className: "we-runtime-directory-picker__location", children: [
+                        /* @__PURE__ */ jsx15("span", { className: "we-runtime-directory-picker__location-label", children: "\u4F4D\u7F6E" }),
+                        /* @__PURE__ */ jsx15("span", { className: "we-runtime-directory-picker__divider" }),
+                        /* @__PURE__ */ jsx15(
                           "div",
                           {
                             ref: directoryPickerBreadcrumbRef,
                             role: "navigation",
                             "aria-label": "\u76EE\u5F55\u8DEF\u5F84",
                             className: "we-runtime-directory-picker__breadcrumbs",
-                            children: directoryPickerBreadcrumbs.map((breadcrumb, index) => /* @__PURE__ */ jsxs12(React13.Fragment, { children: [
-                              index > 0 ? /* @__PURE__ */ jsx13(
+                            children: directoryPickerBreadcrumbs.map((breadcrumb, index) => /* @__PURE__ */ jsxs14(React15.Fragment, { children: [
+                              index > 0 ? /* @__PURE__ */ jsx15(
                                 RightOutlined,
                                 {
                                   className: "we-runtime-directory-picker__breadcrumb-separator",
                                   "aria-hidden": "true"
                                 }
                               ) : null,
-                              /* @__PURE__ */ jsx13(
+                              /* @__PURE__ */ jsx15(
                                 Button5,
                                 {
                                   type: "text",
@@ -22909,21 +23964,21 @@ var PropertyPanelView = React13.forwardRef(
                             ] }, breadcrumb.path))
                           }
                         ),
-                        /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__divider" }),
-                        /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__location-actions", children: [
-                          /* @__PURE__ */ jsx13(
+                        /* @__PURE__ */ jsx15("span", { className: "we-runtime-directory-picker__divider" }),
+                        /* @__PURE__ */ jsxs14("div", { className: "we-runtime-directory-picker__location-actions", children: [
+                          /* @__PURE__ */ jsx15(
                             Tooltip6,
                             {
                               title: "\u8FD4\u56DE\u4E3B\u76EE\u5F55",
                               placement: "bottomRight",
                               getPopupContainer: resolveRuntimePopupContainer,
-                              children: /* @__PURE__ */ jsx13(
+                              children: /* @__PURE__ */ jsx15(
                                 Button5,
                                 {
                                   type: "text",
                                   size: "small",
                                   "aria-label": "\u8FD4\u56DE\u4E3B\u76EE\u5F55",
-                                  icon: /* @__PURE__ */ jsx13(HomeOutlined, {}),
+                                  icon: /* @__PURE__ */ jsx15(HomeOutlined, {}),
                                   disabled: directoryPickerBusy || !directoryPickerState?.home,
                                   onClick: () => {
                                     void browseAiExecutionDirectories(directoryPickerState?.home);
@@ -22932,19 +23987,19 @@ var PropertyPanelView = React13.forwardRef(
                               )
                             }
                           ),
-                          /* @__PURE__ */ jsx13(
+                          /* @__PURE__ */ jsx15(
                             Tooltip6,
                             {
                               title: "\u8FD4\u56DE\u4E0A\u4E00\u7EA7",
                               placement: "bottomRight",
                               getPopupContainer: resolveRuntimePopupContainer,
-                              children: /* @__PURE__ */ jsx13(
+                              children: /* @__PURE__ */ jsx15(
                                 Button5,
                                 {
                                   type: "text",
                                   size: "small",
                                   "aria-label": "\u8FD4\u56DE\u4E0A\u4E00\u7EA7",
-                                  icon: /* @__PURE__ */ jsx13(ArrowUpOutlined2, {}),
+                                  icon: /* @__PURE__ */ jsx15(ArrowUpOutlined3, {}),
                                   disabled: directoryPickerBusy || !directoryPickerState?.parent,
                                   onClick: () => {
                                     void browseAiExecutionDirectories(
@@ -22957,15 +24012,15 @@ var PropertyPanelView = React13.forwardRef(
                           )
                         ] })
                       ] }),
-                      directoryPickerRecentError ? /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__recent-error", role: "status", children: [
+                      directoryPickerRecentError ? /* @__PURE__ */ jsxs14("div", { className: "we-runtime-directory-picker__recent-error", role: "status", children: [
                         "\u6700\u8FD1\u9879\u76EE\u6682\u4E0D\u53EF\u7528\uFF1A",
                         directoryPickerRecentError
                       ] }) : null,
-                      directoryPickerError ? /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__error", role: "alert", children: directoryPickerError }) : null,
-                      /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__list", children: directoryPickerBusy ? /* @__PURE__ */ jsxs12("div", { className: "we-runtime-directory-picker__empty", children: [
-                        /* @__PURE__ */ jsx13(ReloadOutlined, { spin: true }),
-                        /* @__PURE__ */ jsx13("span", { children: "\u6B63\u5728\u8BFB\u53D6\u76EE\u5F55..." })
-                      ] }) : directoryPickerState?.directories.length ? directoryPickerState.directories.map((directory) => /* @__PURE__ */ jsxs12(
+                      directoryPickerError ? /* @__PURE__ */ jsx15("div", { className: "we-runtime-directory-picker__error", role: "alert", children: directoryPickerError }) : null,
+                      /* @__PURE__ */ jsx15("div", { className: "we-runtime-directory-picker__list", children: directoryPickerBusy ? /* @__PURE__ */ jsxs14("div", { className: "we-runtime-directory-picker__empty", children: [
+                        /* @__PURE__ */ jsx15(ReloadOutlined, { spin: true }),
+                        /* @__PURE__ */ jsx15("span", { children: "\u6B63\u5728\u8BFB\u53D6\u76EE\u5F55..." })
+                      ] }) : directoryPickerState?.directories.length ? directoryPickerState.directories.map((directory) => /* @__PURE__ */ jsxs14(
                         "button",
                         {
                           type: "button",
@@ -22975,9 +24030,9 @@ var PropertyPanelView = React13.forwardRef(
                             void browseAiExecutionDirectories(directory.path);
                           },
                           children: [
-                            /* @__PURE__ */ jsx13(FolderOpenOutlined, { "aria-hidden": "true" }),
-                            /* @__PURE__ */ jsx13("span", { className: "we-runtime-directory-picker__row-name", children: directory.name }),
-                            /* @__PURE__ */ jsx13(
+                            /* @__PURE__ */ jsx15(FolderOpenOutlined, { "aria-hidden": "true" }),
+                            /* @__PURE__ */ jsx15("span", { className: "we-runtime-directory-picker__row-name", children: directory.name }),
+                            /* @__PURE__ */ jsx15(
                               RightOutlined,
                               {
                                 className: "we-runtime-directory-picker__row-arrow",
@@ -22987,13 +24042,13 @@ var PropertyPanelView = React13.forwardRef(
                           ]
                         },
                         directory.path
-                      )) : /* @__PURE__ */ jsx13("div", { className: "we-runtime-directory-picker__empty", children: "\u5F53\u524D\u76EE\u5F55\u6CA1\u6709\u53EF\u8FDB\u5165\u7684\u5B50\u76EE\u5F55\uFF0C\u4F60\u4ECD\u53EF\u4EE5\u9009\u62E9\u5B83\u4F5C\u4E3A AI \u5DE5\u4F5C\u76EE\u5F55\u3002" }) })
+                      )) : /* @__PURE__ */ jsx15("div", { className: "we-runtime-directory-picker__empty", children: "\u5F53\u524D\u76EE\u5F55\u6CA1\u6709\u53EF\u8FDB\u5165\u7684\u5B50\u76EE\u5F55\uFF0C\u4F60\u4ECD\u53EF\u4EE5\u9009\u62E9\u5B83\u4F5C\u4E3A AI \u5DE5\u4F5C\u76EE\u5F55\u3002" }) })
                     ]
                   }
                 )
               }
             ),
-            /* @__PURE__ */ jsx13(
+            /* @__PURE__ */ jsx15(
               Modal2,
               {
                 title: "\u5FEB\u6377\u952E",
@@ -23004,7 +24059,7 @@ var PropertyPanelView = React13.forwardRef(
                 maskClosable: true,
                 onCancel: () => setKeyboardShortcutsDialogOpen(false),
                 footer: [
-                  /* @__PURE__ */ jsx13(
+                  /* @__PURE__ */ jsx15(
                     Button5,
                     {
                       type: "primary",
@@ -23014,7 +24069,7 @@ var PropertyPanelView = React13.forwardRef(
                     "close"
                   )
                 ],
-                children: /* @__PURE__ */ jsx13("div", { style: { display: "flex", flexDirection: "column", gap: 0 }, children: [
+                children: /* @__PURE__ */ jsx15("div", { style: { display: "flex", flexDirection: "column", gap: 0 }, children: [
                   {
                     keys: [`${navigator.platform?.includes("Mac") ? "\u2318" : "Ctrl"} + Enter`, "Esc"],
                     label: "\u4FDD\u5B58\u5E76\u5173\u95ED\u6C14\u6CE1\u5361\u7247",
@@ -23044,7 +24099,7 @@ var PropertyPanelView = React13.forwardRef(
                       desc: "\u7126\u70B9\u4E0D\u5728\u8F93\u5165\u6846\u6216\u6587\u672C\u7F16\u8F91\u533A\u65F6\uFF0C\u5220\u9664\u5DF2\u9009\u5143\u7D20\u5E76\u5728\u7236\u7EA7\u521B\u5EFA\u53EF\u6062\u590D\u6279\u6CE8"
                     }
                   ] : []
-                ].map((item) => /* @__PURE__ */ jsxs12(
+                ].map((item) => /* @__PURE__ */ jsxs14(
                   "div",
                   {
                     style: {
@@ -23056,8 +24111,8 @@ var PropertyPanelView = React13.forwardRef(
                       borderBottom: `1px solid ${EDITOR_CHROME.border}`
                     },
                     children: [
-                      /* @__PURE__ */ jsxs12("div", { style: { flex: 1, minWidth: 0 }, children: [
-                        /* @__PURE__ */ jsx13(
+                      /* @__PURE__ */ jsxs14("div", { style: { flex: 1, minWidth: 0 }, children: [
+                        /* @__PURE__ */ jsx15(
                           "div",
                           {
                             style: {
@@ -23068,7 +24123,7 @@ var PropertyPanelView = React13.forwardRef(
                             children: item.label
                           }
                         ),
-                        /* @__PURE__ */ jsx13(
+                        /* @__PURE__ */ jsx15(
                           "div",
                           {
                             style: {
@@ -23080,7 +24135,7 @@ var PropertyPanelView = React13.forwardRef(
                           }
                         )
                       ] }),
-                      /* @__PURE__ */ jsx13(
+                      /* @__PURE__ */ jsx15(
                         "div",
                         {
                           style: {
@@ -23090,7 +24145,7 @@ var PropertyPanelView = React13.forwardRef(
                             alignItems: "center",
                             paddingTop: 2
                           },
-                          children: item.keys.map((key) => /* @__PURE__ */ jsx13(
+                          children: item.keys.map((key) => /* @__PURE__ */ jsx15(
                             "kbd",
                             {
                               style: {
@@ -23143,16 +24198,16 @@ function syncDraftAgainstSaved(prev, nextSaved, resetDraft) {
 }
 
 // src/ui/runtime/runtime-effects/use-feedback-bridge.ts
-import React14 from "react";
+import React16 from "react";
 import { App, Button as Button6, Input as Input6 } from "antd";
 var HOST_TOAST_EVENT_NAME = "axhub-commentary-host-toast";
 var MESSAGE_TYPES = /* @__PURE__ */ new Set(["success", "info", "warning", "error"]);
-var PromptBridgeContent = React14.forwardRef(
+var PromptBridgeContent = React16.forwardRef(
   (props, ref) => {
-    const [value, setValue] = React14.useState(props.defaultValue ?? "");
-    const [error, setError] = React14.useState("");
-    const inputElementRef = React14.useRef(null);
-    React14.useImperativeHandle(ref, () => ({
+    const [value, setValue] = React16.useState(props.defaultValue ?? "");
+    const [error, setError] = React16.useState("");
+    const inputElementRef = React16.useRef(null);
+    React16.useImperativeHandle(ref, () => ({
       getValue: () => value,
       setError: (nextError) => {
         setError(nextError);
@@ -23172,7 +24227,7 @@ var PromptBridgeContent = React14.forwardRef(
         setError("");
       }
     };
-    const field = props.multiline ? React14.createElement(Input6.TextArea, {
+    const field = props.multiline ? React16.createElement(Input6.TextArea, {
       ref: (instance) => {
         inputElementRef.current = instance?.resizableTextArea?.textArea ?? null;
       },
@@ -23181,7 +24236,7 @@ var PromptBridgeContent = React14.forwardRef(
       readOnly: props.readOnly,
       placeholder: props.placeholder,
       onChange: handleChange
-    }) : React14.createElement(Input6, {
+    }) : React16.createElement(Input6, {
       ref: (instance) => {
         inputElementRef.current = instance?.input ?? null;
       },
@@ -23190,17 +24245,17 @@ var PromptBridgeContent = React14.forwardRef(
       placeholder: props.placeholder,
       onChange: handleChange
     });
-    return React14.createElement(
+    return React16.createElement(
       "div",
       { style: { display: "grid", gap: 10 } },
-      props.content ? React14.createElement("div", { style: { whiteSpace: "pre-line" } }, props.content) : null,
-      props.label ? React14.createElement(
+      props.content ? React16.createElement("div", { style: { whiteSpace: "pre-line" } }, props.content) : null,
+      props.label ? React16.createElement(
         "div",
         { style: { fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.88)" } },
         props.label
       ) : null,
       field,
-      error ? React14.createElement(
+      error ? React16.createElement(
         "div",
         { style: { fontSize: 12, color: "#ff4d4f" } },
         error
@@ -23211,7 +24266,7 @@ var PromptBridgeContent = React14.forwardRef(
 PromptBridgeContent.displayName = "PromptBridgeContent";
 function useFeedbackBridge() {
   const app = App.useApp();
-  React14.useEffect(() => {
+  React16.useEffect(() => {
     setWebEditorFeedbackBridge({
       confirm: ({
         title,
@@ -23238,10 +24293,10 @@ function useFeedbackBridge() {
           maskClosable: true,
           getContainer,
           cancelButtonProps: cancelText ? void 0 : { style: { display: "none" } },
-          footer: secondaryText ? (_originNode, { OkBtn }) => React14.createElement(
-            React14.Fragment,
+          footer: secondaryText ? (_originNode, { OkBtn }) => React16.createElement(
+            React16.Fragment,
             null,
-            React14.createElement(
+            React16.createElement(
               Button6,
               {
                 key: "secondary",
@@ -23252,7 +24307,7 @@ function useFeedbackBridge() {
               },
               secondaryText
             ),
-            React14.createElement(OkBtn)
+            React16.createElement(OkBtn)
           ) : void 0,
           onOk,
           onCancel
@@ -23290,11 +24345,11 @@ function useFeedbackBridge() {
         onOk,
         onCancel
       }) => {
-        const contentRef = React14.createRef();
+        const contentRef = React16.createRef();
         const modalRef = app.modal.confirm({
           className: "we-runtime-feedback-modal",
           title,
-          content: React14.createElement(PromptBridgeContent, {
+          content: React16.createElement(PromptBridgeContent, {
             ref: contentRef,
             content,
             label,
@@ -23359,10 +24414,10 @@ function useFeedbackBridge() {
 }
 
 // src/ui/runtime/runtime-effects/use-pointer-tracker.ts
-import React15 from "react";
+import React17 from "react";
 function usePointerTracker() {
-  const latestPointerPositionRef = React15.useRef(null);
-  React15.useEffect(() => {
+  const latestPointerPositionRef = React17.useRef(null);
+  React17.useEffect(() => {
     const recordPointerPosition = (event) => {
       if (!Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return;
       latestPointerPositionRef.current = {
@@ -23385,35 +24440,35 @@ function usePointerTracker() {
 }
 
 // src/ui/runtime/runtime-effects/use-selection-mode-guards.ts
-import React16 from "react";
+import React18 from "react";
 function useSelectionModeGuards(params) {
   const { propertyPanelOptions, setToolMinimized } = params;
   const initialSelectionModeActive = params.initialSelectionModeActive ?? true;
-  const toolMinimizedRef = React16.useRef(false);
-  const [selectionModeActive, setSelectionModeActive] = React16.useState(initialSelectionModeActive);
-  const selectionModeActiveRef = React16.useRef(initialSelectionModeActive);
-  const selectionHoverOwnersRef = React16.useRef(/* @__PURE__ */ new Set());
-  const selectionInteractionLockOwnersRef = React16.useRef(/* @__PURE__ */ new Set());
-  const selectionRestoreTimerRef = React16.useRef(null);
-  const selectionNeedsExplicitReactivateRef = React16.useRef(false);
-  const markerVisibilityBeforeMinimizeRef = React16.useRef(
+  const toolMinimizedRef = React18.useRef(false);
+  const [selectionModeActive, setSelectionModeActive] = React18.useState(initialSelectionModeActive);
+  const selectionModeActiveRef = React18.useRef(initialSelectionModeActive);
+  const selectionHoverOwnersRef = React18.useRef(/* @__PURE__ */ new Set());
+  const selectionInteractionLockOwnersRef = React18.useRef(/* @__PURE__ */ new Set());
+  const selectionRestoreTimerRef = React18.useRef(null);
+  const selectionNeedsExplicitReactivateRef = React18.useRef(false);
+  const markerVisibilityBeforeMinimizeRef = React18.useRef(
     propertyPanelOptions?.getChangeMarkersVisible?.() ?? true
   );
-  const shouldAllowPageInteraction = React16.useCallback(
+  const shouldAllowPageInteraction = React18.useCallback(
     () => toolMinimizedRef.current || !selectionModeActiveRef.current,
     []
   );
-  const syncSelectionModeAvailability = React16.useCallback(() => {
+  const syncSelectionModeAvailability = React18.useCallback(() => {
     const enabled = selectionModeActiveRef.current && !toolMinimizedRef.current && !selectionNeedsExplicitReactivateRef.current && selectionHoverOwnersRef.current.size === 0 && selectionInteractionLockOwnersRef.current.size === 0;
     propertyPanelOptions?.onToggleSelectionMode?.(enabled, {
       allowPageInteraction: shouldAllowPageInteraction()
     });
   }, [propertyPanelOptions, shouldAllowPageInteraction]);
-  const isSelectionModeActive = React16.useCallback(
+  const isSelectionModeActive = React18.useCallback(
     () => selectionModeActiveRef.current && !toolMinimizedRef.current && !selectionNeedsExplicitReactivateRef.current && selectionHoverOwnersRef.current.size === 0 && selectionInteractionLockOwnersRef.current.size === 0,
     []
   );
-  const handleHoverSelectionSuppressedChange = React16.useCallback(
+  const handleHoverSelectionSuppressedChange = React18.useCallback(
     (source, hovered) => {
       if (selectionRestoreTimerRef.current !== null) {
         window.clearTimeout(selectionRestoreTimerRef.current);
@@ -23436,7 +24491,7 @@ function useSelectionModeGuards(params) {
     },
     [syncSelectionModeAvailability]
   );
-  const handleSelectionInteractionLockChange = React16.useCallback(
+  const handleSelectionInteractionLockChange = React18.useCallback(
     (source, locked) => {
       if (locked) {
         selectionInteractionLockOwnersRef.current.add(source);
@@ -23447,7 +24502,7 @@ function useSelectionModeGuards(params) {
     },
     [syncSelectionModeAvailability]
   );
-  const handleSelectionModeActiveChange = React16.useCallback(
+  const handleSelectionModeActiveChange = React18.useCallback(
     (active) => {
       const nextActive = Boolean(active);
       if (selectionModeActiveRef.current === nextActive) {
@@ -23477,7 +24532,7 @@ function useSelectionModeGuards(params) {
     },
     [propertyPanelOptions, syncSelectionModeAvailability]
   );
-  const handleToolMinimizedChange = React16.useCallback(
+  const handleToolMinimizedChange = React18.useCallback(
     (nextMinimized) => {
       if (toolMinimizedRef.current === nextMinimized) return;
       toolMinimizedRef.current = nextMinimized;
@@ -23508,7 +24563,7 @@ function useSelectionModeGuards(params) {
     },
     [propertyPanelOptions, setToolMinimized, syncSelectionModeAvailability]
   );
-  React16.useEffect(() => {
+  React18.useEffect(() => {
     return () => {
       if (selectionRestoreTimerRef.current !== null) {
         window.clearTimeout(selectionRestoreTimerRef.current);
@@ -23537,7 +24592,7 @@ function useSelectionModeGuards(params) {
 }
 
 // src/ui/runtime/runtime-effects/use-clipboard-comment-paste.ts
-import React17 from "react";
+import React19 from "react";
 
 // src/ui/runtime/dom-utils.ts
 function isEditableOrFormControl(element) {
@@ -23564,128 +24619,6 @@ function isIframeElement(node) {
   return node.tagName === "IFRAME";
 }
 
-// src/ui/runtime/image-attachments.ts
-var MAX_PROMPT_IMAGE_ATTACHMENTS = 3;
-var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-function createAttachmentId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `img_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
-function inferExtension(mimeType) {
-  const normalized = String(mimeType ?? "").trim().toLowerCase();
-  if (!normalized.startsWith("image/")) return "png";
-  const ext = normalized.slice("image/".length).replace(/[^a-z0-9+.-]/g, "");
-  if (!ext) return "png";
-  if (ext === "jpeg") return "jpg";
-  if (ext === "svg+xml") return "svg";
-  return ext;
-}
-function normalizeImageName(name, mimeType, index) {
-  const trimmed = String(name ?? "").trim();
-  if (trimmed) return trimmed;
-  return `clipboard-image-${index + 1}.${inferExtension(mimeType)}`;
-}
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error ?? new Error("blob-read-failed"));
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.readAsDataURL(blob);
-  });
-}
-async function createPromptImageAttachment(blob, index = 0, fallbackName) {
-  const mimeType = String(blob.type ?? "").trim() || "image/png";
-  return {
-    id: createAttachmentId(),
-    name: normalizeImageName(
-      "name" in blob && typeof blob.name === "string" ? blob.name : fallbackName,
-      mimeType,
-      index
-    ),
-    data: await blobToDataUrl(blob),
-    mimeType,
-    size: Number(blob.size ?? 0),
-    createdAt: Date.now(),
-    source: "user"
-  };
-}
-function isStandardSvgText(value) {
-  const source = String(value ?? "").trim();
-  if (!source || typeof DOMParser === "undefined") return false;
-  try {
-    const document2 = new DOMParser().parseFromString(source, "image/svg+xml");
-    const root = document2.documentElement;
-    return root.localName === "svg" && root.namespaceURI === SVG_NAMESPACE;
-  } catch {
-    return false;
-  }
-}
-async function createPromptImageAttachmentFromSvgText(value) {
-  const source = String(value ?? "").trim();
-  if (!isStandardSvgText(source)) return null;
-  const blob = new Blob([source], { type: "image/svg+xml" });
-  return createPromptImageAttachment(blob, 0, "clipboard-image-1.svg");
-}
-async function readPromptImageAttachmentsFromDataTransferItems(items) {
-  if (!items) return [];
-  const imageFiles = Array.from(items).filter((item) => item.kind === "file" && String(item.type ?? "").startsWith("image/")).map((item) => item.getAsFile()).filter((file) => Boolean(file));
-  return Promise.all(imageFiles.map((file, index) => createPromptImageAttachment(file, index)));
-}
-async function readPromptImageAttachmentsFromClipboardItems(items) {
-  if (!items?.length) return [];
-  const blobs = await Promise.all(
-    items.flatMap(
-      (item) => item.types.filter((type) => String(type ?? "").startsWith("image/")).map(async (type) => ({
-        blob: await item.getType(type),
-        type
-      }))
-    )
-  );
-  return Promise.all(
-    blobs.map(({ blob }, index) => createPromptImageAttachment(blob, index))
-  );
-}
-function mergePromptImageAttachments(existing, incoming, maxCount = MAX_PROMPT_IMAGE_ATTACHMENTS) {
-  const safeExisting = existing.slice(0, maxCount);
-  const capacity = Math.max(0, maxCount - safeExisting.length);
-  const accepted = incoming.slice(0, capacity);
-  return {
-    images: [...safeExisting, ...accepted],
-    acceptedCount: accepted.length,
-    droppedCount: Math.max(0, incoming.length - accepted.length)
-  };
-}
-function isTargetScreenshotImage(image) {
-  return image.source === "target-screenshot";
-}
-function splitPromptImageAttachments(images) {
-  const userImages = [];
-  let targetScreenshot = null;
-  for (const image of images) {
-    if (isTargetScreenshotImage(image)) {
-      targetScreenshot = image;
-    } else {
-      userImages.push(image);
-    }
-  }
-  return { userImages, targetScreenshot };
-}
-function replaceUserPromptImageAttachments(existing, nextUserImages, maxCount = MAX_PROMPT_IMAGE_ATTACHMENTS) {
-  const { targetScreenshot } = splitPromptImageAttachments(existing);
-  const userImages = nextUserImages.filter((image) => !isTargetScreenshotImage(image)).slice(0, maxCount);
-  return targetScreenshot ? [...userImages, targetScreenshot] : userImages;
-}
-function buildPromptImageAttachmentSignature(elementKey, image) {
-  return [
-    String(elementKey ?? "").trim(),
-    String(image.mimeType ?? "").trim(),
-    String(Number(image.size ?? 0)),
-    String(image.data ?? "").slice(0, 96)
-  ].join("::");
-}
-
 // src/ui/runtime/runtime-effects/use-clipboard-comment-paste.ts
 var IMAGE_DEDUP_WINDOW_MS = 450;
 function getWindowRuntimeRecord(target) {
@@ -23703,15 +24636,15 @@ function useClipboardCommentPaste(params) {
     selectionNeedsExplicitReactivateRef,
     onApplyImagesToElement
   } = params;
-  const pasteDebugStatsRef = React17.useRef({
+  const pasteDebugStatsRef = React19.useRef({
     hotkeyCount: 0,
     pasteEventCount: 0,
     tryApplyCount: 0,
     lastResult: "idle",
     lastTextPreview: ""
   });
-  const recentImageSignaturesRef = React17.useRef(/* @__PURE__ */ new Map());
-  React17.useEffect(() => {
+  const recentImageSignaturesRef = React19.useRef(/* @__PURE__ */ new Map());
+  React19.useEffect(() => {
     getWindowRuntimeRecord(window)[WEB_EDITOR_V2_PASTE_DEBUG_KEY] = {
       getState: () => ({
         hasSameOriginParentWindow: hasSameOriginParentWindow(),
@@ -23738,7 +24671,7 @@ function useClipboardCommentPaste(params) {
     propertyPanelOptions,
     selectionNeedsExplicitReactivateRef
   ]);
-  React17.useEffect(() => {
+  React19.useEffect(() => {
     if (!propertyPanelOptions?.onAiNoteChange || !propertyPanelOptions.getAiNote || !propertyPanelOptions.getHoveredElement) {
       return;
     }
@@ -24242,7 +25175,7 @@ function useClipboardCommentPaste(params) {
 }
 
 // src/ui/runtime/runtime-effects/use-outside-click-selection-restore.ts
-import React18 from "react";
+import React20 from "react";
 function isElementNode(node) {
   return typeof Element !== "undefined" && node instanceof Element;
 }
@@ -24288,7 +25221,7 @@ function useOutsideClickSelectionRestore(params) {
     selectionNeedsExplicitReactivateRef,
     syncSelectionModeAvailability
   } = params;
-  React18.useEffect(() => {
+  React20.useEffect(() => {
     const restoreSelectionAfterOutsideClick = (event) => {
       restoreSelectionModeFromOutsidePointerDown({
         event,
@@ -24444,237 +25377,28 @@ function writeEditableText(element, value) {
   element.replaceChildren(...nodes);
 }
 
-// src/ui/runtime/comment-list-view.tsx
-import React19 from "react";
-import { jsx as jsx14, jsxs as jsxs13 } from "react/jsx-runtime";
-var actions = [
-  { action: "send", label: "\u53D1\u9001\u4FEE\u6539", available: "sendAvailable" },
-  { action: "generate", label: "\u751F\u6210\u539F\u578B", available: "generateAvailable" },
-  { action: "document", label: "\u5F15\u5165\u8BF4\u660E", available: "documentAvailable" }
-];
-var styles = `
-  .we-comment-list{position:fixed;right:52px;top:16px;bottom:16px;width:320px;max-width:calc(100vw - 64px);display:flex;flex-direction:column;pointer-events:auto;border:1px solid ${EDITOR_CHROME.border};border-radius:14px;background:${EDITOR_CHROME.surface};color:${EDITOR_CHROME.textPrimary};box-shadow:${EDITOR_CHROME.shadow};overflow:hidden;z-index:10020;font-size:12px;font-family:inherit}
-  .we-comment-list *{box-sizing:border-box}
-  .we-comment-list button{font-family:inherit;font-size:12px;cursor:pointer;color:inherit}
-  .we-comment-list button:disabled{cursor:not-allowed;opacity:.45}
-  .we-comment-list button:focus-visible,.we-comment-list input:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:2px}
-  .we-comment-list__header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px;border-bottom:1px solid ${EDITOR_CHROME.border}}
-  .we-comment-list__header h2{margin:0;font-size:14px;font-weight:600}
-  .we-comment-list__close{border:0;background:transparent;width:28px;height:28px;border-radius:6px;font-size:20px!important}
-  .we-comment-list__selection{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;color:${EDITOR_CHROME.textSecondary}}
-  .we-comment-list label{display:flex;align-items:center;gap:8px;cursor:pointer}
-  .we-comment-list input{margin:0;accent-color:${EDITOR_CHROME.accent};width:15px;height:15px;flex-shrink:0}
-  .we-comment-list__body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 12px 12px}
-  .we-comment-list__item{padding:12px;margin-bottom:8px;border:1px solid ${EDITOR_CHROME.border};border-radius:9px;background:${EDITOR_CHROME.surfaceMuted}}
-  .we-comment-list__item[data-selected=true]{border-color:${EDITOR_CHROME.accent};background:${EDITOR_CHROME.accentSoft}}
-  .we-comment-list__item header{display:flex;align-items:center;gap:8px}
-  .we-comment-list__locate{padding:2px 0;border:0;background:transparent;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;font-weight:600}
-  .we-comment-list__note{margin:8px 0 0 23px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;color:${EDITOR_CHROME.textSecondary}}
-  .we-comment-list__hint{font-size:11px;line-height:1.6;color:${EDITOR_CHROME.textMuted};margin:8px 0 0}
-  .we-comment-list__empty{padding:44px 16px;text-align:center;line-height:1.8;color:${EDITOR_CHROME.textMuted}}
-  .we-comment-list__footer{padding:12px 16px;border-top:1px solid ${EDITOR_CHROME.border};flex-shrink:0}
-  .we-comment-list__actions{display:flex;gap:6px;flex-wrap:wrap}
-  .we-comment-list__action{flex:1;min-height:34px;white-space:nowrap;padding:6px 8px;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:7px;background:${EDITOR_CHROME.surface}}
-  .we-comment-list__action:first-child{background:${EDITOR_CHROME.accent};color:white;border-color:transparent}
-  .we-comment-list .ax-page-skeleton{--ax-sk-fill:${EDITOR_CHROME.surfaceInteractive};--ax-sk-shine:${EDITOR_CHROME.surfaceMuted}}
-  @media(max-width:760px){.we-comment-list{right:52px;top:8px;bottom:8px;width:320px;max-width:calc(100vw - 60px)}.we-comment-list[data-has-target=true]{bottom:52dvh}.we-comment-list__header{padding:10px 12px}.we-comment-list__selection{padding:8px 12px}.we-comment-list__footer{padding:8px 12px}.we-comment-list__hint{margin-top:4px}}
-`;
-function CommentListView(props) {
-  const [entries, setEntries] = React19.useState(() => {
-    try {
-      return props.getEntries();
-    } catch {
-      return [];
-    }
-  });
-  const [selected, setSelected] = React19.useState([]);
-  const [loadState, setLoadState] = React19.useState(() => props.getLoadState?.() ?? { status: "ready" });
-  const selectionRevisionRef = React19.useRef(loadState.revision);
-  const [busy, setBusy] = React19.useState(null);
-  const [error, setError] = React19.useState("");
-  const [readError, setReadError] = React19.useState("");
-  const [message, setMessage] = React19.useState("");
-  const busyRef = React19.useRef(false);
-  const mountedRef = React19.useRef(true);
-  React19.useEffect(() => {
-    mountedRef.current = true;
-    const refresh = () => {
-      try {
-        const state2 = props.getLoadState?.() ?? { status: "ready" };
-        if (selectionRevisionRef.current !== state2.revision) {
-          selectionRevisionRef.current = state2.revision;
-          setSelected([]);
-          setError("");
-          setMessage("");
-        }
-        setLoadState((previous) => previous.status === state2.status && previous.error === state2.error && previous.revision === state2.revision ? previous : state2);
-        const next = props.getEntries();
-        setEntries((previous) => previous.length === next.length && previous.every((entry, i) => {
-          const item = next[i];
-          return entry.id === item.id && entry.note === item.note && entry.label === item.label && entry.element === item.element && entry.disabledReason === item.disabledReason;
-        }) ? previous : next);
-        setSelected((previous) => previous.every((id) => next.some((entry) => entry.id === id)) ? previous : previous.filter((id) => next.some((entry) => entry.id === id)));
-        setReadError("");
-      } catch (cause) {
-        setReadError(cause instanceof Error ? cause.message : "\u6279\u6CE8\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
-      }
-    };
-    refresh();
-    const timer = globalThis.setInterval(refresh, 500);
-    return () => {
-      mountedRef.current = false;
-      globalThis.clearInterval(timer);
-    };
-  }, [props.getEntries, props.getLoadState]);
-  React19.useEffect(() => () => props.onInteractionChange(false), [props.onInteractionChange]);
-  const available = entries.filter((entry) => entry.element && !entry.disabledReason);
-  const allSelected = available.length > 0 && available.every((entry) => selected.includes(entry.id));
-  const unavailableSelection = selected.some((id) => !available.some((entry) => entry.id === id));
-  const run = async (action) => {
-    const latest = props.getLoadState?.();
-    if (latest && (latest.status !== "ready" || latest.revision !== selectionRevisionRef.current)) {
-      setSelected([]);
-      setError("\u9875\u9762\u5DF2\u5207\u6362\u6216\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
-      return;
-    }
-    if (busyRef.current || !selected.length || unavailableSelection || loadState.status !== "ready") return;
-    busyRef.current = true;
-    setBusy(action);
-    setError("");
-    setMessage("");
-    try {
-      await props.onRun(action, selected.slice());
-      if (mountedRef.current) setMessage(action === "send" ? "\u5DF2\u63D0\u4EA4\u6240\u9009\u6279\u6CE8\u7684\u4FEE\u6539" : action === "generate" ? "\u5DF2\u6253\u5F00\u539F\u578B\u751F\u6210\u7A97\u53E3" : "\u5DF2\u6253\u5F00\u5F15\u5165\u8BF4\u660E\u7A97\u53E3");
-    } catch (cause) {
-      if (mountedRef.current) setError(cause instanceof Error ? cause.message : "\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
-    } finally {
-      busyRef.current = false;
-      if (mountedRef.current) setBusy(null);
-    }
-  };
-  return /* @__PURE__ */ jsxs13(
-    "aside",
-    {
-      className: "we-comment-list",
-      "data-has-target": props.hasTarget === true,
-      "data-we-selection-lock-root": "true",
-      "aria-label": "\u6279\u6CE8\u5217\u8868",
-      onPointerEnter: () => props.onInteractionChange(true),
-      onPointerLeave: () => props.onInteractionChange(false),
-      onFocusCapture: () => props.onInteractionChange(true),
-      onBlurCapture: (event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) props.onInteractionChange(false);
-      },
-      children: [
-        /* @__PURE__ */ jsx14("style", { nonce: resolveCspNonce(), children: styles }),
-        /* @__PURE__ */ jsxs13("header", { className: "we-comment-list__header", children: [
-          /* @__PURE__ */ jsxs13("h2", { children: [
-            "\u6279\u6CE8\u5217\u8868 ",
-            /* @__PURE__ */ jsx14("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: entries.length })
-          ] }),
-          /* @__PURE__ */ jsx14("button", { className: "we-comment-list__close", "aria-label": "\u5173\u95ED\u6279\u6CE8\u5217\u8868", title: "\u5173\u95ED\u6279\u6CE8\u5217\u8868", onClick: props.onClose, children: "\xD7" })
-        ] }),
-        /* @__PURE__ */ jsxs13("div", { className: "we-comment-list__selection", children: [
-          /* @__PURE__ */ jsxs13("label", { children: [
-            /* @__PURE__ */ jsx14(
-              "input",
-              {
-                type: "checkbox",
-                "aria-label": "\u5168\u9009\u6279\u6CE8",
-                checked: allSelected,
-                disabled: loadState.status !== "ready" || Boolean(busy) || !available.length && !selected.length,
-                ref: (node) => {
-                  if (node) node.indeterminate = selected.length > 0 && !allSelected;
-                },
-                onChange: () => setSelected(allSelected ? [] : available.map((entry) => entry.id))
-              }
-            ),
-            "\u5168\u9009"
-          ] }),
-          /* @__PURE__ */ jsxs13("span", { "aria-live": "polite", children: [
-            "\u5DF2\u9009 ",
-            selected.length,
-            " \u6761"
-          ] })
-        ] }),
-        /* @__PURE__ */ jsx14("div", { className: "we-comment-list__body", children: loadState.status === "loading" ? props.loadingContent ?? /* @__PURE__ */ jsx14("div", { role: "status", "aria-label": "\u6B63\u5728\u52A0\u8F7D\u6279\u6CE8", "aria-busy": "true", children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ jsx14("div", { "aria-hidden": "true", style: { height: 72, marginBottom: 10, borderRadius: 9, background: EDITOR_CHROME.surfaceInteractive } }, i)) }) : loadState.status === "error" || readError ? /* @__PURE__ */ jsxs13("div", { children: [
-          /* @__PURE__ */ jsx14("p", { role: "alert", children: loadState.error || readError || "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" }),
-          props.onRetry ? /* @__PURE__ */ jsx14("button", { type: "button", "aria-label": "\u91CD\u8BD5\u52A0\u8F7D\u6279\u6CE8", className: "we-comment-list__action", onClick: async () => {
-            setLoadState({ status: "loading" });
-            setError("");
-            try {
-              await props.onRetry?.();
-              setLoadState(props.getLoadState?.() ?? { status: "ready" });
-            } catch (cause) {
-              setLoadState({ status: "error", error: cause instanceof Error ? cause.message : "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" });
-            }
-          }, children: "\u91CD\u65B0\u52A0\u8F7D" }) : null
-        ] }) : !entries.length ? /* @__PURE__ */ jsxs13("div", { className: "we-comment-list__empty", children: [
-          "\u6682\u65E0\u6279\u6CE8",
-          /* @__PURE__ */ jsx14("br", {}),
-          "\u9009\u62E9\u9875\u9762\u7EC4\u4EF6\u5E76\u6682\u5B58\u6279\u6CE8\u540E\uFF0C\u5C06\u663E\u793A\u5728\u8FD9\u91CC\u3002"
-        ] }) : entries.map((entry, index) => /* @__PURE__ */ jsxs13("article", { className: "we-comment-list__item", "data-selected": selected.includes(entry.id), children: [
-          /* @__PURE__ */ jsxs13("header", { children: [
-            /* @__PURE__ */ jsx14(
-              "input",
-              {
-                type: "checkbox",
-                "aria-label": `\u9009\u62E9\u6279\u6CE8 ${entry.label}`,
-                checked: selected.includes(entry.id),
-                disabled: Boolean(busy) || (Boolean(entry.disabledReason) || !entry.element) && !selected.includes(entry.id),
-                onChange: () => {
-                  setSelected((previous) => previous.includes(entry.id) ? previous.filter((id) => id !== entry.id) : [...previous, entry.id]);
-                  setError("");
-                  setMessage("");
-                }
-              }
-            ),
-            /* @__PURE__ */ jsxs13("button", { className: "we-comment-list__locate", title: `\u5B9A\u4F4D\u7EC4\u4EF6\uFF1A${entry.label}`, disabled: !entry.element || Boolean(busy), onClick: () => {
-              if (entry.element) props.onLocate?.(entry.element);
-            }, children: [
-              index + 1,
-              ". ",
-              entry.label
-            ] })
-          ] }),
-          /* @__PURE__ */ jsx14("p", { className: "we-comment-list__note", children: entry.note || "\u5DF2\u4FDD\u5B58\u7EC4\u4EF6\u4FEE\u6539" }),
-          entry.disabledReason ? /* @__PURE__ */ jsx14("p", { className: "we-comment-list__hint", children: entry.disabledReason }) : null
-        ] }, entry.id)) }),
-        /* @__PURE__ */ jsxs13("footer", { className: "we-comment-list__footer", children: [
-          /* @__PURE__ */ jsx14("div", { className: "we-comment-list__actions", children: actions.map((item) => /* @__PURE__ */ jsx14(
-            "button",
-            {
-              className: "we-comment-list__action",
-              "aria-label": item.label,
-              "aria-busy": busy === item.action,
-              disabled: loadState.status !== "ready" || Boolean(busy) || !selected.length || unavailableSelection || !props[item.available] || Boolean(readError),
-              onClick: () => run(item.action),
-              children: busy === item.action ? "\u5904\u7406\u4E2D\u2026" : item.label
-            },
-            item.action
-          )) }),
-          /* @__PURE__ */ jsx14("p", { className: "we-comment-list__hint", children: "\u4E09\u4E2A\u52A8\u4F5C\u53EF\u5206\u522B\u6267\u884C\uFF0C\u6682\u5B58\u6279\u6CE8\u4F9B\u540E\u7EED\u7EE7\u7EED\u4F7F\u7528\u3002" }),
-          error ? /* @__PURE__ */ jsx14("p", { role: "alert", style: { color: EDITOR_CHROME.textDanger, marginBottom: 0 }, children: error }) : null,
-          message ? /* @__PURE__ */ jsx14("p", { role: "status", style: { color: EDITOR_CHROME.accent, marginBottom: 0 }, children: message }) : null
-        ] })
-      ]
-    }
-  );
-}
-
 // src/ui/runtime/right-entry.tsx
-import React20 from "react";
+import React21 from "react";
 import { createPortal as createPortal2 } from "react-dom";
 
 // src/ui/runtime/annotation-toolbar-bridge.ts
-function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction) {
+function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction, onPanelsChange) {
   let toolbar = null;
   let mount = null;
   let observedShadow = null;
   let previousSelectionLock = null;
   let closingPanels = false;
+  let actionFrame = 0;
+  let disposed = false;
   const handleNativeClick = (event) => {
-    if (!closingPanels && !event.composedPath().includes(mount)) onNativeAction();
+    if (closingPanels || event.composedPath().includes(mount)) return;
+    onNativeAction();
+    if (typeof window !== "undefined") {
+      window.cancelAnimationFrame(actionFrame);
+      actionFrame = window.requestAnimationFrame(() => {
+        if (!disposed) onPanelsChange?.(Boolean(toolbar?.querySelector('.axhub-annotation-edge-button[aria-pressed="true"], .axhub-annotation-edge-button[aria-expanded="true"]')));
+      });
+    }
   };
   const detach = () => {
     toolbar?.removeEventListener("click", handleNativeClick, true);
@@ -24689,10 +25413,11 @@ function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction) 
     if (shadow !== observedShadow) {
       observer.disconnect();
       observer.observe(ownerDocument.documentElement, { childList: true, subtree: true });
-      if (shadow) observer.observe(shadow, { childList: true, subtree: true });
+      if (shadow) observer.observe(shadow, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-pressed", "aria-expanded"] });
       observedShadow = shadow;
     }
     const next = shadow?.querySelector(".axhub-annotation-edge-toolbar") ?? null;
+    onPanelsChange?.(Boolean(next?.querySelector('.axhub-annotation-edge-button[aria-pressed="true"], .axhub-annotation-edge-button[aria-expanded="true"]')));
     if (next === toolbar && (!mount || toolbar?.contains(mount))) return;
     detach();
     toolbar = next;
@@ -24724,6 +25449,8 @@ function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction) 
       }
     },
     dispose() {
+      disposed = true;
+      if (typeof window !== "undefined") window.cancelAnimationFrame(actionFrame);
       observer.disconnect();
       detach();
     }
@@ -24731,10 +25458,14 @@ function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction) 
 }
 
 // src/ui/runtime/right-entry.tsx
-import { jsx as jsx15, jsxs as jsxs14 } from "react/jsx-runtime";
+import { jsx as jsx16, jsxs as jsxs15 } from "react/jsx-runtime";
 var styles2 = `
   .we-right-entry{display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:auto}
   .we-right-entry[data-standalone=true]{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:10020;padding:6px 4px;border:1px solid ${EDITOR_CHROME.borderStrong};border-right:0;border-radius:12px 0 0 12px;background:${EDITOR_CHROME.surface}}
+  @media(min-width:761px){
+    .we-right-entry[data-standalone=true][data-docked=true]{right:320px}
+    [data-edge=right] .axhub-annotation-edge-toolbar:has([data-we-right-entry][data-docked=true]){right:320px!important}
+  }
   .we-right-entry button{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;flex-shrink:0;border:0;border-radius:6px;background:transparent;color:${EDITOR_CHROME.textSecondary};cursor:pointer;touch-action:manipulation}
   .we-right-entry button:hover{background:${EDITOR_CHROME.hoverSubtle}}
   .we-right-entry button[aria-expanded=true]{background:${EDITOR_CHROME.accentSoft};color:${EDITOR_CHROME.accent}}
@@ -24743,20 +25474,21 @@ var styles2 = `
   @media(prefers-reduced-motion:reduce){.we-right-entry,.we-right-entry button{transition:none}}
 `;
 function RightEntryActions(props) {
-  return /* @__PURE__ */ jsxs14(
+  return /* @__PURE__ */ jsxs15(
     "div",
     {
       className: "we-right-entry",
       "data-we-right-entry": "true",
       "data-standalone": props.standalone === true,
+      "data-docked": props.docked === true,
       "data-we-selection-lock-root": "true",
       "data-axhub-annotation-direct-action": "true",
       role: "group",
       "aria-label": "\u6279\u6CE8\u4E0E\u5FEB\u6377\u952E",
       onPointerDown: (event) => event.stopPropagation(),
       children: [
-        /* @__PURE__ */ jsx15("style", { nonce: resolveCspNonce(), children: styles2 }),
-        /* @__PURE__ */ jsx15(
+        /* @__PURE__ */ jsx16("style", { nonce: resolveCspNonce(), children: styles2 }),
+        /* @__PURE__ */ jsx16(
           "button",
           {
             type: "button",
@@ -24765,49 +25497,354 @@ function RightEntryActions(props) {
             "aria-expanded": props.open,
             "data-we-comment-list-entry": "true",
             onClick: props.onToggle,
-            children: /* @__PURE__ */ jsxs14("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
-              /* @__PURE__ */ jsx15("path", { d: "M8 5h12M8 12h12M8 19h12" }),
-              /* @__PURE__ */ jsx15("circle", { cx: "3", cy: "5", r: "1" }),
-              /* @__PURE__ */ jsx15("circle", { cx: "3", cy: "12", r: "1" }),
-              /* @__PURE__ */ jsx15("circle", { cx: "3", cy: "19", r: "1" })
+            children: /* @__PURE__ */ jsxs15("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
+              /* @__PURE__ */ jsx16("path", { d: "M8 5h12M8 12h12M8 19h12" }),
+              /* @__PURE__ */ jsx16("circle", { cx: "3", cy: "5", r: "1" }),
+              /* @__PURE__ */ jsx16("circle", { cx: "3", cy: "12", r: "1" }),
+              /* @__PURE__ */ jsx16("circle", { cx: "3", cy: "19", r: "1" })
             ] })
           }
         ),
-        /* @__PURE__ */ jsx15("button", { type: "button", "aria-label": "\u5FEB\u6377\u952E", title: "\u5FEB\u6377\u952E", onClick: props.onShortcuts, children: /* @__PURE__ */ jsxs14("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
-          /* @__PURE__ */ jsx15("rect", { x: "2", y: "5", width: "20", height: "14", rx: "2" }),
-          /* @__PURE__ */ jsx15("path", { d: "M6 9h1m3 0h1m3 0h1m3 0h.1M6 12h1m3 0h1m3 0h1m3 0h.1M7 15h10" })
+        /* @__PURE__ */ jsx16("button", { type: "button", "aria-label": "\u5FEB\u6377\u952E", title: "\u5FEB\u6377\u952E", onClick: props.onShortcuts, children: /* @__PURE__ */ jsxs15("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
+          /* @__PURE__ */ jsx16("rect", { x: "2", y: "5", width: "20", height: "14", rx: "2" }),
+          /* @__PURE__ */ jsx16("path", { d: "M6 9h1m3 0h1m3 0h1m3 0h.1M6 12h1m3 0h1m3 0h1m3 0h.1M7 15h10" })
         ] }) })
       ]
     }
   );
 }
 function RightEntry(props) {
-  const [mount, setMount] = React20.useState(null);
-  const bridgeRef = React20.useRef(null);
-  const nativeActionRef = React20.useRef(props.onNativeAction);
+  const [mount, setMount] = React21.useState(null);
+  const bridgeRef = React21.useRef(null);
+  const nativeActionRef = React21.useRef(props.onNativeAction);
   nativeActionRef.current = props.onNativeAction;
-  React20.useEffect(() => {
+  const panelsChangeRef = React21.useRef(props.onNativePanelsChange);
+  panelsChangeRef.current = props.onNativePanelsChange;
+  React21.useEffect(() => {
     if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
-    const bridge = connectAnnotationToolbar(document, setMount, () => nativeActionRef.current());
+    const bridge = connectAnnotationToolbar(document, setMount, () => nativeActionRef.current(), (open) => panelsChangeRef.current?.(open));
     bridgeRef.current = bridge;
     return () => {
       bridge.dispose();
       bridgeRef.current = null;
     };
   }, []);
-  React20.useEffect(() => {
+  React21.useEffect(() => {
     if (props.open) bridgeRef.current?.closePanels();
   }, [props.open, mount]);
-  const content = /* @__PURE__ */ jsx15(RightEntryActions, { ...props, standalone: !mount, onShortcuts: () => {
+  const content = /* @__PURE__ */ jsx16(RightEntryActions, { ...props, standalone: !mount, onShortcuts: () => {
     bridgeRef.current?.closePanels();
     props.onNativeAction();
+    props.onNativePanelsChange?.(false);
     props.onShortcuts();
   } });
   return mount ? createPortal2(content, mount) : content;
 }
 
+// src/ui/runtime/preview-canvas-controls.tsx
+import React22 from "react";
+import { Fragment as Fragment8, jsx as jsx17, jsxs as jsxs16 } from "react/jsx-runtime";
+var percentages = [10, 25, 50, 75, 100, 125, 150, 200, 300];
+var styles3 = `
+  .we-canvas-controls{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:3px;padding:4px;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:9px;background:${EDITOR_CHROME.surface};color:${EDITOR_CHROME.textPrimary};box-shadow:${EDITOR_CHROME.shadow};pointer-events:auto;z-index:10021;font-size:12px;font-family:inherit;max-width:calc(100vw - 24px)}
+  .we-canvas-controls[data-docked=true]{left:calc((100vw - 364px)/2)}
+  .we-canvas-controls button,.we-canvas-controls select{height:30px;box-sizing:border-box;border:0;border-radius:5px;background:transparent;color:inherit;font-family:inherit;font-size:12px;cursor:pointer}
+  .we-canvas-controls button{display:flex;align-items:center;justify-content:center;width:30px;padding:0;flex-shrink:0}
+  .we-canvas-controls button:hover,.we-canvas-controls select:hover{background:${EDITOR_CHROME.hoverSubtle}}
+  .we-canvas-controls button:disabled{opacity:.4;cursor:not-allowed}
+  .we-canvas-controls button[aria-pressed=true]{color:${EDITOR_CHROME.accent};background:${EDITOR_CHROME.accentSoft}}
+  .we-canvas-controls button:focus-visible,.we-canvas-controls select:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:1px}
+  .we-canvas-controls select{width:80px;padding:0 4px;font-variant-numeric:tabular-nums;background:${EDITOR_CHROME.surface}}
+  .we-canvas-controls__divider{height:18px;width:1px;background:${EDITOR_CHROME.border};margin:0 3px}
+  @media(max-width:760px){.we-canvas-controls,.we-canvas-controls[data-docked=true]{left:calc((100vw - 52px)/2);bottom:10px;max-width:calc(100vw - 60px)}.we-canvas-controls[data-has-target=true]{top:calc(48dvh + 10px);bottom:auto}.we-canvas-controls button{width:28px}.we-canvas-controls select{width:72px}}
+`;
+function isEditable(event) {
+  return event.composedPath().some((node) => typeof node?.matches === "function" && node.matches('input,textarea,select,[contenteditable]:not([contenteditable="false"])'));
+}
+function isEditorUi(event) {
+  return event.composedPath().some((node) => typeof node?.hasAttribute === "function" && node.hasAttribute("data-we-selection-lock-root"));
+}
+function PreviewCanvasControls(props) {
+  const [view, setView] = React22.useState(getPageZoomView);
+  const [panMode, setPanMode] = React22.useState(false);
+  const [spaceDown, setSpaceDown] = React22.useState(false);
+  const [dragging, setDragging] = React22.useState(false);
+  const panModeRef = React22.useRef(panMode);
+  panModeRef.current = panMode;
+  const lastViewRef = React22.useRef(null);
+  const scopeRef = React22.useRef(props.getScopeKey?.());
+  const interactionRef = React22.useRef(props.onInteractionChange);
+  interactionRef.current = props.onInteractionChange;
+  const zoom = React22.useCallback((scale) => {
+    setPageZoomView(scale);
+    setView(getPageZoomView());
+  }, []);
+  React22.useEffect(() => {
+    if (!props.getScopeKey) return;
+    const check = () => {
+      const next = props.getScopeKey?.();
+      if (scopeRef.current === next) return;
+      scopeRef.current = next;
+      lastViewRef.current = null;
+      zoom("fit");
+    };
+    const timer = globalThis.setInterval(check, 500);
+    window.addEventListener("popstate", check);
+    window.addEventListener("hashchange", check);
+    return () => {
+      globalThis.clearInterval(timer);
+      window.removeEventListener("popstate", check);
+      window.removeEventListener("hashchange", check);
+    };
+  }, [props.getScopeKey, zoom]);
+  React22.useEffect(() => {
+    if (!props.active) return;
+    let frame = 0;
+    let acquired = false;
+    let released = false;
+    const sync = () => setView(getPageZoomView());
+    const release = () => {
+      window.cancelAnimationFrame(frame);
+      if (released) return;
+      released = true;
+      if (acquired) lastViewRef.current = getPageZoomView();
+      setPageZoomEnabled(false, { owner: "canvas-controls" });
+    };
+    props.releaseRef.current = release;
+    frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => {
+        if (released) return;
+        setPageZoomEnabled(true, { owner: "canvas-controls" });
+        acquired = true;
+        const previous = lastViewRef.current;
+        if (previous) {
+          setPageZoomView(previous.mode === "fit" ? "fit" : previous.scale);
+          panPageZoom(previous.panX, previous.panY);
+        }
+        sync();
+      });
+    });
+    window.addEventListener(PAGE_LAYOUT_CHANGE_EVENT, sync);
+    return () => {
+      window.removeEventListener(PAGE_LAYOUT_CHANGE_EVENT, sync);
+      release();
+      interactionRef.current(false);
+      if (props.releaseRef.current === release) props.releaseRef.current = () => {
+      };
+    };
+  }, [props.active, props.releaseRef, props.activationRevision]);
+  React22.useEffect(() => {
+    if (!props.active) return;
+    let space = false;
+    let drag = null;
+    let suppressClick = null;
+    const stop = (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const keyDown = (event) => {
+      if (isEditable(event) || event.altKey) return;
+      const command = event.ctrlKey || event.metaKey;
+      if (command && ["+", "=", "-", "0"].includes(event.key)) {
+        stop(event);
+        zoom(event.key === "0" ? 1 : Math.round((getPageZoomView().scale + (event.key === "-" ? -0.1 : 0.1)) * 100) / 100);
+      } else if (event.shiftKey && event.code === "Digit1") {
+        stop(event);
+        zoom("fit");
+      } else if (event.code === "Space" && !command && !isEditorUi(event)) {
+        stop(event);
+        space = true;
+        setSpaceDown(true);
+      }
+    };
+    const keyUp = (event) => {
+      if (event.code === "Space" && space) {
+        stop(event);
+        space = false;
+        setSpaceDown(false);
+      }
+    };
+    const wheel = (event) => {
+      if (!(event.ctrlKey || event.metaKey) || isEditable(event) || isEditorUi(event)) return;
+      stop(event);
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1);
+      setPageZoomView(getPageZoomView().scale * Math.exp(-delta * 2e-3), { x: event.clientX, y: event.clientY });
+    };
+    const pointerDown = (event) => {
+      suppressClick = null;
+      if (isEditable(event) || isEditorUi(event) || !(event.button === 1 || event.button === 0 && (space || panModeRef.current))) return;
+      stop(event);
+      drag = { x: event.clientX, y: event.clientY, id: event.pointerId };
+      setDragging(true);
+    };
+    const pointerMove = (event) => {
+      if (!drag || drag.id !== event.pointerId) return;
+      stop(event);
+      panPageZoom(event.clientX - drag.x, event.clientY - drag.y);
+      drag = { x: event.clientX, y: event.clientY, id: event.pointerId };
+    };
+    const pointerEnd = (event) => {
+      if (drag?.id !== event.pointerId) return;
+      stop(event);
+      if (event.type !== "pointercancel") suppressClick = { id: event.pointerId, x: event.clientX, y: event.clientY, until: Date.now() + 500 };
+      drag = null;
+      setDragging(false);
+    };
+    const click = (event) => {
+      const gesture = suppressClick;
+      suppressClick = null;
+      if (gesture && Date.now() <= gesture.until && event.detail > 0 && Math.abs(event.clientX - gesture.x) < 4 && Math.abs(event.clientY - gesture.y) < 4) stop(event);
+    };
+    const blur = () => {
+      space = false;
+      drag = null;
+      suppressClick = null;
+      setSpaceDown(false);
+      setDragging(false);
+    };
+    window.addEventListener("keydown", keyDown, true);
+    window.addEventListener("keyup", keyUp, true);
+    window.addEventListener("wheel", wheel, { capture: true, passive: false });
+    window.addEventListener("pointerdown", pointerDown, true);
+    window.addEventListener("pointermove", pointerMove, true);
+    window.addEventListener("pointerup", pointerEnd, true);
+    window.addEventListener("pointercancel", pointerEnd, true);
+    window.addEventListener("click", click, true);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("keydown", keyDown, true);
+      window.removeEventListener("keyup", keyUp, true);
+      window.removeEventListener("wheel", wheel, true);
+      window.removeEventListener("pointerdown", pointerDown, true);
+      window.removeEventListener("pointermove", pointerMove, true);
+      window.removeEventListener("pointerup", pointerEnd, true);
+      window.removeEventListener("pointercancel", pointerEnd, true);
+      window.removeEventListener("click", click, true);
+      window.removeEventListener("blur", blur);
+      blur();
+    };
+  }, [props.active, zoom]);
+  React22.useEffect(() => {
+    if (!props.active || !(panMode || spaceDown || dragging)) return;
+    const style = document.documentElement.style;
+    const previous = style.getPropertyValue("cursor"), priority = style.getPropertyPriority("cursor");
+    style.setProperty("cursor", dragging ? "grabbing" : "grab", "important");
+    return () => {
+      if (previous) style.setProperty("cursor", previous, priority);
+      else style.removeProperty("cursor");
+    };
+  }, [props.active, panMode, spaceDown, dragging]);
+  if (!props.active) return null;
+  const percent = Math.round(view.scale * 100);
+  const options = percentages.includes(percent) ? percentages : [...percentages, percent].sort((a, b) => a - b);
+  const icon = (children) => /* @__PURE__ */ jsx17("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", children });
+  return /* @__PURE__ */ jsxs16(
+    "div",
+    {
+      className: "we-canvas-controls",
+      role: "toolbar",
+      "aria-label": "\u9884\u89C8\u753B\u5E03\u64CD\u4F5C",
+      "data-we-selection-lock-root": "true",
+      "data-docked": props.docked,
+      "data-has-target": props.hasTarget,
+      onPointerEnter: () => props.onInteractionChange(true),
+      onPointerLeave: () => props.onInteractionChange(false),
+      onFocusCapture: () => props.onInteractionChange(true),
+      onBlurCapture: (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) props.onInteractionChange(false);
+      },
+      children: [
+        /* @__PURE__ */ jsx17("style", { nonce: resolveCspNonce(), children: styles3 }),
+        /* @__PURE__ */ jsx17("button", { type: "button", "aria-label": "\u7F29\u5C0F\u753B\u5E03", title: "\u7F29\u5C0F\uFF08Ctrl/\u2318 \u2212\uFF09", disabled: view.scale <= 0.1, onClick: () => zoom(Math.round((view.scale - 0.1) * 100) / 100), children: icon(/* @__PURE__ */ jsx17("path", { d: "M5 12h14" })) }),
+        /* @__PURE__ */ jsx17("select", { "aria-label": "\u753B\u5E03\u7F29\u653E\u6BD4\u4F8B", value: String(percent), title: "\u753B\u5E03\u7F29\u653E\u6BD4\u4F8B", onChange: (event) => zoom(Number(event.target.value) / 100), children: options.map((value) => /* @__PURE__ */ jsxs16("option", { value, children: [
+          value,
+          "%"
+        ] }, value)) }),
+        /* @__PURE__ */ jsx17("button", { type: "button", "aria-label": "\u653E\u5927\u753B\u5E03", title: "\u653E\u5927\uFF08Ctrl/\u2318 +\uFF09", disabled: view.scale >= 3, onClick: () => zoom(Math.round((view.scale + 0.1) * 100) / 100), children: icon(/* @__PURE__ */ jsx17("path", { d: "M5 12h14M12 5v14" })) }),
+        /* @__PURE__ */ jsx17("span", { className: "we-canvas-controls__divider" }),
+        /* @__PURE__ */ jsx17("button", { type: "button", "aria-label": "\u9002\u5E94\u753B\u5E03\u5BBD\u5EA6", "aria-pressed": view.mode === "fit", title: "\u9002\u5E94\u5BBD\u5EA6\uFF08Shift 1\uFF09", onClick: () => zoom("fit"), children: icon(/* @__PURE__ */ jsx17(Fragment8, { children: /* @__PURE__ */ jsx17("path", { d: "M4 5v14M20 5v14M7 12h10m-7-3-3 3 3 3m4-6 3 3-3 3" }) })) }),
+        /* @__PURE__ */ jsx17("button", { type: "button", "aria-label": "\u91CD\u7F6E\u753B\u5E03\u89C6\u56FE", title: "\u91CD\u7F6E\u4E3A 100% \u5E76\u590D\u4F4D\uFF08Ctrl/\u2318 0\uFF09", onClick: () => zoom(1), children: icon(/* @__PURE__ */ jsx17(Fragment8, { children: /* @__PURE__ */ jsx17("path", { d: "M3 10a9 9 0 1 1 1 7M3 4v6h6" }) })) }),
+        /* @__PURE__ */ jsx17("button", { type: "button", "aria-label": "\u62D6\u52A8\u753B\u5E03", "aria-pressed": panMode, title: "\u62D6\u52A8\u753B\u5E03\uFF08\u4E5F\u53EF\u6309\u4F4F\u7A7A\u683C\u6216\u9F20\u6807\u4E2D\u952E\u62D6\u52A8\uFF09", onClick: () => setPanMode((value) => !value), children: icon(/* @__PURE__ */ jsx17("path", { d: "M8 12V5a2 2 0 0 1 4 0v6-7a2 2 0 0 1 4 0v8-5a2 2 0 0 1 4 0v9c0 4-3 6-7 6-3 0-4-1-6-4l-4-5a2 2 0 0 1 3-2l2 2" })) })
+      ]
+    }
+  );
+}
+
+// src/ui/runtime/use-comment-list-host.ts
+import React23 from "react";
+function useCommentListHost(options) {
+  const [hosted, setHosted] = React23.useState(false);
+  const latest = React23.useRef(options);
+  latest.current = options;
+  React23.useEffect(() => {
+    setHosted(false);
+    const origin = options.origin;
+    if (!options.enabled || !origin || window.parent === window) return;
+    const newSession = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+    let session = newSession();
+    let ackAt = 0;
+    let scope = "";
+    let disposed = false;
+    let generation = "";
+    const running = /* @__PURE__ */ new Set();
+    const post = (body) => window.parent.postMessage({ type: COMMENT_LIST_DOCK_MESSAGE, session, generation, ...body }, origin);
+    const sync = () => {
+      const snapshot = latest.current.snapshot();
+      if (scope !== snapshot.scope) {
+        if (scope) session = newSession();
+        scope = snapshot.scope;
+        ackAt = 0;
+        setHosted(false);
+      }
+      post({ kind: "state", state: { ...snapshot, session } });
+      if (Date.now() - ackAt > 2e3) setHosted(false);
+    };
+    const listener = async (event) => {
+      const data = event.data;
+      if (event.source !== window.parent || event.origin !== origin || data?.type !== COMMENT_LIST_DOCK_MESSAGE) return;
+      if (data.kind === "probe" && typeof data.generation === "string") {
+        generation = data.generation;
+        sync();
+        return;
+      }
+      if (data.generation !== generation || data.session !== session || data.scope !== latest.current.snapshot().scope) return;
+      if (data.kind === "ack") {
+        ackAt = Date.now();
+        setHosted(data.accepted === true);
+        return;
+      }
+      if (data.kind !== "action" || typeof data.id !== "string" || running.has(data.id)) return;
+      running.add(data.id);
+      try {
+        await latest.current.onAction(data.command);
+        if (!disposed) {
+          sync();
+          post({ kind: "result", id: data.id, scope: data.scope });
+        }
+      } catch (error) {
+        if (!disposed) {
+          sync();
+          post({ kind: "result", id: data.id, scope: data.scope, error: error instanceof Error ? error.message : "\u6279\u6CE8\u64CD\u4F5C\u5931\u8D25" });
+        }
+      } finally {
+        running.delete(data.id);
+      }
+    };
+    window.addEventListener("message", listener);
+    sync();
+    const timer = globalThis.setInterval(sync, 500);
+    return () => {
+      disposed = true;
+      globalThis.clearInterval(timer);
+      window.removeEventListener("message", listener);
+      post({ kind: "state", state: { ...latest.current.snapshot(), session, open: false } });
+    };
+  }, [options.enabled, options.origin]);
+  return hosted && options.enabled;
+}
+
 // src/ui/runtime/runtime-shell.tsx
-import { jsx as jsx16, jsxs as jsxs15 } from "react/jsx-runtime";
+import { jsx as jsx18, jsxs as jsxs17 } from "react/jsx-runtime";
 function normalizeRuntimeUiSettings(settings, interactionProfile) {
   const normalized = applyMobileSettingsOverride(
     applyInteractionProfileToUiSettings(sanitizeWebEditorUiSettings(settings), interactionProfile)
@@ -24910,52 +25947,58 @@ function WebEditorUiApp(props) {
     propertyPanelOptions?.getUiMode?.() ?? propertyPanelOptions?.initialUiMode ?? "bubble-card"
   );
   const interactionProfile = propertyPanelOptions?.interactionProfile ?? "design";
-  const [currentTarget, setCurrentTarget] = React21.useState(null);
-  const [commentListOpen, setCommentListOpen] = React21.useState(false);
-  const [anchorRect, setAnchorRect] = React21.useState(null);
-  const [uiMode, setUiMode] = React21.useState(initialUiMode);
-  const [toolMinimized, setToolMinimized] = React21.useState(false);
-  const [propertyPanelOpen, setPropertyPanelOpen] = React21.useState(initialPropertyPanelOpen);
-  const [bubbleStyleEditorOpen, setBubbleStyleEditorOpen] = React21.useState(false);
-  const [inlineTextEditing, setInlineTextEditing] = React21.useState(false);
-  const [inlineTextTarget, setInlineTextTarget] = React21.useState(null);
-  const [blockingLayerOpen, setBlockingLayerOpen] = React21.useState(false);
-  const [commentarySkillOptions, setCommentarySkillOptions] = React21.useState(() => normalizeRuntimeSkillOptions(propertyPanelOptions?.commentarySkillOptions));
+  const [currentTarget, setCurrentTarget] = React24.useState(null);
+  const [commentListOpen, setCommentListOpen] = React24.useState(false);
+  const [commentSelectedIds, setCommentSelectedIds] = React24.useState([]);
+  const [nativePanelsOpen, setNativePanelsOpen] = React24.useState(false);
+  const [canvasActivationRevision, setCanvasActivationRevision] = React24.useState(0);
+  const releaseCanvasRef = React24.useRef(() => {
+  });
+  const [commentEditRequest, setCommentEditRequest] = React24.useState();
+  const [anchorRect, setAnchorRect] = React24.useState(null);
+  const [uiMode, setUiMode] = React24.useState(initialUiMode);
+  const [toolMinimized, setToolMinimized] = React24.useState(false);
+  const [propertyPanelOpen, setPropertyPanelOpen] = React24.useState(initialPropertyPanelOpen);
+  const [bubbleStyleEditorOpen, setBubbleStyleEditorOpen] = React24.useState(false);
+  const [inlineTextEditing, setInlineTextEditing] = React24.useState(false);
+  const [inlineTextTarget, setInlineTextTarget] = React24.useState(null);
+  const [blockingLayerOpen, setBlockingLayerOpen] = React24.useState(false);
+  const [commentarySkillOptions, setCommentarySkillOptions] = React24.useState(() => normalizeRuntimeSkillOptions(propertyPanelOptions?.commentarySkillOptions));
   const commentarySkillSelectionManaged = commentarySkillOptions.length > 0;
-  const [enabledCommentarySkillIds, setEnabledCommentarySkillIds] = React21.useState(
+  const [enabledCommentarySkillIds, setEnabledCommentarySkillIds] = React24.useState(
     () => resolveRuntimeSkillIds(
       propertyPanelOptions?.commentarySelectedSkillIds,
       propertyPanelOptions?.commentarySkillOptions,
       propertyPanelOptions?.commentarySkillSettingsConfigured === true
     )
   );
-  const [uiSettings, setUiSettings] = React21.useState(
+  const [uiSettings, setUiSettings] = React24.useState(
     () => normalizeRuntimeUiSettings(
       propertyPanelOptions?.getUiSettings?.() ?? DEFAULT_WEB_EDITOR_UI_SETTINGS,
       interactionProfile
     )
   );
-  const [agentVisualState, setAgentVisualState] = React21.useState(
+  const [agentVisualState, setAgentVisualState] = React24.useState(
     () => normalizeRuntimeUiSettings(
       propertyPanelOptions?.getUiSettings?.() ?? DEFAULT_WEB_EDITOR_UI_SETTINGS,
       interactionProfile
     ).agentAwake ? "awake" : "sleeping"
   );
-  const [noteState, setNoteState] = React21.useState({
+  const [noteState, setNoteState] = React24.useState({
     savedNote: "",
     draftNote: "",
     noteDirty: false,
     savedNoteMeta: { skillIds: [] }
   });
-  const [textState, setTextState] = React21.useState({
+  const [textState, setTextState] = React24.useState({
     savedText: "",
     draftText: "",
     textDirty: false
   });
-  const [imageState, setImageState] = React21.useState({
+  const [imageState, setImageState] = React24.useState({
     images: []
   });
-  const [annotationState, setAnnotationState] = React21.useState({
+  const [annotationState, setAnnotationState] = React24.useState({
     annotationEnabled: false,
     savedAnnotationMarkdown: "",
     annotationDraftMarkdown: "",
@@ -24963,14 +26006,14 @@ function WebEditorUiApp(props) {
     annotationLoading: false,
     annotationSaving: false
   });
-  const currentTargetRef = React21.useRef(null);
-  const inlineTextTargetRef = React21.useRef(null);
-  const uiModeRef = React21.useRef(initialUiMode);
-  const noteStateRef = React21.useRef(noteState);
-  const noteTargetElementsRef = React21.useRef([]);
-  const textStateRef = React21.useRef(textState);
-  const imageStateRef = React21.useRef(imageState);
-  const annotationStateRef = React21.useRef(annotationState);
+  const currentTargetRef = React24.useRef(null);
+  const inlineTextTargetRef = React24.useRef(null);
+  const uiModeRef = React24.useRef(initialUiMode);
+  const noteStateRef = React24.useRef(noteState);
+  const noteTargetElementsRef = React24.useRef([]);
+  const textStateRef = React24.useRef(textState);
+  const imageStateRef = React24.useRef(imageState);
+  const annotationStateRef = React24.useRef(annotationState);
   const latestPointerPositionRef = usePointerTracker();
   const selectionGuards = useSelectionModeGuards({
     propertyPanelOptions,
@@ -24978,41 +26021,123 @@ function WebEditorUiApp(props) {
     setToolMinimized
   });
   const commentListAvailable = Boolean(propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch && interactionProfile === "design" && !propertyPanelOptions.externalAnnotationMode);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     if (commentListAvailable && selectionGuards.selectionModeActive) setCommentListOpen(true);
     if (!commentListAvailable) setCommentListOpen(false);
   }, [commentListAvailable, currentTarget, selectionGuards.selectionModeActive]);
   const showCommentList = commentListAvailable && commentListOpen && !toolMinimized && !blockingLayerOpen;
-  const handleCommentSaved = React21.useCallback(() => setCommentListOpen(true), []);
-  const promptSelectionInteractionLockChangeRef = React21.useRef(
+  const hostedCommentList = useCommentListHost({
+    enabled: showCommentList && uiSettings.commentListPinned,
+    origin: propertyPanelOptions?.commentListDockOrigin,
+    snapshot: () => ({
+      scope: propertyPanelOptions?.componentComments?.getScopeKey() ?? "",
+      open: showCommentList && uiSettings.commentListPinned,
+      entries: (propertyPanelOptions?.getCommentListEntries?.() ?? []).map((entry) => ({ id: entry.id, label: entry.label, note: entry.note, purpose: entry.purpose, state: entry.state, disabledReason: entry.disabledReason, locatable: Boolean(entry.element) })),
+      selectedIds: commentSelectedIds,
+      darkMode: uiSettings.darkMode,
+      loadState: propertyPanelOptions?.getCommentListLoadState?.() ?? { status: "ready" },
+      sendAvailable: !propertyPanelOptions?.hideExecutionControls && !propertyPanelOptions?.hideCurrentElementExecutionAction,
+      generateAvailable: Boolean(propertyPanelOptions?.onGenerateComponentStates),
+      documentAvailable: Boolean(propertyPanelOptions?.onDocumentComponent)
+    }),
+    onAction: async (command) => {
+      const ids = command.ids ?? [];
+      switch (command.action) {
+        case "close":
+          setCommentListOpen(false);
+          break;
+        case "unpin":
+          handleUiSettingsChange({ ...uiSettings, commentListPinned: false });
+          break;
+        case "select": {
+          const currentIds = new Set(propertyPanelOptions?.getCommentListEntries?.().map((entry) => entry.id));
+          if (ids.some((id) => !currentIds.has(id))) throw new Error("\u6279\u6CE8\u5DF2\u53D8\u66F4\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+          setCommentSelectedIds(ids);
+          break;
+        }
+        case "edit": {
+          const result = propertyPanelOptions?.componentComments?.edit(ids[0]);
+          if (!result) throw new Error("\u65E0\u6CD5\u7F16\u8F91\u6279\u6CE8");
+          propertyPanelOptions?.onSelectComment?.(result.element);
+          setBubbleStyleEditorOpen(false);
+          setCommentEditRequest({ id: ids[0], purpose: result.purpose, revision: Date.now() });
+          break;
+        }
+        case "locate": {
+          const entry = propertyPanelOptions?.getCommentListEntries?.().find((entry2) => entry2.id === ids[0]);
+          if (!entry?.element) throw new Error("\u7EC4\u4EF6\u5DF2\u5931\u6548");
+          propertyPanelOptions?.onSelectComment?.(entry.element);
+          break;
+        }
+        case "remove":
+          await propertyPanelOptions?.componentComments?.removeMany(ids);
+          break;
+        case "run":
+          if (!["send", "generate", "document"].includes(command.batchAction || "")) throw new Error("\u65E0\u6548\u7684\u6279\u6CE8\u52A8\u4F5C");
+          await propertyPanelOptions?.onRunCommentBatch?.(command.batchAction, ids);
+          break;
+        case "retry":
+          await propertyPanelOptions?.onRetryCommentList?.();
+          break;
+        default:
+          throw new Error("\u4E0D\u652F\u6301\u7684\u6279\u6CE8\u64CD\u4F5C");
+      }
+    }
+  });
+  const releaseCommentDockRef = React24.useRef(() => {
+  });
+  React24.useEffect(() => {
+    let frame = 0;
+    const release = () => {
+      window.cancelAnimationFrame(frame);
+      setPageZoomEnabled(false, { owner: "comment-list" });
+    };
+    releaseCommentDockRef.current = release;
+    const sync = () => {
+      release();
+      if (showCommentList && uiSettings.commentListPinned && !hostedCommentList && window.innerWidth > 760) {
+        frame = window.requestAnimationFrame(() => {
+          frame = window.requestAnimationFrame(() => setPageZoomEnabled(true, { owner: "comment-list", reservedRightWidth: 372 }));
+        });
+      }
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      release();
+    };
+  }, [showCommentList, uiSettings.commentListPinned, hostedCommentList]);
+  const handleCommentSaved = React24.useCallback(() => setCommentListOpen(true), []);
+  const promptSelectionInteractionLockChangeRef = React24.useRef(
     selectionGuards.handlePromptSelectionInteractionLockChange
   );
-  const finishInlineTextEditing = React21.useCallback(() => {
+  const finishInlineTextEditing = React24.useCallback(() => {
     promptSelectionInteractionLockChangeRef.current(false);
     inlineTextTargetRef.current = null;
     setInlineTextTarget(null);
     setInlineTextEditing(false);
   }, []);
   useFeedbackBridge();
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     promptSelectionInteractionLockChangeRef.current = selectionGuards.handlePromptSelectionInteractionLockChange;
   }, [selectionGuards.handlePromptSelectionInteractionLockChange]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     noteStateRef.current = noteState;
   }, [noteState]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     textStateRef.current = textState;
   }, [textState]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     inlineTextTargetRef.current = inlineTextTarget;
   }, [inlineTextTarget]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     imageStateRef.current = imageState;
   }, [imageState]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     annotationStateRef.current = annotationState;
   }, [annotationState]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     if (!commentarySkillSelectionManaged) return;
     const configured = propertyPanelOptions?.commentarySkillSettingsConfigured === true;
     const nextSkillOptions = normalizeRuntimeSkillOptions(
@@ -25032,28 +26157,28 @@ function WebEditorUiApp(props) {
     propertyPanelOptions?.commentarySelectedSkillIds,
     propertyPanelOptions?.commentarySkillSettingsConfigured
   ]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     const nextUiMode = normalizeRuntimeUiMode(propertyPanelOptions?.getUiMode?.());
     if (!nextUiMode || uiModeRef.current === nextUiMode) return;
     uiModeRef.current = nextUiMode;
     setUiMode(nextUiMode);
   });
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     onThemeModeChange?.(uiSettings.darkMode ? "dark" : "light");
   }, [onThemeModeChange, uiSettings.darkMode]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     const nextVisualState = uiSettings.agentAwake ? "awake" : "sleeping";
     setAgentVisualState((prev) => prev === nextVisualState ? prev : nextVisualState);
   }, [uiSettings.agentAwake]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     selectionGuards.toolMinimizedRef.current = toolMinimized;
   }, [selectionGuards.toolMinimizedRef, toolMinimized]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     if (!propertyPanelVisible) {
       setPropertyPanelOpen(false);
     }
   }, [propertyPanelVisible]);
-  const taskStateProvider = React21.useMemo(
+  const taskStateProvider = React24.useMemo(
     () => ({
       getCurrentTask: (element) => propertyPanelOptions?.getElementAgentTaskState?.(element) ?? breadcrumbsOptions?.getElementAgentTaskState?.(element) ?? null,
       getVisibleTasks: () => propertyPanelOptions?.getVisibleElementAgentTaskStates?.() ?? breadcrumbsOptions?.getVisibleElementAgentTaskStates?.() ?? [],
@@ -25064,8 +26189,8 @@ function WebEditorUiApp(props) {
     }),
     [breadcrumbsOptions, propertyPanelOptions]
   );
-  const [taskRenderTick, setTaskRenderTick] = React21.useState(0);
-  React21.useEffect(() => {
+  const [taskRenderTick, setTaskRenderTick] = React24.useState(0);
+  React24.useEffect(() => {
     let previousSignature = "";
     const timerId = window.setInterval(() => {
       const tasks = taskStateProvider.getVisibleTasks();
@@ -25088,7 +26213,7 @@ function WebEditorUiApp(props) {
       window.clearInterval(timerId);
     };
   }, [taskStateProvider]);
-  const syncSavedNote = React21.useCallback(
+  const syncSavedNote = React24.useCallback(
     (element, resetDraft) => {
       const nextSavedNote = propertyPanelOptions?.getAiNote?.(element) ?? "";
       const nextSkillIds = propertyPanelOptions?.getAiNoteSkillIds?.(element) ?? [];
@@ -25121,7 +26246,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const syncSavedText = React21.useCallback(
+  const syncSavedText = React24.useCallback(
     (element, resetDraft) => {
       const canEditText2 = propertyPanelOptions?.canEditText?.(element) ?? false;
       const nextSavedText = canEditText2 ? propertyPanelOptions?.getTextValue?.(element) ?? "" : "";
@@ -25146,7 +26271,7 @@ function WebEditorUiApp(props) {
     [propertyPanelOptions]
   );
   const imageAttachmentsEnabled = propertyPanelOptions?.enableImageAttachments !== false;
-  const syncSavedImages = React21.useCallback(
+  const syncSavedImages = React24.useCallback(
     (element) => {
       if (!imageAttachmentsEnabled) {
         setImageState({ images: [] });
@@ -25161,7 +26286,7 @@ function WebEditorUiApp(props) {
     },
     [imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const syncSavedAnnotationMarkdown = React21.useCallback(
+  const syncSavedAnnotationMarkdown = React24.useCallback(
     (element, resetDraft) => {
       const canEditAnnotationMarkdown = Boolean(
         element && propertyPanelOptions?.canEditAnnotationMarkdown?.(element) && propertyPanelOptions?.onAnnotationMarkdownChange
@@ -25214,7 +26339,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const commitDraftNote = React21.useCallback(
+  const commitDraftNote = React24.useCallback(
     async (elementOverride, options2 = {}) => {
       const element = elementOverride ?? currentTargetRef.current;
       if (!propertyPanelOptions?.onAiNoteChange) return false;
@@ -25244,7 +26369,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const commitDraftText = React21.useCallback(
+  const commitDraftText = React24.useCallback(
     async (elementOverride) => {
       const element = elementOverride ?? inlineTextTargetRef.current ?? currentTargetRef.current;
       if (!element || !propertyPanelOptions?.onTextValueChange) return false;
@@ -25269,7 +26394,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const commitDraftAnnotationMarkdown = React21.useCallback(
+  const commitDraftAnnotationMarkdown = React24.useCallback(
     async (elementOverride, markdownOverride, options2 = {}) => {
       const element = elementOverride ?? currentTargetRef.current;
       if (!element || !propertyPanelOptions?.onAnnotationMarkdownChange) return false;
@@ -25318,7 +26443,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const handleTargetChange = React21.useCallback(
+  const handleTargetChange = React24.useCallback(
     (element) => {
       if (currentTargetRef.current === element) return;
       const previousTarget = currentTargetRef.current;
@@ -25355,10 +26480,10 @@ function WebEditorUiApp(props) {
       syncSavedText
     ]
   );
-  const handleAnchorRectChange = React21.useCallback((rect) => {
+  const handleAnchorRectChange = React24.useCallback((rect) => {
     setAnchorRect(rect);
   }, []);
-  const handleUiModeChange = React21.useCallback(
+  const handleUiModeChange = React24.useCallback(
     (mode) => {
       const normalizedMode = normalizeRuntimeUiMode(mode);
       if (uiModeRef.current === normalizedMode) return;
@@ -25371,13 +26496,13 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions, selectionGuards.toolMinimizedRef]
   );
-  const handleRefreshNoteState = React21.useCallback(() => {
+  const handleRefreshNoteState = React24.useCallback(() => {
     syncSavedNote(currentTargetRef.current, false);
     syncSavedText(inlineTextTargetRef.current ?? currentTargetRef.current, false);
     syncSavedImages(currentTargetRef.current);
     syncSavedAnnotationMarkdown(currentTargetRef.current, false);
   }, [syncSavedAnnotationMarkdown, syncSavedImages, syncSavedNote, syncSavedText]);
-  const handleUiSettingsChange = React21.useCallback(
+  const handleUiSettingsChange = React24.useCallback(
     (nextSettings) => {
       const sanitized = normalizeRuntimeUiSettings(nextSettings, interactionProfile);
       setUiSettings(sanitized);
@@ -25385,7 +26510,7 @@ function WebEditorUiApp(props) {
     },
     [interactionProfile, propertyPanelOptions]
   );
-  const handleAgentVisualStateChange = React21.useCallback(
+  const handleAgentVisualStateChange = React24.useCallback(
     (nextState) => {
       setAgentVisualState(nextState);
       setUiSettings((prev) => {
@@ -25410,11 +26535,11 @@ function WebEditorUiApp(props) {
   const currentTaskRunning = currentAgentTask?.status === "pending" || currentAgentTask?.status === "created";
   const canEditNote = propertyPanelOptions?.canEditAiNote?.(currentTarget) ?? Boolean(propertyPanelOptions?.onAiNoteChange);
   const canClearCurrentElementEdits = propertyPanelOptions?.canClearCurrentElementEdits?.(currentTarget) ?? Boolean(propertyPanelOptions?.onClearCurrentElementEdits);
-  const annotationDocumentEditUrl = React21.useMemo(() => {
+  const annotationDocumentEditUrl = React24.useMemo(() => {
     const resolver = breadcrumbsOptions?.getAnnotationDocumentEditUrl ?? propertyPanelOptions?.getAnnotationDocumentEditUrl;
     return String(resolver?.(currentTarget) ?? "").trim();
   }, [breadcrumbsOptions, currentTarget, propertyPanelOptions]);
-  const canStartInlineTextEditing = React21.useCallback(
+  const canStartInlineTextEditing = React24.useCallback(
     (element) => {
       if (!element || !element.isConnected) return false;
       if (!propertyPanelOptions?.onTextValueChange) return false;
@@ -25427,7 +26552,7 @@ function WebEditorUiApp(props) {
   );
   const activeTextTarget = inlineTextTarget ?? currentTarget;
   const canEditText = canStartInlineTextEditing(activeTextTarget);
-  const handleDraftChange = React21.useCallback((value) => {
+  const handleDraftChange = React24.useCallback((value) => {
     const prev = noteStateRef.current;
     if (!isPromptTextChangeAllowed(prev.draftNote, value)) {
       notifyRuntimeMessage("warning", PROMPT_TEXT_LIMIT_MESSAGE);
@@ -25441,7 +26566,7 @@ function WebEditorUiApp(props) {
     noteStateRef.current = nextState;
     setNoteState(nextState);
   }, []);
-  const handleCancelNote = React21.useCallback(() => {
+  const handleCancelNote = React24.useCallback(() => {
     const prev = noteStateRef.current;
     const nextState = {
       ...prev,
@@ -25451,13 +26576,13 @@ function WebEditorUiApp(props) {
     noteStateRef.current = nextState;
     setNoteState(nextState);
   }, []);
-  const handleConfirmNote = React21.useCallback(
+  const handleConfirmNote = React24.useCallback(
     async (options2 = {}) => {
       await commitDraftNote(void 0, options2);
     },
     [commitDraftNote]
   );
-  const handleTextDraftChange = React21.useCallback((value) => {
+  const handleTextDraftChange = React24.useCallback((value) => {
     const prev = textStateRef.current;
     const nextState = {
       ...prev,
@@ -25467,7 +26592,7 @@ function WebEditorUiApp(props) {
     textStateRef.current = nextState;
     setTextState(nextState);
   }, []);
-  const handleCancelText = React21.useCallback(() => {
+  const handleCancelText = React24.useCallback(() => {
     const prev = textStateRef.current;
     const nextState = {
       ...prev,
@@ -25477,10 +26602,10 @@ function WebEditorUiApp(props) {
     textStateRef.current = nextState;
     setTextState(nextState);
   }, []);
-  const handleConfirmText = React21.useCallback(async () => {
+  const handleConfirmText = React24.useCallback(async () => {
     await commitDraftText(inlineTextTargetRef.current);
   }, [commitDraftText]);
-  const handleAnnotationDraftChange = React21.useCallback((value) => {
+  const handleAnnotationDraftChange = React24.useCallback((value) => {
     const prev = annotationStateRef.current;
     const nextState = {
       ...prev,
@@ -25490,16 +26615,16 @@ function WebEditorUiApp(props) {
     annotationStateRef.current = nextState;
     setAnnotationState(nextState);
   }, []);
-  const handleClearAnnotationMarkdown = React21.useCallback(() => {
+  const handleClearAnnotationMarkdown = React24.useCallback(() => {
     void commitDraftAnnotationMarkdown(void 0, "", { force: true });
   }, [commitDraftAnnotationMarkdown]);
-  const handleConfirmAnnotationMarkdown = React21.useCallback(
+  const handleConfirmAnnotationMarkdown = React24.useCallback(
     async (markdownOverride) => {
       await commitDraftAnnotationMarkdown(void 0, markdownOverride);
     },
     [commitDraftAnnotationMarkdown]
   );
-  const handleInlineTextEditingChange = React21.useCallback(
+  const handleInlineTextEditingChange = React24.useCallback(
     (editing, element) => {
       if (!editing) {
         finishInlineTextEditing();
@@ -25520,7 +26645,7 @@ function WebEditorUiApp(props) {
     },
     [canStartInlineTextEditing, finishInlineTextEditing, selectionGuards, syncSavedText]
   );
-  const handleImagesChange = React21.useCallback(
+  const handleImagesChange = React24.useCallback(
     async (images) => {
       const element = currentTargetRef.current;
       if (!imageAttachmentsEnabled) return;
@@ -25538,14 +26663,14 @@ function WebEditorUiApp(props) {
     },
     [imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const handleRemoveImage = React21.useCallback(
+  const handleRemoveImage = React24.useCallback(
     async (imageId) => {
       const nextImages = imageStateRef.current.images.filter((image) => image.id !== imageId);
       await handleImagesChange(nextImages);
     },
     [handleImagesChange]
   );
-  const applyImagesToElement = React21.useCallback(
+  const applyImagesToElement = React24.useCallback(
     async (element, incomingImages) => {
       if (!imageAttachmentsEnabled) {
         return { acceptedCount: 0, droppedCount: incomingImages.length };
@@ -25592,7 +26717,7 @@ function WebEditorUiApp(props) {
     },
     [imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const handleNotePasteCapture = React21.useCallback(
+  const handleNotePasteCapture = React24.useCallback(
     (event) => {
       const element = currentTargetRef.current;
       const clipboardItems = event.clipboardData?.items;
@@ -25660,7 +26785,7 @@ function WebEditorUiApp(props) {
     },
     [applyImagesToElement, imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const handleClearCurrentElementEdits = React21.useCallback(async () => {
+  const handleClearCurrentElementEdits = React24.useCallback(async () => {
     const element = currentTargetRef.current;
     if (!element || !propertyPanelOptions?.onClearCurrentElementEdits) return;
     if (!(propertyPanelOptions.canClearCurrentElementEdits?.(element) ?? true)) return;
@@ -25687,7 +26812,7 @@ function WebEditorUiApp(props) {
     syncSavedNote,
     syncSavedText
   ]);
-  const handleDeleteExternalComment = React21.useCallback(
+  const handleDeleteExternalComment = React24.useCallback(
     async (commentId) => {
       const element = currentTargetRef.current;
       if (!element || !propertyPanelOptions?.onDeleteExternalComment) return;
@@ -25698,7 +26823,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions, syncSavedNote]
   );
-  const handleDeleteCurrentAnnotationNode = React21.useCallback(async () => {
+  const handleDeleteCurrentAnnotationNode = React24.useCallback(async () => {
     const element = currentTargetRef.current;
     if (!element || !propertyPanelOptions?.onDeleteCurrentAnnotationNode) return;
     await propertyPanelOptions.onDeleteCurrentAnnotationNode(element);
@@ -25716,7 +26841,7 @@ function WebEditorUiApp(props) {
     syncSavedNote,
     syncSavedText
   ]);
-  const handleSendCurrentElementPromptToAgent = React21.useMemo(() => {
+  const handleSendCurrentElementPromptToAgent = React24.useMemo(() => {
     if (!propertyPanelOptions?.onSendCurrentElementPromptToAgent) {
       return void 0;
     }
@@ -25740,7 +26865,7 @@ function WebEditorUiApp(props) {
     selectionNeedsExplicitReactivateRef: selectionGuards.selectionNeedsExplicitReactivateRef,
     syncSelectionModeAvailability: selectionGuards.syncSelectionModeAvailability
   });
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     if (!inlineTextEditing) return;
     if (canEditText && activeTextTarget?.isConnected) return;
     const previousTextTarget = inlineTextTargetRef.current;
@@ -25756,7 +26881,7 @@ function WebEditorUiApp(props) {
     handleCancelText,
     inlineTextEditing
   ]);
-  React21.useEffect(() => {
+  React24.useEffect(() => {
     const editableElement = inlineTextEditing && canEditText && activeTextTarget instanceof HTMLElement ? activeTextTarget : null;
     propertyPanelOptions?.onInlineTextEditingElementChange?.(editableElement);
     if (!editableElement) {
@@ -25921,24 +27046,64 @@ function WebEditorUiApp(props) {
     inlineTextEditing,
     propertyPanelOptions
   ]);
-  return /* @__PURE__ */ jsxs15("div", { style: panelContainerStyle, children: [
-    /* @__PURE__ */ jsx16("style", { nonce: resolveCspNonce(), children: WEB_EDITOR_POPUP_ROOT_STYLES }),
-    commentListAvailable && !toolMinimized && !blockingLayerOpen ? /* @__PURE__ */ jsx16(
+  return /* @__PURE__ */ jsxs17("div", { style: panelContainerStyle, children: [
+    /* @__PURE__ */ jsx18("style", { nonce: resolveCspNonce(), children: WEB_EDITOR_POPUP_ROOT_STYLES }),
+    commentListAvailable && !toolMinimized && !blockingLayerOpen ? /* @__PURE__ */ jsx18(
       RightEntry,
       {
         open: showCommentList,
+        docked: showCommentList && uiSettings.commentListPinned && !hostedCommentList,
         onToggle: () => setCommentListOpen((open) => !open),
-        onNativeAction: () => setCommentListOpen(false),
+        onNativePanelsChange: setNativePanelsOpen,
+        onNativeAction: () => {
+          suspendPageZoomForNativePanel();
+          releaseCanvasRef.current();
+          releaseCommentDockRef.current();
+          setPageZoomEnabled(false);
+          setCanvasActivationRevision((value) => value + 1);
+          setPropertyPanelOpen(false);
+          setNativePanelsOpen(true);
+          setCommentListOpen(false);
+        },
         onShortcuts: () => {
           void propertyPanelRef.current?.runHostToolbarAction({ type: "open-keyboard-shortcuts" });
         }
       }
     ) : null,
-    showCommentList && propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch ? /* @__PURE__ */ jsx16(
+    commentListAvailable ? /* @__PURE__ */ jsx18(
+      PreviewCanvasControls,
+      {
+        active: !toolMinimized && !blockingLayerOpen && !nativePanelsOpen,
+        docked: showCommentList && uiSettings.commentListPinned && !hostedCommentList,
+        hasTarget: Boolean(currentTarget),
+        releaseRef: releaseCanvasRef,
+        getScopeKey: propertyPanelOptions?.componentComments?.getScopeKey,
+        activationRevision: canvasActivationRevision,
+        onInteractionChange: selectionGuards.handlePromptHoverSelectionSuppressedChange
+      }
+    ) : null,
+    commentListAvailable && propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch ? /* @__PURE__ */ jsx18(
       CommentListView,
       {
         getEntries: propertyPanelOptions.getCommentListEntries,
         onRun: propertyPanelOptions.onRunCommentBatch,
+        hidden: !showCommentList || hostedCommentList,
+        pinned: uiSettings.commentListPinned,
+        selectedIds: commentSelectedIds,
+        onSelectionChange: setCommentSelectedIds,
+        onPinnedChange: (pinned) => {
+          if (pinned) setPropertyPanelOpen(false);
+          handleUiSettingsChange({ ...uiSettings, commentListPinned: pinned });
+        },
+        onEdit: propertyPanelOptions.componentComments ? (id) => {
+          const result = propertyPanelOptions.componentComments.edit(id);
+          selectionGuards.handlePromptHoverSelectionSuppressedChange(false);
+          propertyPanelOptions.onSelectComment?.(result.element);
+          setBubbleStyleEditorOpen(false);
+          setCommentEditRequest({ id, purpose: result.purpose, revision: Date.now() });
+        } : void 0,
+        onRemove: propertyPanelOptions.componentComments?.remove,
+        onRemoveMany: propertyPanelOptions.componentComments?.removeMany,
         getLoadState: propertyPanelOptions.getCommentListLoadState,
         onRetry: propertyPanelOptions.onRetryCommentList,
         loadingContent: propertyPanelOptions.commentListLoadingContent,
@@ -25954,7 +27119,7 @@ function WebEditorUiApp(props) {
         documentAvailable: Boolean(propertyPanelOptions.onDocumentComponent)
       }
     ) : null,
-    /* @__PURE__ */ jsx16(
+    /* @__PURE__ */ jsx18(
       ElementAgentTaskOverlays,
       {
         tasks: blockingLayerOpen ? [] : taskStateProvider.getVisibleTasks(),
@@ -25963,7 +27128,7 @@ function WebEditorUiApp(props) {
         renderTick: taskRenderTick
       }
     ),
-    breadcrumbsOptions ? /* @__PURE__ */ jsx16(
+    breadcrumbsOptions ? /* @__PURE__ */ jsx18(
       PromptCardView,
       {
         ref: breadcrumbsRef,
@@ -25972,7 +27137,12 @@ function WebEditorUiApp(props) {
         selectedElementCount: propertyPanelOptions?.getSelectedElements?.().length ?? (currentTarget ? 1 : 0),
         pinnedToTopRight: uiSettings.promptCardPinnedToTopRight,
         propertyPanelOpen,
-        commentListOpen: showCommentList,
+        commentListOpen: showCommentList && !hostedCommentList,
+        componentComments: propertyPanelOptions?.componentComments,
+        commentEditRequest,
+        getCommentListLoadState: propertyPanelOptions?.getCommentListLoadState,
+        commentListLoadingContent: propertyPanelOptions?.commentListLoadingContent,
+        onRetryCommentList: propertyPanelOptions?.onRetryCommentList,
         onCommentSaved: handleCommentSaved,
         onPersistComments: propertyPanelOptions?.onPersistComments,
         onPinnedToTopRightChange: (pinned) => handleUiSettingsChange({
@@ -26059,7 +27229,7 @@ function WebEditorUiApp(props) {
         onDeleteCurrentAnnotationNode: handleDeleteCurrentAnnotationNode
       }
     ) : null,
-    propertyPanelOptions && propertyPanelVisible ? /* @__PURE__ */ jsx16(
+    propertyPanelOptions && propertyPanelVisible ? /* @__PURE__ */ jsx18(
       PropertyPanelView,
       {
         ref: propertyPanelRef,
@@ -26153,7 +27323,7 @@ function createQueuedBridge(getApi) {
 }
 
 // src/ui/runtime/create-web-editor-ui-runtime.tsx
-import { jsx as jsx17, jsxs as jsxs16 } from "react/jsx-runtime";
+import { jsx as jsx19, jsxs as jsxs18 } from "react/jsx-runtime";
 function subscribeDeferredHostToolbarState(options) {
   const current = options.getCurrent();
   if (current) {
@@ -26213,8 +27383,8 @@ function createWebEditorUiRuntime(options) {
   }
   options.container.append(host);
   const root = createRoot2(host);
-  const propertyPanelRef = React22.createRef();
-  const breadcrumbsRef = React22.createRef();
+  const propertyPanelRef = React25.createRef();
+  const breadcrumbsRef = React25.createRef();
   let disposed = false;
   const dispose = () => {
     if (disposed) return;
@@ -26281,17 +27451,17 @@ function createWebEditorUiRuntime(options) {
     annotationEnableTitle: "\u5F00\u542F\u9700\u6C42\u6807\u6CE8"
   });
   function RuntimeMount() {
-    const styleCache = React22.useMemo(() => createCache(), []);
-    const cspNonce = React22.useMemo(() => resolveCspNonce(), []);
-    const popupContainerRef = React22.useRef(null);
-    const [themeMode, setThemeMode] = React22.useState(
+    const styleCache = React25.useMemo(() => createCache(), []);
+    const cspNonce = React25.useMemo(() => resolveCspNonce(), []);
+    const popupContainerRef = React25.useRef(null);
+    const [themeMode, setThemeMode] = React25.useState(
       () => options.propertyPanelOptions?.getUiSettings?.()?.darkMode ? "dark" : "light"
     );
-    React22.useEffect(() => {
+    React25.useEffect(() => {
       propertyPanelBridge?.flush();
       breadcrumbsBridge?.flush();
     });
-    return /* @__PURE__ */ jsx17(StyleProvider, { cache: styleCache, container: options.shadowRoot, children: /* @__PURE__ */ jsx17(
+    return /* @__PURE__ */ jsx19(StyleProvider, { cache: styleCache, container: options.shadowRoot, children: /* @__PURE__ */ jsx19(
       ConfigProvider,
       {
         componentSize: "small",
@@ -26301,7 +27471,7 @@ function createWebEditorUiRuntime(options) {
           popupContainerRef.current ?? options.container
         ),
         theme: createRuntimeAntdTheme(themeMode),
-        children: /* @__PURE__ */ jsx17(App2, { children: /* @__PURE__ */ jsxs16(
+        children: /* @__PURE__ */ jsx19(App2, { children: /* @__PURE__ */ jsxs18(
           "div",
           {
             style: {
@@ -26311,7 +27481,7 @@ function createWebEditorUiRuntime(options) {
               ...createEditorChromeCssVars(themeMode)
             },
             children: [
-              /* @__PURE__ */ jsx17(
+              /* @__PURE__ */ jsx19(
                 WebEditorUiApp,
                 {
                   propertyPanelOptions: options.propertyPanelOptions,
@@ -26325,14 +27495,14 @@ function createWebEditorUiRuntime(options) {
                   onThemeModeChange: setThemeMode
                 }
               ),
-              /* @__PURE__ */ jsx17("div", { ref: popupContainerRef, ...{ [WEB_EDITOR_POPUP_ROOT_ATTR]: "true" } })
+              /* @__PURE__ */ jsx19("div", { ref: popupContainerRef, ...{ [WEB_EDITOR_POPUP_ROOT_ATTR]: "true" } })
             ]
           }
         ) })
       }
     ) });
   }
-  root.render(/* @__PURE__ */ jsx17(RuntimeMount, {}));
+  root.render(/* @__PURE__ */ jsx19(RuntimeMount, {}));
   return {
     propertyPanel: propertyPanelBridge ? {
       setTarget(element) {
@@ -27870,14 +29040,14 @@ function createHandlesController(options) {
     const topEdgeDelta = finalRect.top - s.startRect.top;
     renderSelectionRect(finalRect);
     setHud(`${Math.round(finalRect.width)} \xD7 ${Math.round(finalRect.height)}`);
-    const styles3 = {};
+    const styles4 = {};
     if (s.affectsWidth) {
       const widthCssPx = borderBoxToCssSize(
         nextWidthBorderBox,
         s.extras.horizontalExtras,
         s.extras.boxSizing
       );
-      styles3.width = formatPx(widthCssPx);
+      styles4.width = formatPx(widthCssPx);
     }
     if (s.affectsHeight) {
       const heightCssPx = borderBoxToCssSize(
@@ -27885,34 +29055,34 @@ function createHandlesController(options) {
         s.extras.verticalExtras,
         s.extras.boxSizing
       );
-      styles3.height = formatPx(heightCssPx);
+      styles4.height = formatPx(heightCssPx);
     }
     if (s.mode === "absolute" || s.mode === "fixed") {
       if (s.affectsWidth) {
-        styles3.left = formatPx(s.startPosX + leftEdgeDelta);
-        styles3.right = "";
+        styles4.left = formatPx(s.startPosX + leftEdgeDelta);
+        styles4.right = "";
       }
       if (s.affectsHeight) {
-        styles3.top = formatPx(s.startPosY + topEdgeDelta);
-        styles3.bottom = "";
+        styles4.top = formatPx(s.startPosY + topEdgeDelta);
+        styles4.bottom = "";
       }
     } else if (s.mode === "relative") {
       if (s.affectsWidth && s.hasWest) {
-        styles3.left = formatPx(s.startPosX + leftEdgeDelta);
+        styles4.left = formatPx(s.startPosX + leftEdgeDelta);
       }
       if (s.affectsHeight && s.hasNorth) {
-        styles3.top = formatPx(s.startPosY + topEdgeDelta);
+        styles4.top = formatPx(s.startPosY + topEdgeDelta);
       }
     } else {
       if (s.affectsWidth && s.hasWest) {
-        styles3["margin-left"] = formatPx(s.startPosX + leftEdgeDelta);
+        styles4["margin-left"] = formatPx(s.startPosX + leftEdgeDelta);
       }
       if (s.affectsHeight && s.hasNorth) {
-        styles3["margin-top"] = formatPx(s.startPosY + topEdgeDelta);
+        styles4["margin-top"] = formatPx(s.startPosY + topEdgeDelta);
       }
     }
     try {
-      tx.set(styles3);
+      tx.set(styles4);
     } catch (error) {
       console.warn(`${WEB_EDITOR_V2_LOG_PREFIX} Resize preview apply failed:`, error);
       cancelSession("apply_failed");
@@ -30035,6 +31205,7 @@ function createPositionTracker(options) {
   disposer.listen(window, "scroll", handleViewportChange, PASSIVE_LISTENER);
   disposer.listen(document, "scroll", handleViewportChange, { ...PASSIVE_LISTENER, capture: true });
   disposer.listen(window, "resize", handleViewportChange, PASSIVE_LISTENER);
+  disposer.listen(window, PAGE_LAYOUT_CHANGE_EVENT, handleViewportChange, PASSIVE_LISTENER);
   function setHoverElement(element) {
     if (disposer.isDisposed) return;
     if (hoverElement === element) return;
@@ -30118,11 +31289,11 @@ function writeStyleValue(style, property, value) {
     style.setProperty(prop, v);
   }
 }
-function applyStylesSnapshot(element, styles3) {
-  if (!styles3) return;
+function applyStylesSnapshot(element, styles4) {
+  if (!styles4) return;
   const inlineStyle = getInlineStyle(element);
   if (!inlineStyle) return;
-  for (const [property, value] of Object.entries(styles3)) {
+  for (const [property, value] of Object.entries(styles4)) {
     writeStyleValue(inlineStyle, property, value);
   }
 }
@@ -32228,6 +33399,27 @@ function createComponentStatesAction(options) {
 }
 
 // src/core/editor/comment-batch.ts
+function buildCommentEntryInstructions(entry, skillOptions = []) {
+  const skills = mergePromptCardSkills(skillOptions);
+  return [
+    entry.note,
+    ...(entry.skillIds || []).map((id) => skills.find((skill) => skill.id === id)?.prompt || `\u8BF7\u53C2\u8003\u6280\u80FD\uFF1A${id}`),
+    ...(entry.images || []).filter((image) => image.source !== "target-screenshot").map((image) => `\u53C2\u8003\u9644\u4EF6\uFF1A${image.name}\uFF08\u89C1\u622A\u56FE\u4E2D\u7684\u540C\u540D\u53C2\u8003\u56FE\uFF09`)
+  ].filter(Boolean).join("\n\n");
+}
+function buildCommentBatchPrompt(entries, options = {}) {
+  const prompt = entries.map((entry, index) => [
+    `## \u6279\u6CE8 ${index + 1}\uFF1A\u4FEE\u6539\u539F\u578B`,
+    `\u6279\u6CE8 ID\uFF1A${entry.id}`,
+    `\u7EC4\u4EF6\uFF1A${entry.label}`,
+    `\u5B9A\u4F4D\uFF1A${JSON.stringify(entry.locator)}`,
+    buildCommentEntryInstructions(entry, options.skillOptions),
+    ...(entry.images || []).filter((image) => image.source !== "target-screenshot").map((image) => `\u9644\u4EF6 ${image.name}\uFF1A${image.assetPath || image.data}`),
+    `\u7EC4\u4EF6 HTML\uFF1A
+${entry.element?.outerHTML || ""}`
+  ].filter(Boolean).join("\n")).join("\n\n");
+  return options.transformPrompt?.(prompt) ?? prompt;
+}
 function createCommentBatchAction(options) {
   let busy = false;
   return async (action, ids) => {
@@ -32243,11 +33435,18 @@ function createCommentBatchAction(options) {
       const entry = available.get(id);
       if (!entry?.element?.isConnected) throw new Error("\u6240\u9009\u6279\u6CE8\u7684\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
       if (entry.disabledReason) throw new Error(entry.disabledReason);
-      return { ...entry, element: entry.element };
+      const expectedPurpose = COMMENT_PURPOSES.find((item) => item.action === action).id;
+      if ((entry.purpose !== void 0 || !options.send) && entry.purpose !== expectedPurpose) throw new Error("\u6240\u9009\u6279\u6CE8\u7528\u9014\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u6309\u7528\u9014\u53D1\u9001\uFF1B\u65E7\u683C\u5F0F\u6279\u6CE8\u8BF7\u91CD\u65B0\u521B\u5EFA");
+      return { ...entry, skillIds: entry.skillIds?.slice(), images: entry.images?.map((image) => ({ ...image })), element: entry.element };
     });
     busy = true;
     try {
       if (action === "send") {
+        if (options.sendEntries) {
+          assertCurrentScope();
+          await options.sendEntries(entries);
+          return;
+        }
         if (!options.send) throw new Error("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u53D1\u9001\u4FEE\u6539");
         await options.send(entries.map((entry) => entry.element));
         return;
@@ -32255,7 +33454,7 @@ function createCommentBatchAction(options) {
       if (action === "document" && !options.document) throw new Error("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u5F15\u5165\u8BF4\u660E");
       if (action === "generate" && !options.generate) throw new Error("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u751F\u6210\u539F\u578B");
       const note = entries.map((entry, index) => `${index + 1}. ${entry.label}${entry.selector ? ` (${entry.selector})` : ""}
-${entry.note}`).join("\n\n");
+${buildCommentEntryInstructions(entry, options.skillOptions)}`).join("\n\n");
       if (note.length > 8e3) throw new Error("\u6240\u9009\u6279\u6CE8\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u51CF\u5C11\u9009\u62E9\u540E\u91CD\u8BD5");
       const sourceHtml = entries.map((entry) => entry.element.outerHTML).join("\n");
       if (action === "generate" && sourceHtml.length > 6e4) throw new Error("\u6240\u9009\u7EC4\u4EF6\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u51CF\u5C11\u9009\u62E9\u540E\u91CD\u8BD5");
@@ -32264,6 +33463,12 @@ ${entry.note}`).join("\n\n");
         assertCurrentScope();
         if (!entry.element.isConnected) throw new Error("\u6240\u9009\u6279\u6CE8\u7684\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
         screenshots.push({ label: entry.label, screenshot: await options.capture(entry.element, "component") });
+        for (const image of entry.images || []) {
+          if (image.source === "target-screenshot") continue;
+          const data = image.data || image.assetPath;
+          if (!data) throw new Error(`\u53C2\u8003\u9644\u4EF6 ${image.name} \u672A\u80FD\u8BFB\u53D6\uFF0C\u8BF7\u91CD\u65B0\u6DFB\u52A0`);
+          screenshots.push({ label: `${entry.label} \xB7 \u53C2\u8003\u9644\u4EF6 ${image.name}`, screenshot: { data, name: image.name, width: 1, height: 1 } });
+        }
       }
       if (entries.some((entry) => !entry.element.isConnected)) throw new Error("\u6240\u9009\u6279\u6CE8\u7684\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
       assertCurrentScope();
@@ -32375,15 +33580,15 @@ function isElementWithinComposedSubtree(element, ancestor) {
   }
   return false;
 }
-function resolveInlineTextTarget(selectionTarget, pathElements, isEditable = isEditableTextTarget) {
+function resolveInlineTextTarget(selectionTarget, pathElements, isEditable2 = isEditableTextTarget) {
   if (!selectionTarget?.isConnected) return null;
   for (const element of pathElements) {
     if (!element.isConnected) continue;
     if (!isElementWithinComposedSubtree(element, selectionTarget)) continue;
-    if (isEditable(element)) return element;
+    if (isEditable2(element)) return element;
     if (element === selectionTarget) return null;
   }
-  return isEditable(selectionTarget) ? selectionTarget : null;
+  return isEditable2(selectionTarget) ? selectionTarget : null;
 }
 function resolveInlineTextFragmentTargetAtPoint(selectionTarget, clientX, clientY) {
   if (!selectionTarget?.isConnected) return null;
@@ -32535,6 +33740,16 @@ function createLifecycleService(deps) {
   let interactionProfileRestartQueued = false;
   let commentListLoadState = { status: "loading" };
   let commentRestoreRevision = 0;
+  state2.componentCommentsById ?? (state2.componentCommentsById = /* @__PURE__ */ new Map());
+  const commentPageScope = () => services.persistence.getCurrentPageScope?.() || `${window.location.pathname}${window.location.search || ""}${window.location.hash || ""}`;
+  const commentScopeKey = () => JSON.stringify([options.host.getPersistenceScope?.()?.storageScope || "", commentPageScope()]);
+  const componentCommentStore = createComponentCommentStore({
+    records: state2.componentCommentsById,
+    getScope: commentScopeKey,
+    getPageScope: commentPageScope,
+    persist: persistComments,
+    onRollback: () => services.persistence.refreshLocalSnapshot?.()
+  });
   async function restoreCommentList() {
     const revision = ++commentRestoreRevision;
     commentListLoadState = { status: "loading", revision };
@@ -32858,43 +34073,45 @@ ${externalSection}` : promptWithSkills;
     return elements;
   }
   function getCommentListEntries() {
-    return Array.from(state2.editMetaByKey.values()).filter((meta) => Boolean(meta.note.trim() || meta.images.length || meta.dirtySince !== null)).map((meta) => {
+    const records = Array.from(state2.componentCommentsById.values()).filter((record) => !record.entry.deletedAt && (!record.entry.pageScope || record.entry.pageScope === commentPageScope())).map(({ entry, images }) => {
       let element = null;
       try {
-        element = locateElement(meta.locator);
+        element = locateElement(entry.locator);
       } catch {
       }
       if (!element?.isConnected) element = null;
-      const disabledReason = !element ? "\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9" : meta.readOnly ? "\u6B64\u6279\u6CE8\u4E3A\u53EA\u8BFB" : services.agentBridge.isElementInteractionLocked(element) ? "\u6B64\u7EC4\u4EF6\u6B63\u5728\u5904\u7406\u4E2D\uFF0C\u8BF7\u7A0D\u5019" : void 0;
       return {
-        id: meta.elementKey,
-        label: meta.label,
-        note: meta.note,
-        selector: meta.locator.selectors[0],
+        id: entry.id,
+        commentId: entry.id,
+        elementKey: entry.elementKey,
+        locator: entry.locator,
+        label: entry.label || "\u7EC4\u4EF6",
+        note: entry.comment || "",
+        purpose: entry.purpose,
+        state: entry.state,
+        skillIds: entry.skillIds?.slice(),
+        images: images.map((image) => ({ ...image })),
+        selector: entry.locator.selectors[0],
         element,
-        disabledReason
+        disabledReason: !element ? "\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9" : entry.state === "editing" || services.agentBridge.isElementInteractionLocked(element) ? "\u6B64\u7EC4\u4EF6\u6B63\u5728\u5904\u7406\u4E2D\uFF0C\u8BF7\u7A0D\u5019" : void 0
       };
     });
+    return records;
   }
   const runCommentBatch = createCommentBatchAction({
     getEntries: getCommentListEntries,
-    getScopeRevision: () => commentRestoreRevision,
-    send: async (elements) => {
+    skillOptions: options.ui.commentarySkillOptions,
+    getScopeRevision: () => `${commentScopeKey()}:${commentRestoreRevision}`,
+    sendEntries: async (entries) => {
+      const elements = Array.from(new Set(entries.map((entry) => entry.element)));
+      const promptText = buildCommentBatchPrompt(entries, { skillOptions: options.ui.commentarySkillOptions, transformPrompt: options.host.transformPrompt });
+      if (promptText.length > 2e5) throw new Error("\u6279\u6CE8\u4E0E\u9644\u4EF6\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u51CF\u5C11\u9009\u62E9\u540E\u91CD\u8BD5");
       if (shouldDelegateAiActionToHost()) {
-        const refs = elements.flatMap((element) => {
-          const meta = services.changes.getMetaForElement(element);
-          return meta ? [toExternalEditingTarget(meta)] : [];
-        });
-        const editingRun = beginHostExternalEditing(refs);
-        try {
-          const handled = await runHostAiAction(buildHostSendToAgentAction(elements[0], elements));
-          if (!handled) throw new Error(lastHostAiActionError || "\u5BBF\u4E3B\u6682\u672A\u5904\u7406 AI \u6267\u884C\u8BF7\u6C42\u3002");
-        } catch (error) {
-          markHostExternalEditingError(editingRun, error instanceof Error ? error.message : String(error));
-          throw error;
-        }
+        const targets = entries.map((entry) => ({ elementKey: entry.elementKey, commentId: entry.id, locator: entry.locator, label: entry.label }));
+        const handled = await runHostAiAction({ type: "send-to-agent", ...targets[0], targets, promptText, preserveOnAutoClear: true });
+        if (!handled) throw new Error(lastHostAiActionError || "\u5BBF\u4E3B\u6682\u672A\u5904\u7406 AI \u6267\u884C\u8BF7\u6C42\u3002");
       } else {
-        await services.agentBridge.handleSendPromptToAgentForElements(elements, buildSaveRunPromptForAgentElement);
+        await services.agentBridge.handleSendPromptToAgentForElements(elements, (element) => buildCommentBatchPrompt(entries.filter((entry) => entry.element === element), { skillOptions: options.ui.commentarySkillOptions }));
       }
       state2.positionTracker?.forceUpdate(true);
     },
@@ -32914,6 +34131,44 @@ ${externalSection}` : promptWithSkills;
       throw new Error("\u6279\u6CE8\u672A\u80FD\u4FDD\u5B58\uFF0C\u8BF7\u91CD\u8BD5\u6682\u5B58\u540E\u518D\u6267\u884C");
     }
   }
+  const componentComments = {
+    getScopeKey: commentScopeKey,
+    getDraft: (element, purpose) => componentCommentStore.getDraft(services.changes.getMetaForElement(element), purpose),
+    updateDraft: (element, purpose, patch) => componentCommentStore.updateDraft(services.changes.getMetaForElement(element), purpose, patch),
+    saveDraft: (element, purpose) => {
+      if (!element.isConnected) return Promise.reject(new Error("\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9"));
+      if (commentListLoadState.status !== "ready") return Promise.reject(new Error("\u6279\u6CE8\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u7A0D\u5019"));
+      if (services.agentBridge.isElementInteractionLocked(element)) return Promise.reject(new Error("\u7EC4\u4EF6\u6B63\u5728\u5904\u7406\u4E2D\uFF0C\u8BF7\u7A0D\u5019"));
+      return componentCommentStore.saveDraft(services.changes.getMetaForElement(element), purpose);
+    },
+    startNew: (element, purpose) => componentCommentStore.startNew(services.changes.getMetaForElement(element), purpose),
+    edit: (id) => {
+      if (commentListLoadState.status !== "ready") throw new Error("\u6279\u6CE8\u6B63\u5728\u52A0\u8F7D\u6216\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u540E\u7F16\u8F91");
+      const entry = getCommentListEntries().find((item) => item.id === id);
+      if (!entry?.element || entry.disabledReason) throw new Error(entry?.disabledReason || "\u7EC4\u4EF6\u5DF2\u5931\u6548");
+      if (!isComponentCommentPurpose(entry.purpose)) {
+        throw new Error("\u6B64\u6279\u6CE8\u7528\u9014\u6682\u4E0D\u652F\u6301\uFF0C\u8BF7\u4FDD\u7559\u539F\u8BB0\u5F55");
+      }
+      return { element: entry.element, purpose: componentCommentStore.edit(id) };
+    },
+    remove: async (id) => {
+      if (commentListLoadState.status !== "ready") throw new Error("\u6279\u6CE8\u6B63\u5728\u52A0\u8F7D\u6216\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u540E\u5220\u9664");
+      if (!getCommentListEntries().some((entry) => entry.id === id)) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+      await componentCommentStore.remove(id);
+    },
+    removeMany: async (ids) => {
+      if (commentListLoadState.status !== "ready") throw new Error("\u6279\u6CE8\u6B63\u5728\u52A0\u8F7D\u6216\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u540E\u5220\u9664");
+      const currentIds = new Set(getCommentListEntries().map((entry) => entry.id));
+      if (ids.some((id) => !currentIds.has(id))) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\u6216\u6279\u6CE8\u5DF2\u53D8\u66F4\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+      await componentCommentStore.removeMany(ids);
+    },
+    run: async (action, ids) => {
+      const revision = commentRestoreRevision;
+      await persistComments();
+      if (revision !== commentRestoreRevision) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+      await runCommentBatch(action, ids);
+    }
+  };
   function resolvePromptTargetRefsFromEditHistory() {
     return Array.from(state2.editMetaByKey.values()).filter(
       (meta) => services.persistence.getCommentTaskState?.(meta.elementKey) !== "completed" && (meta.dirtySince !== null || String(meta.note ?? "").trim() || Array.isArray(meta.images) && meta.images.length > 0)
@@ -34033,8 +35288,10 @@ ${externalSection}` : promptWithSkills;
             }
           },
           getCommentListEntries,
+          componentComments,
           getCommentListLoadState: () => commentListLoadState,
           commentListLoadingContent: options.ui.commentListLoadingContent,
+          commentListDockOrigin: options.ui.commentListDockOrigin,
           onRetryCommentList: async () => {
             const deleted = await restoreCommentList();
             services.agentBridge.discardDeletedElementStates?.(deleted);
@@ -35012,6 +36269,7 @@ function cloneTweakValues(values) {
 }
 function createPersistenceService(options) {
   const { state: state2, changes } = options;
+  state2.componentCommentsById ?? (state2.componentCommentsById = /* @__PURE__ */ new Map());
   const getResourceContext = options.getResourceContext ?? (() => null);
   const getHostPersistenceScope = options.getPersistenceScope ?? null;
   const persistenceAdapter = options.persistenceAdapter ?? null;
@@ -35019,6 +36277,8 @@ function createPersistenceService(options) {
   const getInteractionProfile = options.getInteractionProfile ?? (() => options.interactionProfile ?? "design");
   let cacheWriteTimer = null;
   let cacheRestoreInProgress = false;
+  let restoreSequence = 0;
+  let pendingRestoreSequence = null;
   let currentAdapterDocument = null;
   let lastAdapterDocument = null;
   let preserveMissingCurrentScopeRecordsOnNextWrite = false;
@@ -35168,7 +36428,7 @@ function createPersistenceService(options) {
         path: resolveStorageScope() ?? window.location.pathname ?? "",
         updatedAt,
         showMarkers: state2.changeMarkersVisible,
-        entries: entries.map((entry) => withCurrentPageScope(entry))
+        entries: entries.map((entry) => entry.componentComment && entry.pageScope ? entry : withCurrentPageScope(entry))
       };
       window.localStorage.setItem(key, JSON.stringify(payload));
     } catch {
@@ -35398,6 +36658,7 @@ function createPersistenceService(options) {
   function applyCurrentCommentStates(comments) {
     const currentStates = buildCurrentCommentStates();
     return comments.map((comment) => {
+      if (comment.componentComment) return { ...comment };
       const commentId = normalizeCommentId(comment.id);
       const currentState = commentId && isCurrentPageScopedRecord(comment) ? currentStates.get(commentId) : null;
       return {
@@ -35407,7 +36668,7 @@ function createPersistenceService(options) {
     });
   }
   function buildDocumentImages() {
-    return Array.from(state2.editMetaByKey.values()).filter((meta) => !meta.readOnly).flatMap(
+    const transactionImages = Array.from(state2.editMetaByKey.values()).filter((meta) => !meta.readOnly && !state2.componentCommentsById.has(meta.commentId || "")).flatMap(
       (meta) => meta.images.map((image) => {
         const commentId = ensureElementEditCommentId(meta);
         return withCurrentPageScope({
@@ -35423,15 +36684,18 @@ function createPersistenceService(options) {
         });
       })
     );
+    return [...transactionImages, ...Array.from(state2.componentCommentsById.values()).flatMap(
+      (record) => record.entry.deletedAt ? [] : record.images.map((image) => ({ ...withCurrentPageScope({ ...image, commentId: record.entry.id }), ...record.entry.pageScope ? { pageScope: record.entry.pageScope } : {} }))
+    )];
   }
   function cacheEntryToCommentEntry(entry) {
-    const { note, commentId, ...rest } = entry;
+    const { note, commentId, componentImages: _componentImages, ...rest } = entry;
     return {
       ...rest,
       elementKey: entry.elementKey,
       id: normalizeCommentId(commentId),
       state: isPrototypeEditCommentStatus(entry.state) ? entry.state : "idle",
-      ...note ? { comment: note } : {},
+      ...entry.componentComment || entry.purpose ? { comment: note ?? "" } : note ? { comment: note } : {},
       ...Array.isArray(entry.externalComments) ? { externalComments: entry.externalComments.map((comment) => ({ ...comment })) } : {}
     };
   }
@@ -35440,7 +36704,7 @@ function createPersistenceService(options) {
     return {
       ...rest,
       commentId: id,
-      ...comment ? { note: comment } : {},
+      ...comment || entry.componentComment || entry.purpose ? { note: comment ?? "" } : {},
       ...Array.isArray(entry.externalComments) ? { externalComments: entry.externalComments.map((comment2) => ({ ...comment2 })) } : {}
     };
   }
@@ -35475,9 +36739,10 @@ function createPersistenceService(options) {
       (lastAdapterDocument?.comments ?? []).map((entry) => [normalizeCommentId(entry.id), entry])
     );
     const currentComments = entries.map((entry) => {
-      const current = withCurrentPageScope(cacheEntryToCommentEntry(entry));
+      const source = cacheEntryToCommentEntry(entry);
+      const current = source.componentComment && source.pageScope ? source : withCurrentPageScope(source);
       const previous = previousCommentsById.get(normalizeCommentId(current.id));
-      return previous ? { ...previous, ...current } : current;
+      return previous ? { ...previous, ...current, ...current.componentComment ? { deletedAt: current.deletedAt } : {} } : current;
     }).filter((entry) => Boolean(normalizeCommentId(entry.id)));
     const currentImages = buildDocumentImages();
     const currentCommentIds = new Set(currentComments.map((entry) => entry.id));
@@ -35565,6 +36830,7 @@ function createPersistenceService(options) {
       normalizedImages.map((image) => normalizeCommentId(image.commentId)).filter(Boolean)
     );
     const normalizedComments = comments.filter((entry) => normalizeCommentId(entry.id) && !isDeletedRecord(entry)).filter((entry) => {
+      if (entry.componentComment || entry.purpose) return true;
       const hasSkillSelection = Array.isArray(entry.skillIds) && entry.skillIds.some((skillId) => String(skillId ?? "").trim());
       if (!hasSkillSelection) return true;
       return Boolean(
@@ -35612,6 +36878,7 @@ function createPersistenceService(options) {
   function clearCurrentPageRuntimeState() {
     state2.transactionManager?.clear?.();
     state2.editMetaByKey.clear();
+    state2.componentCommentsById.clear();
     state2.pendingMarkerAnchors.clear();
     state2.processedEditTimestampsByKey.clear();
     state2.selectionAnchor = null;
@@ -35910,6 +37177,8 @@ function createPersistenceService(options) {
       comments: sourceDocument.comments.map((comment, index) => index === commentIndex ? nextComment : comment)
     };
     commentStateByCommentId.set(commentId, normalizeCommentState(nextComment));
+    const componentComment = state2.componentCommentsById.get(commentId);
+    if (componentComment) componentComment.entry = nextComment;
     lastAdapterDocument = nextDocument;
     currentAdapterDocument = nextDocument;
     await enqueueTrackedAdapterWrite(
@@ -35938,6 +37207,15 @@ function createPersistenceService(options) {
     writeAdapterDocument(entries, reason, clearScope);
   }
   function buildCacheEntriesFromTransactions() {
+    return [
+      ...buildTransactionCacheEntries().filter((entry) => !state2.componentCommentsById.has(entry.commentId || "")),
+      ...Array.from(state2.componentCommentsById.values()).map((record) => ({
+        ...commentEntryToCacheEntry(record.entry),
+        componentImages: record.images.map((image) => ({ ...image }))
+      }))
+    ];
+  }
+  function buildTransactionCacheEntries() {
     const tm = state2.transactionManager;
     if (!tm) {
       return Array.from(state2.editMetaByKey.values()).filter((meta) => (!meta.readOnly || (meta.externalComments?.length ?? 0) > 0) && (meta.note || (meta.skillIds?.length ?? 0) > 0 || meta.anchor || (meta.externalComments?.length ?? 0) > 0)).map((meta) => ({
@@ -36107,11 +37385,11 @@ function createPersistenceService(options) {
     return entries;
   }
   function persistFromTransactions() {
-    if (cacheRestoreInProgress) return;
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null) return;
     writeCache(buildCacheEntriesFromTransactions());
   }
   function persistCommentStateDocument() {
-    if (cacheRestoreInProgress) return;
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null) return;
     writeAdapterDocument(buildCacheEntriesFromTransactions(), "state");
   }
   function getPersistedPrototypeCommentsDocument() {
@@ -36122,11 +37400,15 @@ function createPersistenceService(options) {
       window.clearTimeout(cacheWriteTimer);
       cacheWriteTimer = null;
     }
-    if (cacheRestoreInProgress) return;
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null) return;
     writeCache(buildCacheEntriesFromTransactions(), reason);
   }
+  function refreshLocalSnapshot() {
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null || commentPersistenceMode === "adapter-only") return;
+    writeLocalCache(buildCacheEntriesFromTransactions());
+  }
   function scheduleWrite() {
-    if (cacheRestoreInProgress) return;
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null) return;
     if (cacheWriteTimer !== null) {
       window.clearTimeout(cacheWriteTimer);
     }
@@ -36136,10 +37418,25 @@ function createPersistenceService(options) {
     }, 120);
   }
   function applyCachedEntries(entries) {
+    for (const entry of entries) {
+      if (!(entry.componentComment || entry.purpose) || !entry.commentId || !isCurrentPageScopedRecord(entry) || entry.deletedAt) continue;
+      state2.componentCommentsById.set(entry.commentId, {
+        entry: { ...cacheEntryToCommentEntry(entry), componentComment: true },
+        images: currentAdapterDocument ? currentAdapterDocument.images.filter((image) => image.commentId === entry.commentId && isCurrentPageScopedRecord(image)).map((image) => ({
+          ...image,
+          data: image.data || "",
+          name: image.name || "\u9644\u4EF6",
+          mimeType: image.mimeType || "image/png",
+          size: image.size || 0,
+          createdAt: image.createdAt || Date.now()
+        })) : entry.componentImages?.map((image) => ({ ...image })) ?? []
+      });
+    }
     const tm = state2.transactionManager;
     if (!tm) return;
     const annotationSourceNodeIds = collectAnnotationSourceNodeIdsFromWindow();
     for (const entry of entries) {
+      if (entry.componentComment || entry.purpose) continue;
       if (!isCurrentPageScopedRecord(entry)) {
         continue;
       }
@@ -36322,102 +37619,140 @@ function createPersistenceService(options) {
   }
   async function restoreCachedChanges() {
     if (typeof window === "undefined") return [];
-    const adapterResult = await readAdapterDocument();
-    let adapterDocument = adapterResult.document;
-    const deletedElementKeys = new Set(adapterResult.deletedElementKeys);
-    if (adapterDocument) {
-      lastAdapterDocument = adapterDocument;
-    }
-    if (adapterResult.observedTombstones.length > 0 && adapterDocument && persistenceAdapter?.write) {
-      const scope = resolvePersistenceScope();
-      if (scope) {
-        try {
-          const documentToCompact = adapterDocument;
-          await enqueueTrackedAdapterWrite(
-            scope,
-            () => persistenceAdapter.write(scope, documentToCompact, "restore", {
-              observedTombstones: adapterResult.observedTombstones
-            })
-          );
-          const refreshedResult = await readAdapterDocument();
-          if (refreshedResult.document) {
-            adapterDocument = refreshedResult.document;
-            lastAdapterDocument = adapterDocument;
-            refreshedResult.deletedElementKeys.forEach((elementKey) => {
-              deletedElementKeys.add(elementKey);
-            });
-          }
-        } catch (error) {
-          console.warn("[Commentary] Failed to compact restored prototype comments:", error);
-        }
-      }
-    }
-    const resetCurrentPageRuntimeState = () => {
-      clearCurrentPageRuntimeState();
-      if (adapterDocument) {
-        mergeAdapterCommentStates(adapterDocument);
-      }
-    };
-    const payload = adapterDocument ? {
-      version: CACHE_VERSION,
-      path: adapterDocument.resource.targetPath || resolveStorageScope() || "",
-      updatedAt: Date.now(),
-      showMarkers: state2.changeMarkersVisible,
-      entries: adapterDocument.comments.filter((entry) => isCurrentPageScopedRecord(entry)).map(commentEntryToCacheEntry)
-    } : commentPersistenceMode === "adapter-only" ? null : readCache();
-    if (!payload) {
-      resetCurrentPageRuntimeState();
-      return Array.from(deletedElementKeys);
-    }
-    const scopedEntries = payload.entries.filter((entry) => isCurrentPageScopedRecord(entry));
-    const annotationSourceNodeIds = collectAnnotationSourceNodeIdsFromWindow();
-    const restorableEntries = annotationSourceNodeIds ? scopedEntries.filter((entry) => {
-      const annotationPanelIdentity = normalizeAnnotationPanelCacheIdentity(entry.locator);
-      if (!annotationPanelIdentity) return true;
-      return annotationSourceNodeIds.has(annotationPanelIdentity.elementKey.replace(/^annotation-panel:/, ""));
-    }) : scopedEntries;
-    if (restorableEntries.length !== scopedEntries.length && commentPersistenceMode !== "adapter-only") {
-      writeLocalCache(restorableEntries, payload.updatedAt);
-    }
-    if (scopedEntries.length === 0) {
-      resetCurrentPageRuntimeState();
-      if (adapterDocument) {
-        if (commentPersistenceMode !== "adapter-only") {
-          writeLocalCache([], payload.updatedAt);
-        }
-      }
-      return Array.from(deletedElementKeys);
-    }
-    if (restorableEntries.length === 0) {
-      resetCurrentPageRuntimeState();
-      return Array.from(deletedElementKeys);
-    }
-    cacheRestoreInProgress = true;
-    currentAdapterDocument = adapterDocument;
+    const sequence = ++restoreSequence;
+    const originalScope = JSON.stringify([resolveStorageScope(), resolveCurrentPageScope()]);
+    const isCurrentRestore = () => sequence === restoreSequence && originalScope === JSON.stringify([resolveStorageScope(), resolveCurrentPageScope()]);
+    pendingRestoreSequence = sequence;
     try {
-      resetCurrentPageRuntimeState();
-      if (typeof payload.showMarkers === "boolean") {
-        state2.changeMarkersVisible = payload.showMarkers;
-        setMarkerVisibility(payload.showMarkers);
-      } else {
-        state2.changeMarkersVisible = readMarkerVisibility();
+      const adapterResult = await readAdapterDocument();
+      if (!isCurrentRestore()) return [];
+      let adapterDocument = adapterResult.document;
+      if (options.purgeLegacyComponentComments && getInteractionProfile() === "design" && resolvePersistenceScope()?.documentKind !== "document" && adapterDocument) {
+        const cleanup = clearLegacyComponentComments(adapterDocument);
+        if (cleanup.changed) {
+          const scope = resolvePersistenceScope();
+          if (scope && persistenceAdapter?.write) {
+            await enqueueTrackedAdapterWrite(scope, () => persistenceAdapter.write(scope, cleanup.document, "clear"));
+            if (!isCurrentRestore()) return [];
+          }
+          adapterDocument = cleanup.document;
+        }
       }
-      applyCachedEntries(restorableEntries);
-    } finally {
-      cacheRestoreInProgress = false;
-      currentAdapterDocument = null;
-    }
-    state2.propertyPanel?.refresh();
-    changes.syncEditMetaWithTransactions();
-    if (adapterDocument) {
-      preserveMissingCurrentScopeRecordsOnNextWrite = true;
-      if (commentPersistenceMode !== "adapter-only") {
-        writeLocalCache(buildCacheEntriesFromTransactions());
+      const deletedElementKeys = new Set(adapterResult.deletedElementKeys);
+      if (adapterDocument) {
+        lastAdapterDocument = adapterDocument;
       }
+      if (adapterResult.observedTombstones.length > 0 && adapterDocument && persistenceAdapter?.write) {
+        const scope = resolvePersistenceScope();
+        if (scope) {
+          try {
+            const documentToCompact = adapterDocument;
+            await enqueueTrackedAdapterWrite(
+              scope,
+              () => persistenceAdapter.write(scope, documentToCompact, "restore", {
+                observedTombstones: adapterResult.observedTombstones
+              })
+            );
+            if (!isCurrentRestore()) return [];
+            const refreshedResult = await readAdapterDocument();
+            if (!isCurrentRestore()) return [];
+            if (refreshedResult.document) {
+              adapterDocument = refreshedResult.document;
+              lastAdapterDocument = adapterDocument;
+              refreshedResult.deletedElementKeys.forEach((elementKey) => {
+                deletedElementKeys.add(elementKey);
+              });
+            }
+          } catch (error) {
+            console.warn("[Commentary] Failed to compact restored prototype comments:", error);
+          }
+        }
+      }
+      if (!isCurrentRestore()) return [];
+      const resetCurrentPageRuntimeState = () => {
+        clearCurrentPageRuntimeState();
+        if (adapterDocument) {
+          mergeAdapterCommentStates(adapterDocument);
+        }
+      };
+      let payload = adapterDocument ? {
+        version: CACHE_VERSION,
+        path: adapterDocument.resource.targetPath || resolveStorageScope() || "",
+        updatedAt: Date.now(),
+        showMarkers: state2.changeMarkersVisible,
+        entries: adapterDocument.comments.filter((entry) => isCurrentPageScopedRecord(entry)).map(commentEntryToCacheEntry)
+      } : commentPersistenceMode === "adapter-only" ? null : readCache();
+      if (!adapterDocument && payload && options.purgeLegacyComponentComments && getInteractionProfile() === "design" && resolvePersistenceScope()?.documentKind !== "document") {
+        const cleanup = clearLegacyComponentComments({
+          kind: "prototype-edit-comments",
+          comments: payload.entries.map(cacheEntryToCommentEntry),
+          images: payload.entries.flatMap((entry) => (entry.componentImages || []).map((image) => ({ ...image, commentId: entry.commentId })))
+        });
+        if (cleanup.changed) {
+          payload = { ...payload, entries: cleanup.document.comments.map((entry) => ({
+            ...commentEntryToCacheEntry(entry),
+            componentImages: cleanup.document.images.filter((image) => image.commentId === entry.id).map(({ commentId: _commentId, ...image }) => image)
+          })) };
+          writeLocalCache(payload.entries, payload.updatedAt);
+        }
+      }
+      if (!payload) {
+        resetCurrentPageRuntimeState();
+        return Array.from(deletedElementKeys);
+      }
+      const scopedEntries = payload.entries.filter((entry) => isCurrentPageScopedRecord(entry));
+      const annotationSourceNodeIds = collectAnnotationSourceNodeIdsFromWindow();
+      const restorableEntries = annotationSourceNodeIds ? scopedEntries.filter((entry) => {
+        const annotationPanelIdentity = normalizeAnnotationPanelCacheIdentity(entry.locator);
+        if (!annotationPanelIdentity) return true;
+        return annotationSourceNodeIds.has(annotationPanelIdentity.elementKey.replace(/^annotation-panel:/, ""));
+      }) : scopedEntries;
+      if (restorableEntries.length !== scopedEntries.length && commentPersistenceMode !== "adapter-only") {
+        writeLocalCache(restorableEntries, payload.updatedAt);
+      }
+      if (scopedEntries.length === 0) {
+        resetCurrentPageRuntimeState();
+        if (adapterDocument) {
+          if (commentPersistenceMode !== "adapter-only") {
+            writeLocalCache([], payload.updatedAt);
+          }
+        }
+        return Array.from(deletedElementKeys);
+      }
+      if (restorableEntries.length === 0) {
+        resetCurrentPageRuntimeState();
+        return Array.from(deletedElementKeys);
+      }
+      cacheRestoreInProgress = true;
+      currentAdapterDocument = adapterDocument;
+      try {
+        resetCurrentPageRuntimeState();
+        if (typeof payload.showMarkers === "boolean") {
+          state2.changeMarkersVisible = payload.showMarkers;
+          setMarkerVisibility(payload.showMarkers);
+        } else {
+          state2.changeMarkersVisible = readMarkerVisibility();
+        }
+        applyCachedEntries(restorableEntries);
+      } finally {
+        cacheRestoreInProgress = false;
+        currentAdapterDocument = null;
+      }
+      state2.propertyPanel?.refresh();
+      changes.syncEditMetaWithTransactions();
+      if (adapterDocument) {
+        preserveMissingCurrentScopeRecordsOnNextWrite = true;
+        if (commentPersistenceMode !== "adapter-only") {
+          writeLocalCache(buildCacheEntriesFromTransactions());
+        }
+        return Array.from(deletedElementKeys);
+      }
+      if (pendingRestoreSequence === sequence) pendingRestoreSequence = null;
+      persistFromTransactions();
       return Array.from(deletedElementKeys);
+    } finally {
+      if (pendingRestoreSequence === sequence) pendingRestoreSequence = null;
     }
-    persistFromTransactions();
-    return Array.from(deletedElementKeys);
   }
   function clearCachedChanges(kind) {
     const entries = buildCacheEntriesFromTransactions();
@@ -36427,6 +37762,10 @@ function createPersistenceService(options) {
     }
     const nextEntries = [];
     for (const entry of entries) {
+      if (entry.componentComment || entry.purpose) {
+        nextEntries.push(entry);
+        continue;
+      }
       const next = { locator: entry.locator };
       if (entry.commentId) next.commentId = entry.commentId;
       if (entry.elementKey) next.elementKey = entry.elementKey;
@@ -36454,9 +37793,12 @@ function createPersistenceService(options) {
     writeCache(nextEntries);
   }
   async function clearStorage(scope = "page", target = "all") {
+    restoreSequence++;
+    pendingRestoreSequence = null;
     const entries = buildCacheEntriesFromTransactions();
     const currentStates = buildCurrentCommentStates();
     const retainedEntries = target === "completed" ? entries.filter((entry) => {
+      if (entry.componentComment || entry.purpose) return entry.state !== "completed";
       const commentId = normalizeCommentId(entry.commentId);
       return (currentStates.get(commentId)?.state ?? entry.state) !== "completed";
     }) : [];
@@ -36464,8 +37806,13 @@ function createPersistenceService(options) {
       writeLocalCache(retainedEntries);
     }
     await persistAdapterDocument(retainedEntries, "clear", scope, target);
+    if (target === "all") state2.componentCommentsById.clear();
+    else for (const [id, record] of state2.componentCommentsById) {
+      if (record.entry.state === "completed") state2.componentCommentsById.delete(id);
+    }
   }
   return {
+    getCurrentPageScope: resolveCurrentPageScope,
     readMarkerVisibility,
     setMarkerVisibility,
     readCommentShortcutSettings,
@@ -36493,6 +37840,7 @@ function createPersistenceService(options) {
     scheduleWrite,
     persistFromTransactions,
     flushPendingWrite,
+    refreshLocalSnapshot,
     restoreCachedChanges,
     getPersistedPrototypeCommentsDocument,
     clearCachedChanges,
@@ -38669,6 +40017,22 @@ function createCommentary(options = {}) {
   }
   async function setNodeEditingState(elementKey, nextState, taskRef, targetRef) {
     const normalizedTaskRef = normalizeExternalTaskRef(taskRef);
+    const componentComment = targetRef?.commentId ? state2.componentCommentsById.get(targetRef.commentId) : null;
+    if (componentComment) {
+      const applied = transitionComponentComment(componentComment, nextState, normalizedTaskRef);
+      if (applied) {
+        const target = { elementKey, locator: componentComment.entry.locator, label: componentComment.entry.label || "\u7EC4\u4EF6" };
+        if (nextState === "editing") agentBridge?.setExternalEditingStateByElementKey?.(target, taskRef);
+        else if (nextState === "idle") agentBridge?.clearExternalEditingStateByElementKey?.(elementKey, taskRef);
+        else agentBridge?.setExternalEditingTerminalStateByElementKey?.(target, nextState, taskRef);
+        persistence?.flushPendingWrite("state");
+        await persistence?.waitForPendingWrites();
+        if (nextState === "editing") conversationTaskMonitor?.reconcile();
+        state2.propertyPanel?.refresh();
+        notifyStatusChange();
+      }
+      return { elementKey, state: nextState, applied, ...normalizedTaskRef ? { taskRef: normalizedTaskRef } : {} };
+    }
     const settlePersistedEditingTask = async () => {
       await persistence?.waitForPendingWrites();
       if (nextState === "editing") {
@@ -38890,6 +40254,7 @@ function createCommentary(options = {}) {
   persistence = createPersistenceService({
     state: state2,
     changes,
+    purgeLegacyComponentComments: resolvedOptions.interactionProfile === "design" && !resolvedOptions.ui.externalAnnotationMode,
     getResourceContext: resolvedOptions.host.getResourceContext,
     getPersistenceScope: resolvedOptions.host.getPersistenceScope,
     persistenceAdapter: resolvedOptions.host.persistenceAdapter,
@@ -39266,6 +40631,8 @@ function createWebEditorV2(options = {}) {
 }
 export {
   AXHUB_WEB_EDITOR_AGENT_REQUEST,
+  COMMENT_LIST_DOCK_MESSAGE,
+  CommentListView,
   GLOBAL_COMMENTARY_TWEAK_PROTOCOL_KEY,
   PROMPT_CARD_SKILLS,
   PROMPT_CARD_SKILL_OPTIONS,
@@ -39277,6 +40644,7 @@ export {
   createCommentary,
   createCommentaryTweakProtocol,
   createCommentaryVoiceTarget,
+  createEditorChromeCssVars,
   createWebEditorAgentRequestMessage,
   createWebEditorV2,
   ensureGlobalCommentaryTweakProtocol,
@@ -39284,6 +40652,7 @@ export {
   groupExternalCommentsByAuthor,
   installGlobalCommentaryReviewCommentProtocol,
   isAcpRuntimeEventStatus,
+  isCommentListDockState,
   isTerminalAcpRunState,
   isWebEditorAgentRequestMessage,
   matchesAcpRuntimeStatus,

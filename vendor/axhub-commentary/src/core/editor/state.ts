@@ -93,6 +93,7 @@ export interface WebEditorV2UiOptions {
   getAssistantPanelOpen?: () => boolean;
   onDocumentComponent?: (capture: import('../../web-editor-types').CommentaryDocumentComponentCapture) => Promise<boolean>;
   commentListLoadingContent?: ReactNode;
+  commentListDockOrigin?: string;
   onGenerateComponentStates?: (request: import('../../web-editor-types').CommentaryComponentStatesRequest) => Promise<boolean>;
   onPrepareAxureExport?: (payload: unknown) => Promise<boolean>;
   onHostToolbarAction?: (
@@ -402,6 +403,7 @@ export interface EditorRuntimeState {
   propertyPanelPosition: { left: number; top: number } | null;
   uiResizeCleanup: (() => void) | null;
   editMetaByKey: Map<WebEditorElementKey, ElementEditMeta>;
+  componentCommentsById: Map<string, import('./component-comments').ComponentCommentRecord>;
   deleteElementAnnotationsByTransactionId: Map<string, DeleteElementAnnotationLink>;
   processedEditTimestampsByKey: Map<WebEditorElementKey, number>;
   pendingMarkerAnchors: Map<WebEditorElementKey, MarkerAnchor>;
@@ -460,6 +462,7 @@ export function resolveWebEditorOptions(
       compactToolbar: false,
       toolbarExtraContent: null,
       commentListLoadingContent: null,
+      commentListDockOrigin: '',
       externalAnnotationMode: false,
       commenterName: '',
       onCommenterNameChange: undefined,
@@ -588,6 +591,7 @@ export function createEditorRuntimeState(): EditorRuntimeState {
     propertyPanelPosition: null,
     uiResizeCleanup: null,
     editMetaByKey: new Map(),
+    componentCommentsById: new Map(),
     deleteElementAnnotationsByTransactionId: new Map(),
     processedEditTimestampsByKey: new Map(),
     pendingMarkerAnchors: new Map(),
@@ -618,6 +622,7 @@ export function clearAnnotationBridgeSelection(state: EditorRuntimeState): void 
 export function resetEditorTransientState(state: EditorRuntimeState): void {
   clearAnnotationBridgeSelection(state);
   state.editMetaByKey.clear();
+  state.componentCommentsById?.clear();
   state.deleteElementAnnotationsByTransactionId.clear();
   state.processedEditTimestampsByKey.clear();
   state.pendingMarkerAnchors.clear();

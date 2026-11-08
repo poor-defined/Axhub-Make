@@ -12,6 +12,7 @@ class Toolbar extends EventTarget {
   style = {};
   parent: Toolbar | null = null;
   panels: { click: () => void }[] = [];
+  panelOpen = false;
   getAttribute(name: string) { return this.attributes.get(name) ?? null; }
   setAttribute(name: string, value: string) { this.attributes.set(name, value); }
   removeAttribute(name: string) { this.attributes.delete(name); }
@@ -19,13 +20,25 @@ class Toolbar extends EventTarget {
   insertBefore(child: Toolbar) { this.append(child); }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); }
   contains(child: Toolbar) { return child === this || this.children.includes(child); }
-  querySelector() { return null; }
+  querySelector(selector: string) { return this.panelOpen && selector.includes('aria-pressed') ? this : null; }
   querySelectorAll() { return this.panels; }
 }
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('unified right entry', () => {
+  it('rechecks actual native panel state after an action with no DOM or aria changes', () => {
+    const toolbar = new Toolbar(); let frame!: FrameRequestCallback;
+    vi.stubGlobal('window', { requestAnimationFrame: (callback: FrameRequestCallback) => { frame = callback; return 1; }, cancelAnimationFrame: vi.fn() });
+    vi.stubGlobal('MutationObserver', class { observe() {} disconnect() {} });
+    const doc = { documentElement: {}, getElementById: () => ({ shadowRoot: { querySelector: () => toolbar } }), createElement: () => new Toolbar() };
+    const panelsChanged = vi.fn();
+    const bridge = connectAnnotationToolbar(doc as unknown as Document, vi.fn(), vi.fn(), panelsChanged);
+    panelsChanged.mockClear(); toolbar.dispatchEvent(new Event('click'));
+    expect(frame).toBeTypeOf('function'); frame(0);
+    expect(panelsChanged).toHaveBeenLastCalledWith(false);
+    bridge.dispose();
+  });
   it('recognizes portal controls as editor UI so component deletion and save hotkeys ignore them', () => {
     class PortalElement {
       constructor(readonly inPortal: boolean) {}
@@ -48,8 +61,12 @@ describe('unified right entry', () => {
       observe = observe; disconnect = disconnect;
     });
     const doc = { documentElement: {}, getElementById: () => ({ shadowRoot: shadow }), createElement: () => new Toolbar() };
-    const changed = vi.fn(); const nativeOpen = vi.fn();
-    const bridge = connectAnnotationToolbar(doc as unknown as Document, changed, nativeOpen);
+    const changed = vi.fn(); const nativeOpen = vi.fn(); const panelsChanged = vi.fn();
+    const bridge = connectAnnotationToolbar(doc as unknown as Document, changed, nativeOpen, panelsChanged);
+    expect(panelsChanged).toHaveBeenLastCalledWith(false);
+    toolbar.panelOpen = true; notify();
+    expect(panelsChanged).toHaveBeenLastCalledWith(true);
+    toolbar.panelOpen = false; notify();
     expect(changed).toHaveBeenLastCalledWith(toolbar.children[1]);
     expect(toolbar.children).toContain(nativeAction);
     expect(toolbar.getAttribute('data-we-selection-lock-root')).toBe('true');

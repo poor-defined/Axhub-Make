@@ -219,6 +219,11 @@ export interface PromptCardViewProps
   onPinnedToTopRightChange?: (pinned: boolean) => void;
   propertyPanelOpen?: boolean;
   commentListOpen?: boolean;
+  componentComments?: import('../../core/editor/component-comments').ComponentCommentApi;
+  getCommentListLoadState?: () => import('../../core/editor/comment-batch').CommentListLoadState;
+  commentListLoadingContent?: React.ReactNode;
+  onRetryCommentList?: () => Promise<void>;
+  commentEditRequest?: { id: string; purpose: import('../../core/editor/component-comments').ComponentCommentPurpose; revision: number };
   onCommentSaved?: () => void;
   onPersistComments?: () => Promise<void>;
   anchorRect: ViewportRect | null;

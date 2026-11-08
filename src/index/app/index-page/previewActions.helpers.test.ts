@@ -212,6 +212,15 @@ describe('previewActions.helpers', () => {
     expect(resolveAnnotationActionEditingTargets({ type: 'send-to-agent', elementKey: 'a', locator })[0].preserveOnAutoClear).toBeUndefined();
   });
 
+  it('retains two distinct comment identities on the same component for execution state updates', () => {
+    const locator = { selectors: ['button'], fingerprint: 'button', path: [0] };
+    const targets = resolveAnnotationActionEditingTargets({ type: 'send-to-agent', preserveOnAutoClear: true,
+      targets: [{ elementKey: 'same', commentId: 'one', locator }, { elementKey: 'same', commentId: 'two', locator }],
+    });
+    expect(targets.map(target => target.commentId)).toEqual(['one', 'two']);
+    expect(targets.map(target => target.targetRef.commentId)).toEqual(['one', 'two']);
+  });
+
   it('does not reuse the primary comment identity for another selected element', () => {
     const locator = { selectors: ['button'], fingerprint: 'button', path: [0] };
     expect(resolveAnnotationActionEditingTargets({

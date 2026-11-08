@@ -476,7 +476,7 @@ export function resolveAnnotationActionEditingTargets(
     commentId?: string;
     preserveOnAutoClear?: boolean;
     elementKey: string;
-    targetRef: { locator: ElementLocator | null; label: string };
+    targetRef: { locator: ElementLocator | null; label: string; commentId?: string };
 }> {
     if (action?.type === 'send-to-agent') {
         if (Array.isArray(action.targets) && action.targets.length > 0) {
@@ -488,7 +488,8 @@ export function resolveAnnotationActionEditingTargets(
                     ...(action.preserveOnAutoClear === true ? { preserveOnAutoClear: true } : {}),
                     ...member,
                 }, modifiedElements);
-                if (target && !members.has(target.elementKey)) members.set(target.elementKey, target);
+                const identity = target?.commentId || target?.elementKey;
+                if (target && identity && !members.has(identity)) members.set(identity, target);
             }
             if (members.size > 0) return Array.from(members.values());
         }
@@ -505,6 +506,7 @@ export function resolveAnnotationActionEditingTargets(
                     : {}),
                 elementKey,
                 targetRef: {
+                    ...(action.preserveOnAutoClear && commentId ? { commentId } : {}),
                     locator: action.locator ?? null,
                     label: String(action.label || '').trim() || elementKey,
                 },

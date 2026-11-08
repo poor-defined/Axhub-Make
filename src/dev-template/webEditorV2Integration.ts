@@ -1125,6 +1125,7 @@ export function createPrototypeCommentsPersistenceAdapter(options: {
   getPublishedCommenterName?: () => unknown;
   getPublishedCommenterToken?: () => unknown;
   getMockExternalCommentsEnabled?: () => unknown;
+  getPurgeLegacyComponentComments?: () => boolean;
 } = {}): PrototypeEditCommentsPersistenceAdapter {
   const configuredPublishedShareId = () => normalizeString(options.getPublishedShareId?.());
   const mockExternalCommentsEnabled = () => (
@@ -1183,15 +1184,15 @@ export function createPrototypeCommentsPersistenceAdapter(options: {
     );
   };
 
-  const readDocument = async (url: string): Promise<PrototypeEditCommentsDocument | null> => {
+  const readDocument = async (url: string, purgeLegacyComponents = false): Promise<PrototypeEditCommentsDocument | null> => {
     if (!url) return null;
     const publishedHeaders = resolvePublishedHeaders();
     const response = await fetch(url, {
-      method: 'GET',
+      method: purgeLegacyComponents ? 'POST' : 'GET',
       ...(Object.keys(publishedHeaders).length ? { headers: publishedHeaders } : {}),
     });
-    if (!response.ok) return null;
-    const payload = await response.json().catch(() => null) as {
+    if (!response.ok) throw new Error(`Failed to read prototype comments: ${response.status}`);
+    const payload = await response.json() as {
       exists?: boolean;
       document?: PrototypeEditCommentsDocument | null;
     } | null;
@@ -1201,13 +1202,14 @@ export function createPrototypeCommentsPersistenceAdapter(options: {
   return {
     async read(scope) {
       try {
+        const purgeLegacyComponents = !configuredPublishedShareId() && options.getPurgeLegacyComponentComments?.() === true && scope.documentKind !== 'document';
         const document = normalizePublishedReviewerDocument(
-          await readDocument(await resolveRequestUrl(scope, { hydrateImages: '1' })),
+          await readDocument(await resolveRequestUrl(scope, { hydrateImages: '1', ...(purgeLegacyComponents ? { purgeLegacyComponents: '1' } : {}) }), purgeLegacyComponents),
         );
         return mockExternalCommentsEnabled() ? addMockExternalComments(document) : document;
       } catch (error) {
         console.warn('[MakeWebEditor] Failed to read prototype comments:', error);
-        return null;
+        throw error;
       }
     },
     async write(scope, document, reason, context) {
@@ -2020,6 +2022,8 @@ export const createWebEditorV2Controller = (
       const canDelegateHostToolbarActions = resolvedToolbarMode === 'host'
         && canUseParentHostToolbarBridge();
       const resolvedUi = {
+        ...(canDelegateHostToolbarActions && normalizeMakeServerOrigin(runtimeMakeServerOrigin)
+          ? { commentListDockOrigin: normalizeMakeServerOrigin(runtimeMakeServerOrigin) } : {}),
         commentListLoadingContent: createElement(PageSkeleton, { variant: 'list', label: '正在加载批注' }),
         breadcrumbs: true,
         propertyPanel: true,
@@ -2136,6 +2140,7 @@ export const createWebEditorV2Controller = (
           persistenceAdapter:
             options.host?.persistenceAdapter
             ?? createPrototypeCommentsPersistenceAdapter({
+              getPurgeLegacyComponentComments: () => (resolvedInteractionProfile ?? 'design') === 'design' && !publishedAnnotationSession,
               getProjectId: () => runtimeAnnotationProjectId,
               getMakeServerOrigin: () => runtimeMakeServerOrigin,
               getPublishedShareId: () => {

@@ -1,5 +1,6 @@
 import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { PreviewIframe } from '@/components/ui/preview-iframe';
+import { CommentListWorkspace } from './CommentListWorkspace';
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ChevronDown, CircleHelp, Copy, ExternalLink, FileIcon, Globe, ImageIcon, LayoutDashboard, Monitor, Network, PencilRuler, Play, Rocket, SlidersHorizontal, Smartphone, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
@@ -3088,8 +3089,10 @@ export default function ContentArea({
     }
 
     return (
-        <div
+      <CommentListWorkspace frameRef={previewIframeRef} resourceKey={`${elementIframeKey}:${primaryIframeUrl}`} active={viewMode === 'demo'}>
+       {docked => <div
             ref={containerRef}
+            style={{ width: docked ? 'calc(100% - 320px)' : '100%' }}
             className={cn(
                 "relative h-full min-h-0 min-w-0 flex items-start justify-center bg-muted/20",
                 previewLayout.mode === 'split' || previewLayout.mode === 'multi-page' ? 'overflow-hidden' : 'overflow-auto',
@@ -3317,6 +3320,7 @@ export default function ContentArea({
                     </div>
                 )
             )}
-        </div>
+        </div>}
+      </CommentListWorkspace>
     );
 }

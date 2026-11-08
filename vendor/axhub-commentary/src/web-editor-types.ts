@@ -489,6 +489,8 @@ export interface CommentaryExternalEditingTaskRef {
 }
 
 export interface CommentaryExternalEditingTargetRef {
+  /** Optional independent component-comment identity for record-scoped execution. */
+  commentId?: string;
   locator?: ElementLocator | null;
   label?: string | null;
 }
@@ -530,6 +532,10 @@ export interface PrototypeEditCommentMarkerEntry {
 
 export interface PrototypeEditCommentEntry {
   id: string;
+  /** Component composer records are independent of DOM edit transactions. */
+  componentComment?: boolean;
+  purpose?: import('./core/editor/component-comments').ComponentCommentPurpose | (string & {});
+  createdAt?: number;
   /** Stable node identity used by external review comments and execution context. */
   elementKey?: WebEditorElementKey;
   deletedAt?: number | null;

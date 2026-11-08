@@ -35,9 +35,9 @@ macOS 双击桌面“启动 Axhub Make 开发分支.command”，或在仓库运
 
 REQ-011：在“设计”之后的“参考”Tab 导入当前页面链接、ZIP 或单个 HTML。ZIP 可指定入口，并在预览顶部切换 HTML 页面；链接默认只缓存当前页及静态依赖。缓存保存在项目 `.axhub/make/references/`，手动导入的源页面变更后需重新导入。动态生成的外部依赖可能无法缓存，完整 Axure 发布目录建议用 ZIP 导入；“打开来源”可浏览原始页面。
 
-普通原型和参考页共用组件批注输入框。单选组件后点击“引入说明”，选择当前项目 `src/resources/` 内的 Markdown PRD，再手动生成、编辑预览并确认追加。截图是真实组件截图，未提供的业务规则标为“待确认”；重复引入仍追加文末。图片保存在 PRD 同级 `assets/component-<UUID>.png`，复制或导出 PRD 时一并携带 `assets/`。参考页的“AI 生成原型”先在宿主窗口预览修改要求，确认后交给 AI 按线框图规则修改缓存 HTML；修改后刷新参考页再截图。多状态及长内容仍由用户先要求 AI 平铺，REQ-012 的批注目录和批量暂存不在本次范围内。
+普通原型和参考页的单组件批注窗口提供“生成新原型”“修改原型”“引入说明”三个用途 Tab，各自保留独立草稿、技能与附件。暂存成功后加入右侧列表并准备下一条，同一组件同一用途可以保存多条批注；列表支持用途筛选、编辑、删除及同用途批量发送。导出按钮沿用选中组件导出，不触发 AI。选择“引入说明”并发送后，选择当前项目 `src/resources/` 内的 Markdown PRD，再手动生成、编辑预览并确认追加。截图是真实组件截图，未提供的业务规则标为“待确认”；重复引入仍追加文末。图片保存在 PRD 同级 `assets/component-<UUID>.png`，复制或导出 PRD 时一并携带 `assets/`。参考页修改原型仍通过原宿主确认流程修改缓存 HTML；修改后刷新参考页再截图。
 
-单选组件后可勾选“生成到新原型”，填写所需状态（例如 Header 的未登录、已登录、菜单展开），点击“生成组件状态”。宿主窗口展示真实组件截图，可调整新原型名称、状态要求，选择“同页平铺”或“交互切换”；只有点击“确认生成”才创建独立原型并调用已配置的批注 AI。新页面展示原始状态、其他状态及触发条件、变化说明，未知业务规则标为待确认，来源页不进入本次修改执行路径。生成任务可后台运行，完成后打开新原型继续批注；失败重试复用目标，创建响应中断时也使用同一任务标识恢复。来源截图、元信息和确认的主规格保存在新原型中。状态容器遵循共享命名表的 component 作用域，避免复制原 PRD 截图身份。选区改变时勾选项重置，仅支持一个组件或容器。定向回归：`pnpm exec vitest run src/common/componentStates.test.ts src/index/domains/prototype-generation/componentStatesSession.test.ts src/index/domains/prototype-generation/useComponentStates.test.ts src/index/components/dialogs/ComponentStatesDialog.test.ts src/server/__tests__/component-states-api.test.ts`。
+单选组件后进入“生成新原型”Tab，填写所需状态（例如 Header 的未登录、已登录、菜单展开），点击“发送”。宿主窗口展示真实组件截图，可调整新原型名称、状态要求，选择“同页平铺”或“交互切换”；只有点击“确认生成”才创建独立原型并调用已配置的批注 AI。新页面展示原始状态、其他状态及触发条件、变化说明，未知业务规则标为待确认，来源页不进入本次修改执行路径。生成任务可后台运行，完成后打开新原型继续批注；失败重试复用目标，创建响应中断时也使用同一任务标识恢复。来源截图、元信息和确认的主规格保存在新原型中。状态容器遵循共享命名表的 component 作用域，避免复制原 PRD 截图身份。三个用途切换时保留各自草稿，生成新原型仅支持一个组件或容器。定向回归：`pnpm exec vitest run src/common/componentStates.test.ts src/index/domains/prototype-generation/componentStatesSession.test.ts src/index/domains/prototype-generation/useComponentStates.test.ts src/index/components/dialogs/ComponentStatesDialog.test.ts src/server/__tests__/component-states-api.test.ts`。
 
 页面加载统一使用 Skeleton：预览、文档、列表、表格、画布、模板卡片和配置表单使用对应布局，支持暗色、窄屏及 `prefers-reduced-motion`。共用布局和样式维护在 `src/common/loadingSkeleton.ts`，React 通过 `PageSkeleton`／`PreviewIframe` 使用，独立管理模板在开发／构建时展开首屏标记，便携客户端模板内置无外部依赖的首屏骨架。iframe 始终保留真实 DOM 引用及加载回调，导航加载期间不允许操作尚未显示的内容；成功或错误后撤下遮罩。旧“正在等待生成”页由预览 bootstrap 临时装饰，仅接受整页唯一且可见的精确旧占位，生成内容出现或根节点移除后自动撤下，不修改项目原型源文件。按钮操作、上传进度、错误和空状态保持独立反馈。基础回归：`pnpm exec vitest run src/common/loadingSkeleton.test.ts src/components/ui/preview-iframe.test.ts`。
 
@@ -62,6 +62,16 @@ REQ-009：选中元素后，使用批注卡片的“仅导出选中元素到 Axu
 选区实现位于 `vendor/axhub-commentary/src/axure-selection.ts`、`design-tool-export.ts` 与 `core/editor/selection-export.ts`。运行 `pnpm exec vitest run src/vendor/axhub-commentary src/index/domains/export src/common/axureTreeOrganization.test.ts` 可验证选择快照、合并、真实采集器与整理流程。可用 `REQ009_SMOKE_OUTPUT=/tmp/req009-selection.json pnpm exec vitest run src/vendor/axhub-commentary/selection-axure-real-core.test.ts` 保存两个虚构矩形的真实采集/合并/分组样本，用于本机 Axure Bridge 粘贴验证；默认测试不写剪贴板。
 
 修改 `vendor/axhub-commentary/src/` 后，运行 `pnpm vendor:build:commentary` 更新实际运行的包；相关回归测试使用 `pnpm exec vitest run src/vendor/axhub-commentary`。
+
+批注列表标题栏的 Pin 可将列表固定到 Make 工作区最右侧。固定态由外层宿主承载，跨源或居中的自定义尺寸 iframe 保持原实例、设备逻辑宽度和未暂存草稿，画布使用剩余空间；宿主握手失败时回退到原型内列表。再次点击恢复浮动，固定偏好刷新后保留。关闭列表后重开保留同页勾选，切页清空勾选。页面目录、文档目录与批注列表互斥；窄屏沿用上下布局，不压缩画布。勾选后点击底部“删除”，确认数量即可批量删除，支持跨用途和失效组件的批注；执行中的批注受保护。删除失败会恢复记录和勾选，保留重试入口。更新此宿主布局后需刷新整个管理页面。
+
+预览内容区底部提供画布工具栏：放大、缩小、10%–300% 预设比例、适应宽度、重置到 100% 与拖动模式。支持 Ctrl/Command + 滚轮以指针为中心缩放、Ctrl/Command + 加减号、Ctrl/Command + 0 重置、Shift + 1 适应宽度，以及空格或鼠标中键拖动。输入框保留文字编辑行为，批注列表与工具栏保持正常尺寸；拖动不触发页面按钮。切页复位视图，同页目录关闭后恢复原来的缩放和平移，退出编辑后恢复页面原始样式。
+
+批注用途 Tab 的隔离浏览器回归：`pnpm test:frontend:comment-purpose-tabs`。需要 Node.js 22+ 和本机 Chromium；macOS 自动使用已安装的 Playwright Chromium 或 Google Chrome，其他环境通过 `AXHUB_CHROME_BIN` 指定浏览器可执行文件。测试创建临时页面和独立浏览器配置，挂载真实批注运行时及原生目录，覆盖三类草稿、重复暂存、编辑删除、真实截图、请求路由、状态隔离、Pin 画布让位与目录切换、固定偏好刷新恢复、跨用途批量删除及失败回滚重试，不调用真实 AI。可设置 `COMMENT_PURPOSE_SCREENSHOTS=/tmp/comment-purpose-screenshots` 保存固定列表、原生目录、窄屏和深色截图。
+
+升级到用途 Tab 后，普通组件批注加载时会自动清除旧格式组件批注及其无引用附件，不提供迁移入口。新用途记录、独立文字/样式修改、文字批注、语音及外部评审数据保留。
+
+三个用途均支持不填写文字直接暂存，列表显示“未填写指示”，之后可编辑补充。同一组件可暂存多条空批注，纯空白输入归一化为空；技能和附件照常保留，刷新后记录仍存在。编辑已有批注并清空文字也会保存空值。暂存不会调用 AI，直接发送仍沿用填写指示的要求。
 
 管理端页面、服务端 API 和运行时注入必须通过完整开发服务器一起启动：
 

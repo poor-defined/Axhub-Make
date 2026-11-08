@@ -68,6 +68,31 @@ afterEach(() => {
 });
 
 describe('prototype comments API', () => {
+  it('purges legacy component comments and files while keeping all new purpose records', async () => {
+    const projectRoot = createTempRoot('axhub-make-purpose-cleanup-'); writePrototypeProject(projectRoot);
+    const server = await startActivatedProjectServer(projectRoot);
+    const locator = { selectors: ['button'], fingerprint: 'button', path: [] };
+    try {
+      const url = scopeProjectApiUrl(projectRoot, `${server.origin}/api/prototype-comments?targetPath=prototypes/home`);
+      const write = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: 'changes', document: {
+        schemaVersion: 3, kind: 'prototype-edit-comments', resource: {}, comments: [
+          { id: 'old', locator, state: 'idle', comment: 'old' },
+          { id: 'new-a', locator, state: 'idle', componentComment: true, purpose: 'modify-prototype', comment: 'keep a' },
+          { id: 'new-b', locator, state: 'idle', componentComment: true, purpose: 'generate-prototype', comment: 'keep b' },
+        ], images: [{ id: 'old-image', commentId: 'old', data: PNG_DATA_URL }, { id: 'new-image', commentId: 'new-a', data: PNG_DATA_URL }],
+      } }) });
+      expect(write.status).toBe(200);
+      const oldAsset = path.join(prototypeCommentStorage(projectRoot).assetDir, 'old-image.png');
+      expect(fs.existsSync(oldAsset)).toBe(true);
+      const purge = await fetch(`${url}&purgeLegacyComponents=1`, { method: 'POST' });
+      expect(purge.status).toBe(200);
+      const result = await purge.json();
+      expect(result.document.comments.map((entry: { id: string }) => entry.id)).toEqual(['new-a', 'new-b']);
+      expect(result.document.images.map((entry: { id: string }) => entry.id)).toEqual(['new-image']);
+      expect(fs.existsSync(oldAsset)).toBe(false);
+      expect(fs.existsSync(path.join(prototypeCommentStorage(projectRoot).assetDir, 'new-image.png'))).toBe(true);
+    } finally { await server.close(); }
+  });
   it('returns exists:false when the prototype comments file is missing', async () => {
     const projectRoot = createTempRoot('axhub-make-prototype-comments-');
     writePrototypeProject(projectRoot);

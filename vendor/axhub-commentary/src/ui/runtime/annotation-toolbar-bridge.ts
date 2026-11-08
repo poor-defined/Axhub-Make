@@ -3,14 +3,26 @@ export function connectAnnotationToolbar(
   ownerDocument: Document,
   onMountChange: (mount: HTMLElement | null) => void,
   onNativeAction: () => void,
+  onPanelsChange?: (open: boolean) => void,
 ): { closePanels: () => void; dispose: () => void } {
   let toolbar: HTMLElement | null = null;
   let mount: HTMLElement | null = null;
   let observedShadow: ShadowRoot | null = null;
   let previousSelectionLock: string | null = null;
   let closingPanels = false;
+  let actionFrame = 0;
+  let disposed = false;
   const handleNativeClick = (event: Event) => {
-    if (!closingPanels && !event.composedPath().includes(mount as EventTarget)) onNativeAction();
+    if (closingPanels || event.composedPath().includes(mount as EventTarget)) return;
+    onNativeAction();
+    // Some native actions open no panel and change no DOM. Always resolve their
+    // actual state after the native React click has finished.
+    if (typeof window !== 'undefined') {
+      window.cancelAnimationFrame(actionFrame);
+      actionFrame = window.requestAnimationFrame(() => {
+        if (!disposed) onPanelsChange?.(Boolean(toolbar?.querySelector('.axhub-annotation-edge-button[aria-pressed="true"], .axhub-annotation-edge-button[aria-expanded="true"]')));
+      });
+    }
   };
   const detach = () => {
     toolbar?.removeEventListener('click', handleNativeClick, true);
@@ -25,10 +37,11 @@ export function connectAnnotationToolbar(
     if (shadow !== observedShadow) {
       observer.disconnect();
       observer.observe(ownerDocument.documentElement, { childList: true, subtree: true });
-      if (shadow) observer.observe(shadow, { childList: true, subtree: true });
+      if (shadow) observer.observe(shadow, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-pressed', 'aria-expanded'] });
       observedShadow = shadow;
     }
     const next = shadow?.querySelector<HTMLElement>('.axhub-annotation-edge-toolbar') ?? null;
+    onPanelsChange?.(Boolean(next?.querySelector('.axhub-annotation-edge-button[aria-pressed="true"], .axhub-annotation-edge-button[aria-expanded="true"]')));
     if (next === toolbar && (!mount || toolbar?.contains(mount))) return;
     detach();
     toolbar = next;
@@ -59,6 +72,6 @@ export function connectAnnotationToolbar(
         ).forEach(button => button.click());
       } finally { closingPanels = false; }
     },
-    dispose() { observer.disconnect(); detach(); },
+    dispose() { disposed = true; if (typeof window !== 'undefined') window.cancelAnimationFrame(actionFrame); observer.disconnect(); detach(); },
   };
 }

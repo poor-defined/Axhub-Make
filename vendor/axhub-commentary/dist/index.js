@@ -30,6 +30,8 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var index_exports = {};
 __export(index_exports, {
   AXHUB_WEB_EDITOR_AGENT_REQUEST: () => AXHUB_WEB_EDITOR_AGENT_REQUEST,
+  COMMENT_LIST_DOCK_MESSAGE: () => COMMENT_LIST_DOCK_MESSAGE,
+  CommentListView: () => CommentListView,
   GLOBAL_COMMENTARY_TWEAK_PROTOCOL_KEY: () => GLOBAL_COMMENTARY_TWEAK_PROTOCOL_KEY,
   PROMPT_CARD_SKILLS: () => PROMPT_CARD_SKILLS,
   PROMPT_CARD_SKILL_OPTIONS: () => PROMPT_CARD_SKILL_OPTIONS,
@@ -41,6 +43,7 @@ __export(index_exports, {
   createCommentary: () => createCommentary,
   createCommentaryTweakProtocol: () => createCommentaryTweakProtocol,
   createCommentaryVoiceTarget: () => createCommentaryVoiceTarget,
+  createEditorChromeCssVars: () => createEditorChromeCssVars,
   createWebEditorAgentRequestMessage: () => createWebEditorAgentRequestMessage,
   createWebEditorV2: () => createWebEditorV2,
   ensureGlobalCommentaryTweakProtocol: () => ensureGlobalCommentaryTweakProtocol,
@@ -48,6 +51,7 @@ __export(index_exports, {
   groupExternalCommentsByAuthor: () => groupExternalCommentsByAuthor,
   installGlobalCommentaryReviewCommentProtocol: () => installGlobalCommentaryReviewCommentProtocol,
   isAcpRuntimeEventStatus: () => isAcpRuntimeEventStatus,
+  isCommentListDockState: () => isCommentListDockState,
   isTerminalAcpRunState: () => isTerminalAcpRunState,
   isWebEditorAgentRequestMessage: () => isWebEditorAgentRequestMessage,
   matchesAcpRuntimeStatus: () => matchesAcpRuntimeStatus,
@@ -88,6 +92,880 @@ var WEB_EDITOR_V1_ACTIONS = {
   STOP: "web_editor_stop",
   APPLY: "web_editor_apply"
 };
+
+// src/ui/runtime/comment-list-view.tsx
+var import_react = __toESM(require("react"), 1);
+
+// src/ui/csp-nonce.ts
+function resolveCspNonce(ownerDocument) {
+  const documentRef = ownerDocument ?? (typeof document !== "undefined" ? document : null);
+  if (!documentRef) return void 0;
+  const metaNonce = typeof documentRef.querySelector === "function" ? documentRef.querySelector('meta[name="csp-nonce"], meta[property="csp-nonce"]')?.getAttribute("content")?.trim() : void 0;
+  if (metaNonce) return metaNonce;
+  if (typeof documentRef.querySelectorAll === "function") {
+    for (const element of Array.from(documentRef.querySelectorAll("style"))) {
+      const nonce = element.nonce?.trim();
+      if (nonce) return nonce;
+    }
+  }
+  if (typeof documentRef.querySelectorAll === "function") {
+    for (const element of Array.from(documentRef.querySelectorAll("script"))) {
+      const nonce = element.nonce?.trim();
+      if (nonce) return nonce;
+    }
+  }
+  return void 0;
+}
+
+// src/ui/runtime/theme.ts
+var ANCHOR_GAP_PX = 12;
+var SAFE_PADDING_PX = 12;
+var PAGE_CONFIG_PANEL_MIN_WIDTH = 232;
+var PAGE_CONFIG_PANEL_MAX_WIDTH = 360;
+var PAGE_CONFIG_PANEL_WIDTH = 248;
+var PROPERTY_PANEL_WIDTH = PAGE_CONFIG_PANEL_WIDTH;
+var PROPERTY_PANEL_RADIUS = 20;
+var PROPERTY_PANEL_TOP = 24;
+var PROPERTY_PANEL_RIGHT = 16;
+var TOOLBAR_BOTTOM = 24;
+var PROPERTY_PANEL_EXPANDED_HEIGHT_PX = PROPERTY_PANEL_TOP + TOOLBAR_BOTTOM;
+var PROPERTY_PANEL_EXPANDED_HEIGHT = `calc(100vh - ${PROPERTY_PANEL_TOP + TOOLBAR_BOTTOM}px)`;
+var PROMPT_CARD_WIDTH = 280;
+var PROMPT_CARD_ESTIMATED_HEIGHT = 104;
+var TEXT_INPUT_PLACEHOLDER = "\u7F16\u8F91\u5F53\u524D\u6587\u672C";
+var FLOATING_CLAMP_MARGIN = 16;
+var POPUP_LAYER_Z_INDEX = 10040;
+var HEADER_HORIZONTAL_PADDING = 10;
+var HEADER_VERTICAL_PADDING = 8;
+var HEADER_CONTROL_SIZE = 28;
+var COMPACT_TOOL_SIZE = 44;
+var COMPACT_TOOLBAR_WIDTH = 251;
+var COMPACT_TOOLBAR_HEIGHT = 44;
+var WEB_EDITOR_POPUP_ROOT_ATTR = "data-we-popup-root";
+var ACTION_ICON_SIZE = 15;
+var ACTION_ICON_STROKE = 1.8;
+var ACTION_BUTTON_SIZE = 28;
+var WEB_EDITOR_V2_PASTE_DEBUG_KEY = "__WEB_EDITOR_V2_PASTE_DEBUG__";
+var BRAND_PRIMARY = "#008F5D";
+var BRAND_PRIMARY_HOVER = "#00A36A";
+var BRAND_PRIMARY_ACTIVE = "#007A4F";
+var BRAND_PRIMARY_SOFT = "rgba(0, 143, 93, 0.16)";
+var BRAND_PRIMARY_RING = "rgba(0, 143, 93, 0.28)";
+var BRAND_PRIMARY_SHADOW = "rgba(0, 143, 93, 0.28)";
+var BRAND_ACCENT = "#00D68F";
+var SLEEPING_ICON = "#A1A1AA";
+var SLEEPING_ICON_STRONG = "#71717A";
+var WEB_EDITOR_PARENT_PASTE_BRIDGE_CLEANUP_KEY = "__webEditorV2ParentPasteBridgeCleanup__";
+var LIGHT_EDITOR_CHROME = {
+  accent: BRAND_PRIMARY,
+  accentBright: BRAND_ACCENT,
+  accentHover: BRAND_PRIMARY_HOVER,
+  accentActive: BRAND_PRIMARY_ACTIVE,
+  accentSoft: BRAND_PRIMARY_SOFT,
+  accentRing: BRAND_PRIMARY_RING,
+  surface: "#FFFFFF",
+  surfaceElevated: "#FFFFFF",
+  surfaceMuted: "#FAFAFA",
+  surfaceInteractive: "#F4F4F5",
+  surfaceOverlay: "rgba(255, 255, 255, 0.96)",
+  border: "rgba(39, 39, 42, 0.10)",
+  borderStrong: "rgba(39, 39, 42, 0.16)",
+  divider: "rgba(228, 228, 231, 0.95)",
+  textPrimary: "#18181B",
+  textSecondary: "#3F3F46",
+  textMuted: "#A1A1AA",
+  textSleeping: "#A1A1AA",
+  textSleepingStrong: "#71717A",
+  textDanger: "#DC2626",
+  hoverSubtle: "rgba(244, 244, 245, 1)",
+  hoverGhost: "rgba(15, 23, 42, 0.035)",
+  toolbarShellBorder: "rgba(228, 228, 231, 0.80)",
+  toolbarShellInset: "inset 0 1px 0 rgba(255, 255, 255, 0.88)",
+  toolbarGlow: "0 0 20px -5px rgba(0, 143, 93, 0.20)",
+  shadow: "0 24px 60px rgba(15, 23, 42, 0.14), 0 8px 24px rgba(15, 23, 42, 0.08)",
+  shadowCompact: "0 10px 28px rgba(15, 23, 42, 0.10), 0 2px 8px rgba(15, 23, 42, 0.06)",
+  overlayCloseBackground: "rgba(255, 255, 255, 0.94)"
+};
+var DARK_EDITOR_CHROME = {
+  accent: BRAND_PRIMARY,
+  accentBright: BRAND_ACCENT,
+  accentHover: BRAND_PRIMARY_HOVER,
+  accentActive: BRAND_PRIMARY_ACTIVE,
+  accentSoft: BRAND_PRIMARY_SOFT,
+  accentRing: BRAND_PRIMARY_RING,
+  surface: "#121212",
+  surfaceElevated: "#161616",
+  surfaceMuted: "#18181B",
+  surfaceInteractive: "#27272A",
+  surfaceOverlay: "rgba(18, 18, 18, 0.96)",
+  border: "rgba(255, 255, 255, 0.08)",
+  borderStrong: "rgba(255, 255, 255, 0.12)",
+  divider: "rgba(39, 39, 42, 0.95)",
+  textPrimary: "rgba(255, 255, 255, 0.94)",
+  textSecondary: "#D4D4D8",
+  textMuted: "#A1A1AA",
+  textSleeping: SLEEPING_ICON,
+  textSleepingStrong: SLEEPING_ICON_STRONG,
+  textDanger: "#ff7875",
+  hoverSubtle: "rgba(39, 39, 42, 0.80)",
+  hoverGhost: "rgba(255, 255, 255, 0.04)",
+  toolbarShellBorder: "rgba(39, 39, 42, 0.82)",
+  toolbarShellInset: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
+  toolbarGlow: "0 0 20px -5px rgba(0, 143, 93, 0.15)",
+  shadow: "0 18px 48px rgba(0, 0, 0, 0.42), 0 4px 18px rgba(0, 0, 0, 0.28)",
+  shadowCompact: "0 10px 28px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.20)",
+  overlayCloseBackground: "rgba(18, 18, 18, 0.92)"
+};
+function cssVar(name) {
+  return `var(${name})`;
+}
+var EDITOR_CHROME = {
+  accent: cssVar("--we-editor-accent"),
+  accentBright: cssVar("--we-editor-accent-bright"),
+  accentHover: cssVar("--we-editor-accent-hover"),
+  accentActive: cssVar("--we-editor-accent-active"),
+  accentSoft: cssVar("--we-editor-accent-soft"),
+  accentRing: cssVar("--we-editor-accent-ring"),
+  surface: cssVar("--we-editor-surface"),
+  surfaceElevated: cssVar("--we-editor-surface-elevated"),
+  surfaceMuted: cssVar("--we-editor-surface-muted"),
+  surfaceInteractive: cssVar("--we-editor-surface-interactive"),
+  surfaceOverlay: cssVar("--we-editor-surface-overlay"),
+  border: cssVar("--we-editor-border"),
+  borderStrong: cssVar("--we-editor-border-strong"),
+  divider: cssVar("--we-editor-divider"),
+  textPrimary: cssVar("--we-editor-text-primary"),
+  textSecondary: cssVar("--we-editor-text-secondary"),
+  textMuted: cssVar("--we-editor-text-muted"),
+  textSleeping: cssVar("--we-editor-text-sleeping"),
+  textSleepingStrong: cssVar("--we-editor-text-sleeping-strong"),
+  textDanger: cssVar("--we-editor-text-danger"),
+  hoverSubtle: cssVar("--we-editor-hover-subtle"),
+  hoverGhost: cssVar("--we-editor-hover-ghost"),
+  toolbarShellBorder: cssVar("--we-editor-toolbar-shell-border"),
+  toolbarShellInset: cssVar("--we-editor-toolbar-shell-inset"),
+  toolbarGlow: cssVar("--we-editor-toolbar-glow"),
+  shadow: cssVar("--we-editor-shadow"),
+  shadowCompact: cssVar("--we-editor-shadow-compact"),
+  overlayCloseBackground: cssVar("--we-editor-overlay-close-background")
+};
+function getEditorChromeValues(mode) {
+  return mode === "dark" ? DARK_EDITOR_CHROME : LIGHT_EDITOR_CHROME;
+}
+function createEditorChromeCssVars(mode) {
+  const chrome = getEditorChromeValues(mode);
+  return {
+    ["--we-editor-accent"]: chrome.accent,
+    ["--we-editor-accent-bright"]: chrome.accentBright,
+    ["--we-editor-accent-hover"]: chrome.accentHover,
+    ["--we-editor-accent-active"]: chrome.accentActive,
+    ["--we-editor-accent-soft"]: chrome.accentSoft,
+    ["--we-editor-accent-ring"]: chrome.accentRing,
+    ["--we-editor-surface"]: chrome.surface,
+    ["--we-editor-surface-elevated"]: chrome.surfaceElevated,
+    ["--we-editor-surface-muted"]: chrome.surfaceMuted,
+    ["--we-editor-surface-interactive"]: chrome.surfaceInteractive,
+    ["--we-editor-surface-overlay"]: chrome.surfaceOverlay,
+    ["--we-editor-border"]: chrome.border,
+    ["--we-editor-border-strong"]: chrome.borderStrong,
+    ["--we-editor-divider"]: chrome.divider,
+    ["--we-editor-text-primary"]: chrome.textPrimary,
+    ["--we-editor-text-secondary"]: chrome.textSecondary,
+    ["--we-editor-text-muted"]: chrome.textMuted,
+    ["--we-editor-text-sleeping"]: chrome.textSleeping,
+    ["--we-editor-text-sleeping-strong"]: chrome.textSleepingStrong,
+    ["--we-editor-text-danger"]: chrome.textDanger,
+    ["--we-editor-hover-subtle"]: chrome.hoverSubtle,
+    ["--we-editor-hover-ghost"]: chrome.hoverGhost,
+    ["--we-editor-toolbar-shell-border"]: chrome.toolbarShellBorder,
+    ["--we-editor-toolbar-shell-inset"]: chrome.toolbarShellInset,
+    ["--we-editor-toolbar-glow"]: chrome.toolbarGlow,
+    ["--we-editor-shadow"]: chrome.shadow,
+    ["--we-editor-shadow-compact"]: chrome.shadowCompact,
+    ["--we-editor-overlay-close-background"]: chrome.overlayCloseBackground
+  };
+}
+function createRuntimeAntdTheme(mode) {
+  const chrome = getEditorChromeValues(mode);
+  return {
+    token: {
+      colorPrimary: chrome.accent,
+      colorInfo: chrome.accent,
+      colorSuccess: chrome.accent,
+      colorLink: chrome.accent,
+      colorPrimaryHover: chrome.accentHover,
+      colorPrimaryActive: chrome.accentActive,
+      colorPrimaryBorder: chrome.accent,
+      colorPrimaryBorderHover: chrome.accentHover,
+      colorPrimaryBg: chrome.accentSoft,
+      colorPrimaryBgHover: "rgba(0, 143, 93, 0.22)",
+      borderRadius: 8,
+      fontSize: 11,
+      fontSizeSM: 11,
+      colorBgBase: chrome.surface,
+      colorBgContainer: chrome.surfaceElevated,
+      colorBgElevated: chrome.surfaceElevated,
+      colorFill: mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.06)",
+      colorFillSecondary: chrome.surfaceMuted,
+      colorFillTertiary: chrome.surfaceInteractive,
+      colorText: chrome.textPrimary,
+      colorTextSecondary: chrome.textSecondary,
+      colorTextTertiary: chrome.textMuted,
+      colorBorder: chrome.border,
+      colorBorderSecondary: chrome.borderStrong,
+      colorTextPlaceholder: chrome.textMuted,
+      colorSplit: chrome.border,
+      boxShadowSecondary: chrome.shadow,
+      colorIcon: chrome.textSecondary,
+      colorIconHover: chrome.textPrimary,
+      controlOutline: chrome.accentSoft,
+      controlOutlineWidth: 2,
+      controlHeight: 32,
+      controlHeightSM: 28
+    },
+    components: {
+      Button: {
+        borderRadius: 12,
+        paddingInlineSM: 8,
+        controlHeightSM: 28,
+        defaultShadow: "none",
+        primaryShadow: "none",
+        dangerShadow: "none",
+        textTextColor: chrome.textPrimary,
+        textHoverBg: chrome.hoverSubtle,
+        defaultBg: chrome.surfaceMuted,
+        defaultColor: chrome.textPrimary,
+        defaultBorderColor: chrome.border,
+        defaultHoverBg: chrome.surfaceInteractive,
+        defaultHoverColor: chrome.textPrimary,
+        defaultHoverBorderColor: chrome.borderStrong
+      },
+      Collapse: {
+        contentBg: "transparent",
+        headerBg: "transparent",
+        borderlessContentBg: "transparent",
+        contentPadding: "0 0 8px",
+        borderlessContentPadding: "0 0 8px"
+      },
+      Input: {
+        colorBgContainer: chrome.surfaceMuted,
+        activeBg: chrome.surfaceInteractive,
+        hoverBg: chrome.surfaceInteractive,
+        activeBorderColor: chrome.accent,
+        hoverBorderColor: chrome.borderStrong,
+        activeShadow: `0 0 0 2px ${chrome.accentSoft}`
+      },
+      InputNumber: {
+        colorBgContainer: chrome.surfaceMuted,
+        activeBg: chrome.surfaceInteractive,
+        hoverBg: chrome.surfaceInteractive,
+        activeBorderColor: chrome.accent,
+        hoverBorderColor: chrome.borderStrong,
+        activeShadow: `0 0 0 2px ${chrome.accentSoft}`
+      },
+      Select: {
+        optionSelectedBg: chrome.accentSoft,
+        optionActiveBg: chrome.hoverSubtle,
+        selectorBg: chrome.surfaceMuted,
+        activeBorderColor: chrome.accent,
+        hoverBorderColor: chrome.borderStrong
+      },
+      Slider: {
+        colorPrimary: chrome.accent,
+        handleSize: 8,
+        railBg: mode === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(15, 23, 42, 0.12)",
+        railHoverBg: mode === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(15, 23, 42, 0.18)",
+        trackBg: chrome.accent,
+        trackHoverBg: chrome.accentHover
+      },
+      ColorPicker: {
+        colorPrimary: chrome.accent
+      },
+      Dropdown: {
+        colorBgElevated: chrome.surfaceElevated,
+        colorText: chrome.textPrimary,
+        colorTextDescription: chrome.textSecondary,
+        controlItemBgHover: chrome.hoverSubtle,
+        controlItemBgActive: chrome.accentSoft,
+        borderRadiusLG: 16
+      },
+      Modal: {
+        contentBg: chrome.surfaceElevated,
+        headerBg: chrome.surfaceElevated,
+        titleColor: chrome.textPrimary,
+        titleFontSize: 14,
+        borderRadiusLG: 18
+      },
+      Tooltip: {
+        colorBgSpotlight: mode === "dark" ? "#050608" : "#0F172A",
+        colorTextLightSolid: "#FFFFFF"
+      },
+      Popover: {
+        colorBgElevated: chrome.surfaceElevated,
+        colorText: chrome.textPrimary
+      }
+    }
+  };
+}
+
+// src/comment-cleanup.ts
+function clearLegacyComponentComments(document2) {
+  if (document2.kind !== "prototype-edit-comments") return { document: document2, changed: false };
+  const imageOwners = new Set(document2.images.map((image) => image.commentId));
+  const preservedImageOwners = /* @__PURE__ */ new Set();
+  const comments = [];
+  let changed = false;
+  for (const entry of document2.comments) {
+    const protectedRecord = entry.componentComment === true || typeof entry.purpose === "string" && Boolean(entry.purpose.trim()) || typeof entry.elementKey === "string" && /^(text-comment::|annotation-panel:)/u.test(entry.elementKey) || entry.author || entry.voiceCreateOperationId || entry.voiceElementKey || entry.voiceTargetRef || entry.linkedAnnotationId || Array.isArray(entry.externalComments) && entry.externalComments.length > 0;
+    if (protectedRecord) {
+      comments.push(entry);
+      preservedImageOwners.add(entry.id);
+      continue;
+    }
+    if (Number(entry.deletedAt) > 0) {
+      comments.push(entry);
+      continue;
+    }
+    if (entry.textChange || entry.styleChanges || entry.tweak) {
+      const { comment: _comment, skillIds: _skillIds, ...edit } = entry;
+      comments.push(edit);
+      changed || (changed = entry.comment !== void 0 || entry.skillIds !== void 0 || imageOwners.has(entry.id));
+    } else {
+      changed = true;
+    }
+  }
+  const images = document2.images.filter((image) => preservedImageOwners.has(image.commentId));
+  changed || (changed = images.length !== document2.images.length);
+  return changed ? { document: { ...document2, comments, images }, changed } : { document: document2, changed: false };
+}
+
+// src/core/editor/component-comments.ts
+var COMMENT_PURPOSES = [
+  { id: "generate-prototype", label: "\u751F\u6210\u65B0\u539F\u578B", action: "generate", hint: "\u63CF\u8FF0\u7EC4\u4EF6\u7684\u4E0D\u540C\u72B6\u6001\uFF0C\u5728\u72EC\u7ACB\u539F\u578B\u4E2D\u751F\u6210\u3002" },
+  { id: "modify-prototype", label: "\u4FEE\u6539\u539F\u578B", action: "send", hint: "\u63CF\u8FF0\u8981\u8C03\u6574\u7684\u5185\u5BB9\uFF0C\u4FEE\u6539\u5F53\u524D\u539F\u578B\u4E2D\u7684\u7EC4\u4EF6\u3002" },
+  { id: "document-component", label: "\u5F15\u5165\u8BF4\u660E", action: "document", hint: "\u63CF\u8FF0\u7EC4\u4EF6\u7684\u8BF4\u660E\u8981\u6C42\uFF0C\u5C06\u622A\u56FE\u4E0E\u8BF4\u660E\u5F15\u5165 PRD\u3002" }
+];
+function isComponentCommentPurpose(value) {
+  return COMMENT_PURPOSES.some((item) => item.id === value);
+}
+function transitionComponentComment(record, state2, task) {
+  if (record.entry.deletedAt) return false;
+  if (state2 !== "editing" && record.entry.requestId && task?.requestId !== record.entry.requestId) return false;
+  record.entry = {
+    ...record.entry,
+    state: state2,
+    provider: task?.provider ?? record.entry.provider,
+    sessionId: task?.sessionId ?? record.entry.sessionId,
+    requestId: task?.requestId ?? record.entry.requestId,
+    updatedAt: Date.now(),
+    code: state2 === "error" ? task?.code : null,
+    message: state2 === "error" ? task?.error || "\u6267\u884C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" : state2 === "completed" ? "\u4FEE\u6539\u5B8C\u6210" : state2 === "editing" ? "AI \u7F16\u8F91\u4E2D" : null
+  };
+  return true;
+}
+var newId = () => globalThis.crypto?.randomUUID?.() ?? `comment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+var emptyDraft = () => ({ token: newId(), id: newId(), note: "", skillIds: [], images: [], revision: 0 });
+var cloneDraft = (draft) => ({ ...draft, skillIds: draft.skillIds.slice(), images: draft.images.map((image) => ({ ...image })) });
+function createComponentCommentStore(options) {
+  const drafts = /* @__PURE__ */ new Map();
+  const saving = /* @__PURE__ */ new Set();
+  let deleting = false;
+  const keyFor = (target, purpose) => JSON.stringify([options.getScope(), target.elementKey, purpose]);
+  function getDraft(target, purpose) {
+    const key = keyFor(target, purpose);
+    if (!drafts.has(key)) drafts.set(key, emptyDraft());
+    return cloneDraft(drafts.get(key));
+  }
+  function updateDraft(target, purpose, patch) {
+    const current = getDraft(target, purpose);
+    drafts.set(keyFor(target, purpose), cloneDraft({ ...current, ...patch, revision: current.revision + 1 }));
+  }
+  async function saveDraft(target, purpose) {
+    const key = keyFor(target, purpose);
+    if (saving.has(key) || deleting) throw new Error("\u6B63\u5728\u6682\u5B58\u6216\u5220\u9664\u6279\u6CE8\uFF0C\u8BF7\u7A0D\u5019");
+    const draft = getDraft(target, purpose);
+    if (draft.note.length > 8e3) throw new Error("\u6279\u6CE8\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u7F29\u77ED\u540E\u91CD\u8BD5");
+    const previous = options.records.get(draft.id);
+    if (previous?.entry.deletedAt) throw new Error("\u6B64\u6279\u6CE8\u5DF2\u5220\u9664\uFF0C\u8BF7\u65B0\u589E\u6279\u6CE8");
+    const scope = options.getScope();
+    const now = Date.now();
+    const entry = {
+      ...previous?.entry,
+      ...target,
+      id: draft.id,
+      componentComment: true,
+      purpose,
+      ...options.getPageScope ? { pageScope: options.getPageScope() } : {},
+      state: "idle",
+      provider: null,
+      requestId: null,
+      sessionId: null,
+      message: null,
+      code: null,
+      comment: draft.note.trim(),
+      skillIds: draft.skillIds.slice(),
+      createdAt: previous?.entry.createdAt ?? now,
+      updatedAt: now
+    };
+    const record = { entry, images: draft.images.map((image) => ({ ...image })) };
+    saving.add(key);
+    options.records.set(entry.id, record);
+    try {
+      await options.persist();
+      if (drafts.get(key)?.token !== draft.token) return { ...entry };
+      if (drafts.get(key)?.revision === draft.revision) drafts.set(key, emptyDraft());
+      else {
+        const newer = drafts.get(key);
+        drafts.set(key, { ...newer, token: newId(), id: newId(), editingCommentId: void 0 });
+      }
+      return { ...entry };
+    } catch (error) {
+      if (options.getScope() === scope && options.records.get(entry.id) === record) {
+        if (previous) options.records.set(entry.id, previous);
+        else options.records.delete(entry.id);
+        options.onRollback?.();
+      }
+      throw error;
+    } finally {
+      saving.delete(key);
+    }
+  }
+  function edit(id) {
+    const record = options.records.get(id);
+    if (!record || record.entry.deletedAt || !isComponentCommentPurpose(record.entry.purpose)) throw new Error("\u6B64\u6279\u6CE8\u4E0D\u5B58\u5728\u6216\u7528\u9014\u6682\u4E0D\u652F\u6301");
+    if (record.entry.state === "editing") throw new Error("\u6279\u6CE8\u6B63\u5728\u6267\u884C\uFF0C\u8BF7\u7A0D\u5019");
+    const target = { elementKey: record.entry.elementKey, label: record.entry.label || "", locator: record.entry.locator };
+    drafts.set(keyFor(target, record.entry.purpose), {
+      token: newId(),
+      id,
+      note: record.entry.comment || "",
+      skillIds: record.entry.skillIds?.slice() ?? [],
+      images: record.images.map((image) => ({ ...image })),
+      editingCommentId: id,
+      revision: 0
+    });
+    return record.entry.purpose;
+  }
+  function startNew(target, purpose) {
+    drafts.set(keyFor(target, purpose), emptyDraft());
+  }
+  async function remove(id) {
+    if (!options.records.has(id) || options.records.get(id).entry.deletedAt) return;
+    await removeMany([id]);
+  }
+  async function removeMany(ids) {
+    if (deleting || saving.size) throw new Error("\u6B63\u5728\u4FDD\u5B58\u6279\u6CE8\uFF0C\u8BF7\u7A0D\u5019");
+    const unique = [...new Set(ids)];
+    if (!unique.length) return;
+    const scope = options.getScope();
+    const changes = unique.map((id) => {
+      const previous = options.records.get(id);
+      if (!previous || previous.entry.deletedAt) throw new Error("\u6279\u6CE8\u5DF2\u53D8\u66F4\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+      if (previous.entry.state === "editing") throw new Error("\u6279\u6CE8\u6B63\u5728\u6267\u884C\uFF0C\u8BF7\u7A0D\u5019");
+      return { id, previous, tombstone: { ...previous, entry: { ...previous.entry, deletedAt: Date.now() } } };
+    });
+    deleting = true;
+    for (const change of changes) options.records.set(change.id, change.tombstone);
+    try {
+      await options.persist();
+    } catch (error) {
+      if (options.getScope() === scope) for (const change of changes) {
+        if (options.records.get(change.id) === change.tombstone) options.records.set(change.id, change.previous);
+      }
+      if (options.getScope() === scope) options.onRollback?.();
+      throw error;
+    } finally {
+      deleting = false;
+    }
+  }
+  return { getDraft, updateDraft, saveDraft, edit, startNew, remove, removeMany };
+}
+
+// src/ui/runtime/comment-list-view.tsx
+var import_jsx_runtime = require("react/jsx-runtime");
+var actions = [
+  { action: "send", label: "\u53D1\u9001\u4FEE\u6539", available: "sendAvailable" },
+  { action: "generate", label: "\u751F\u6210\u539F\u578B", available: "generateAvailable" },
+  { action: "document", label: "\u5F15\u5165\u8BF4\u660E", available: "documentAvailable" }
+];
+var styles = `
+  .we-comment-list{position:fixed;right:52px;top:16px;bottom:16px;width:320px;max-width:calc(100vw - 64px);display:flex;flex-direction:column;pointer-events:auto;border:1px solid ${EDITOR_CHROME.border};border-radius:14px;background:${EDITOR_CHROME.surface};color:${EDITOR_CHROME.textPrimary};box-shadow:${EDITOR_CHROME.shadow};overflow:hidden;z-index:10020;font-size:12px;font-family:inherit}
+  .we-comment-list *{box-sizing:border-box}
+  .we-comment-list[hidden]{display:none}
+  .we-comment-list[data-hosted=true]{position:absolute;inset:0;width:100%;max-width:100%;border-radius:0;box-shadow:none}
+  @media(min-width:761px){.we-comment-list[data-pinned=true]{right:0;top:0;bottom:0;border-radius:0;box-shadow:none}}
+  .we-comment-list button{font-family:inherit;font-size:12px;cursor:pointer;color:inherit}
+  .we-comment-list button:disabled{cursor:not-allowed;opacity:.45}
+  .we-comment-list button:focus-visible,.we-comment-list input:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:2px}
+  .we-comment-list__header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px;border-bottom:1px solid ${EDITOR_CHROME.border}}
+  .we-comment-list__header h2{margin:0;font-size:14px;font-weight:600}
+  .we-comment-list__close{border:0;background:transparent;width:28px;height:28px;border-radius:6px;font-size:20px!important}
+  .we-comment-list__selection{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;color:${EDITOR_CHROME.textSecondary}}
+  .we-comment-list label{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .we-comment-list input{margin:0;accent-color:${EDITOR_CHROME.accent};width:15px;height:15px;flex-shrink:0}
+  .we-comment-list__body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 12px 12px}
+  .we-comment-list__item{padding:12px;margin-bottom:8px;border:1px solid ${EDITOR_CHROME.border};border-radius:9px;background:${EDITOR_CHROME.surfaceMuted}}
+  .we-comment-list__item[data-selected=true]{border-color:${EDITOR_CHROME.accent};background:${EDITOR_CHROME.accentSoft}}
+  .we-comment-list__item header{display:flex;align-items:center;gap:8px}
+  .we-comment-list__locate{padding:2px 0;border:0;background:transparent;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;font-weight:600}
+  .we-comment-list__note{margin:8px 0 0 23px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;color:${EDITOR_CHROME.textSecondary}}
+  .we-comment-list__hint{font-size:11px;line-height:1.6;color:${EDITOR_CHROME.textMuted};margin:8px 0 0}
+  .we-comment-list__empty{padding:44px 16px;text-align:center;line-height:1.8;color:${EDITOR_CHROME.textMuted}}
+  .we-comment-list__footer{padding:12px 16px;border-top:1px solid ${EDITOR_CHROME.border};flex-shrink:0}
+  .we-comment-list__actions{display:flex;gap:6px;flex-wrap:wrap}
+  .we-comment-list__action{flex:1;min-height:34px;white-space:nowrap;padding:6px 8px;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:7px;background:${EDITOR_CHROME.surface}}
+  .we-comment-list__action:first-child{background:${EDITOR_CHROME.accent};color:white;border-color:transparent}
+  .we-comment-list .ax-page-skeleton{--ax-sk-fill:${EDITOR_CHROME.surfaceInteractive};--ax-sk-shine:${EDITOR_CHROME.surfaceMuted}}
+  @media(max-width:760px){.we-comment-list{right:52px;top:8px;bottom:8px;width:320px;max-width:calc(100vw - 60px)}.we-comment-list[data-has-target=true]{bottom:52dvh}.we-comment-list__header{padding:10px 12px}.we-comment-list__selection{padding:8px 12px}.we-comment-list__footer{padding:8px 12px}.we-comment-list__hint{margin-top:4px}}
+`;
+function CommentListView(props) {
+  const [filter, setFilter] = import_react.default.useState("all");
+  const [removingId, setRemovingId] = import_react.default.useState(null);
+  const [confirmIds, setConfirmIds] = import_react.default.useState([]);
+  const deletingRef = import_react.default.useRef(false);
+  const [entries, setEntries] = import_react.default.useState(() => {
+    try {
+      return props.getEntries();
+    } catch {
+      return [];
+    }
+  });
+  const [selected, setSelectedState] = import_react.default.useState(props.selectedIds ?? []);
+  const selectedRef = import_react.default.useRef(selected);
+  selectedRef.current = selected;
+  const setSelected = (value) => {
+    const next = typeof value === "function" ? value(selectedRef.current) : value;
+    if (next === selectedRef.current) return;
+    selectedRef.current = next;
+    setSelectedState(next);
+    props.onSelectionChange?.(next);
+  };
+  const selectedKey = JSON.stringify(props.selectedIds);
+  import_react.default.useEffect(() => {
+    if (props.selectedIds) {
+      selectedRef.current = props.selectedIds;
+      setSelectedState(props.selectedIds);
+    }
+  }, [selectedKey]);
+  const [loadState, setLoadState] = import_react.default.useState(() => props.getLoadState?.() ?? { status: "ready" });
+  const selectionRevisionRef = import_react.default.useRef(loadState.revision);
+  const [busy, setBusy] = import_react.default.useState(null);
+  const [error, setError] = import_react.default.useState("");
+  const [readError, setReadError] = import_react.default.useState("");
+  const [message, setMessage] = import_react.default.useState("");
+  const busyRef = import_react.default.useRef(false);
+  const mountedRef = import_react.default.useRef(true);
+  import_react.default.useEffect(() => {
+    mountedRef.current = true;
+    const refresh = () => {
+      try {
+        const state2 = props.getLoadState?.() ?? { status: "ready" };
+        if (selectionRevisionRef.current !== state2.revision) {
+          selectionRevisionRef.current = state2.revision;
+          setSelected([]);
+          setConfirmIds([]);
+          setError("");
+          setMessage("");
+        }
+        setLoadState((previous) => previous.status === state2.status && previous.error === state2.error && previous.revision === state2.revision ? previous : state2);
+        if (deletingRef.current) return;
+        const next = props.getEntries();
+        setEntries((previous) => previous.length === next.length && previous.every((entry, i) => {
+          const item = next[i];
+          return entry.id === item.id && entry.note === item.note && entry.label === item.label && entry.element === item.element && entry.disabledReason === item.disabledReason && entry.purpose === item.purpose && entry.state === item.state;
+        }) ? previous : next);
+        if (!props.hidden) setSelected((previous) => previous.every((id) => next.some((entry) => entry.id === id)) ? previous : previous.filter((id) => next.some((entry) => entry.id === id)));
+        setReadError("");
+      } catch (cause) {
+        setReadError(cause instanceof Error ? cause.message : "\u6279\u6CE8\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+      }
+    };
+    refresh();
+    const timer = globalThis.setInterval(refresh, 500);
+    return () => {
+      mountedRef.current = false;
+      globalThis.clearInterval(timer);
+    };
+  }, [props.getEntries, props.getLoadState, props.hidden]);
+  import_react.default.useEffect(() => () => props.onInteractionChange(false), [props.onInteractionChange]);
+  import_react.default.useEffect(() => {
+    if (props.hidden) props.onInteractionChange(false);
+  }, [props.hidden, props.onInteractionChange]);
+  const purposeMode = Boolean(props.onEdit);
+  const visibleEntries = entries.filter((entry) => (!purposeMode || Boolean(entry.purpose)) && (filter === "all" || entry.purpose === filter));
+  const available = visibleEntries.filter((entry) => (entry.element || entry.locatable) && !entry.disabledReason && (!purposeMode || isComponentCommentPurpose(entry.purpose)));
+  const selectable = props.onRemoveMany ? visibleEntries.filter((entry) => entry.state !== "editing") : available;
+  const selectedEntries = entries.filter((entry) => selected.includes(entry.id));
+  const selectedPurpose = selectedEntries[0]?.purpose;
+  const selectedAction = COMMENT_PURPOSES.find((item) => item.id === selectedPurpose);
+  const mixedPurpose = selectedEntries.some((entry) => entry.purpose !== selectedPurpose);
+  const allSelected = selectable.length > 0 && selectable.every((entry) => selected.includes(entry.id));
+  const undeletableSelection = selected.some((id) => !selectable.some((entry) => entry.id === id));
+  const unavailableSelection = selected.some((id) => !available.some((entry) => entry.id === id));
+  const run = async (action) => {
+    const latest = props.getLoadState?.();
+    if (latest && (latest.status !== "ready" || latest.revision !== selectionRevisionRef.current)) {
+      setSelected([]);
+      setError("\u9875\u9762\u5DF2\u5207\u6362\u6216\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+      return;
+    }
+    if (busyRef.current || !selected.length || unavailableSelection || loadState.status !== "ready") return;
+    if (purposeMode && (mixedPurpose || !selectedAction || selectedAction.action !== action)) {
+      setError("\u8BF7\u9009\u62E9\u540C\u4E00\u7528\u9014\u7684\u6279\u6CE8\u540E\u53D1\u9001");
+      return;
+    }
+    busyRef.current = true;
+    setBusy(action);
+    setError("");
+    setMessage("");
+    try {
+      await props.onRun(action, selected.slice());
+      if (mountedRef.current) setMessage(action === "send" ? "\u5DF2\u63D0\u4EA4\u6240\u9009\u6279\u6CE8\u7684\u4FEE\u6539" : action === "generate" ? "\u5DF2\u6253\u5F00\u539F\u578B\u751F\u6210\u7A97\u53E3" : "\u5DF2\u6253\u5F00\u5F15\u5165\u8BF4\u660E\u7A97\u53E3");
+    } catch (cause) {
+      if (mountedRef.current) setError(cause instanceof Error ? cause.message : "\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+    } finally {
+      busyRef.current = false;
+      if (mountedRef.current) setBusy(null);
+    }
+  };
+  const removeIds = async (ids) => {
+    const latest = props.getLoadState?.();
+    if (latest && (latest.status !== "ready" || latest.revision !== selectionRevisionRef.current)) {
+      setSelected([]);
+      setConfirmIds([]);
+      setError("\u9875\u9762\u5DF2\u5207\u6362\u6216\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+      return;
+    }
+    if (busyRef.current || !ids.length || loadState.status !== "ready") return;
+    const revision = selectionRevisionRef.current;
+    const isCurrent = () => mountedRef.current && (props.getLoadState?.().revision ?? revision) === revision;
+    busyRef.current = true;
+    deletingRef.current = true;
+    setBusy("delete");
+    setRemovingId(ids.length === 1 ? ids[0] : null);
+    setError("");
+    setMessage("");
+    try {
+      if (props.onRemoveMany) await props.onRemoveMany(ids.slice());
+      else if (props.onRemove && ids.length === 1) await props.onRemove(ids[0]);
+      else throw new Error("\u6682\u4E0D\u652F\u6301\u5220\u9664\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5");
+      if (isCurrent()) {
+        setEntries(props.getEntries());
+        setSelected((previous) => previous.filter((id) => !ids.includes(id)));
+        setConfirmIds([]);
+        setMessage(`\u5DF2\u5220\u9664 ${ids.length} \u6761\u6279\u6CE8`);
+      }
+    } catch (cause) {
+      if (isCurrent()) setError(cause instanceof Error ? cause.message : "\u5220\u9664\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+    } finally {
+      busyRef.current = false;
+      deletingRef.current = false;
+      if (mountedRef.current) {
+        setBusy(null);
+        setRemovingId(null);
+      }
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+    "aside",
+    {
+      className: "we-comment-list",
+      hidden: props.hidden,
+      "data-hosted": props.hosted === true,
+      "data-pinned": props.pinned === true,
+      "data-has-target": props.hasTarget === true,
+      "data-we-selection-lock-root": "true",
+      "aria-label": "\u6279\u6CE8\u5217\u8868",
+      onPointerEnter: () => props.onInteractionChange(true),
+      onPointerLeave: () => props.onInteractionChange(false),
+      onFocusCapture: () => props.onInteractionChange(true),
+      onBlurCapture: (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) props.onInteractionChange(false);
+      },
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { nonce: resolveCspNonce(), children: styles }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", { className: "we-comment-list__header", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", { children: [
+            "\u6279\u6CE8\u5217\u8868 ",
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: entries.length })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: 4 }, children: [
+            props.onPinnedChange ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", className: "we-comment-list__close", "aria-label": props.pinned ? "\u53D6\u6D88\u56FA\u5B9A\u6279\u6CE8\u5217\u8868" : "\u56FA\u5B9A\u6279\u6CE8\u5217\u8868\u5230\u53F3\u4FA7", title: props.pinned ? "\u53D6\u6D88\u56FA\u5B9A" : "\u56FA\u5B9A\u5230\u53F3\u4FA7", "aria-pressed": props.pinned === true, onClick: () => props.onPinnedChange?.(!props.pinned), style: { color: props.pinned ? EDITOR_CHROME.accent : void 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: props.pinned ? "currentColor" : "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "m16 3 5 5-4 2-3 6-2-2-7 7-1-1 7-7-2-2 6-3z" }) }) }) : null,
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "we-comment-list__close", "aria-label": "\u5173\u95ED\u6279\u6CE8\u5217\u8868", title: "\u5173\u95ED\u6279\u6CE8\u5217\u8868", onClick: props.onClose, children: "\xD7" })
+          ] })
+        ] }),
+        purposeMode ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { style: { padding: "10px 16px 0", fontSize: 11, color: EDITOR_CHROME.textSecondary }, children: [
+          "\u7528\u9014",
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "select",
+            {
+              "aria-label": "\u7B5B\u9009\u6279\u6CE8\u7528\u9014",
+              disabled: Boolean(busy),
+              value: filter,
+              onChange: (event) => {
+                setFilter(event.target.value);
+                setSelected([]);
+                setConfirmIds([]);
+                setError("");
+                setMessage("");
+              },
+              style: { flex: 1, minWidth: 0, padding: 6, background: EDITOR_CHROME.surface, color: EDITOR_CHROME.textPrimary, border: `1px solid ${EDITOR_CHROME.border}`, borderRadius: 6 },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "all", children: "\u5168\u90E8\u6279\u6CE8" }),
+                COMMENT_PURPOSES.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: item.id, children: item.label }, item.id))
+              ]
+            }
+          )
+        ] }) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "we-comment-list__selection", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "input",
+              {
+                type: "checkbox",
+                "aria-label": "\u5168\u9009\u6279\u6CE8",
+                checked: allSelected,
+                disabled: loadState.status !== "ready" || Boolean(busy) || !selectable.length && !selected.length,
+                ref: (node) => {
+                  if (node) node.indeterminate = selected.length > 0 && !allSelected;
+                },
+                onChange: () => {
+                  setSelected(allSelected ? [] : selectable.map((entry) => entry.id));
+                  setConfirmIds([]);
+                }
+              }
+            ),
+            "\u5168\u9009"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { "aria-live": "polite", children: [
+            "\u5DF2\u9009 ",
+            selected.length,
+            " \u6761"
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "we-comment-list__body", children: loadState.status === "loading" ? props.loadingContent ?? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { role: "status", "aria-label": "\u6B63\u5728\u52A0\u8F7D\u6279\u6CE8", "aria-busy": "true", children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { "aria-hidden": "true", style: { height: 72, marginBottom: 10, borderRadius: 9, background: EDITOR_CHROME.surfaceInteractive } }, i)) }) : loadState.status === "error" || readError ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { role: "alert", children: loadState.error || readError || "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" }),
+          props.onRetry ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", "aria-label": "\u91CD\u8BD5\u52A0\u8F7D\u6279\u6CE8", className: "we-comment-list__action", onClick: async () => {
+            setLoadState({ status: "loading" });
+            setError("");
+            try {
+              await props.onRetry?.();
+              setLoadState(props.getLoadState?.() ?? { status: "ready" });
+            } catch (cause) {
+              setLoadState({ status: "error", error: cause instanceof Error ? cause.message : "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" });
+            }
+          }, children: "\u91CD\u65B0\u52A0\u8F7D" }) : null
+        ] }) : !visibleEntries.length ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "we-comment-list__empty", children: [
+          "\u6682\u65E0\u6279\u6CE8",
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
+          "\u9009\u62E9\u9875\u9762\u7EC4\u4EF6\u5E76\u6682\u5B58\u6279\u6CE8\u540E\uFF0C\u5C06\u663E\u793A\u5728\u8FD9\u91CC\u3002"
+        ] }) : visibleEntries.map((entry, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: "we-comment-list__item", "data-selected": selected.includes(entry.id), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "input",
+              {
+                type: "checkbox",
+                "aria-label": `\u9009\u62E9\u6279\u6CE8 ${entry.label}`,
+                checked: selected.includes(entry.id),
+                disabled: Boolean(busy) || loadState.status !== "ready" || !selectable.some((item) => item.id === entry.id) && !selected.includes(entry.id),
+                onChange: () => {
+                  setSelected((previous) => previous.includes(entry.id) ? previous.filter((id) => id !== entry.id) : [...previous, entry.id]);
+                  setConfirmIds([]);
+                  setError("");
+                  setMessage("");
+                }
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: "we-comment-list__locate", title: `\u5B9A\u4F4D\u7EC4\u4EF6\uFF1A${entry.label}`, disabled: !entry.element && !entry.locatable || Boolean(busy), onClick: async () => {
+              try {
+                if (props.onLocateEntry) await props.onLocateEntry(entry.id);
+                else if (entry.element) props.onLocate?.(entry.element);
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : "\u65E0\u6CD5\u5B9A\u4F4D\u7EC4\u4EF6");
+              }
+            }, children: [
+              index + 1,
+              ". ",
+              entry.label
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "we-comment-list__note", children: entry.note || (entry.purpose ? "\u672A\u586B\u5199\u6307\u793A" : "\u5DF2\u4FDD\u5B58\u7EC4\u4EF6\u4FEE\u6539") }),
+          purposeMode ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { margin: "8px 0 0 23px", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 10, color: EDITOR_CHROME.accent, padding: "2px 5px", background: EDITOR_CHROME.accentSoft, borderRadius: 4 }, children: COMMENT_PURPOSES.find((item) => item.id === entry.purpose)?.label || "\u6682\u4E0D\u652F\u6301\u7684\u7528\u9014" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: 10, color: EDITOR_CHROME.textMuted }, children: entry.state === "editing" ? "\u6267\u884C\u4E2D" : entry.state === "completed" ? "\u5DF2\u5B8C\u6210" : entry.state === "error" ? "\u6267\u884C\u5931\u8D25" : "\u5DF2\u6682\u5B58" }),
+            isComponentCommentPurpose(entry.purpose) ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", "aria-label": `\u7F16\u8F91\u6279\u6CE8 ${entry.label}`, disabled: Boolean(busy) || Boolean(entry.disabledReason), onClick: async () => {
+              try {
+                await props.onEdit?.(entry.id);
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : "\u65E0\u6CD5\u7F16\u8F91\u6279\u6CE8");
+              }
+            }, style: { border: 0, background: "transparent", padding: 3, marginLeft: "auto", color: EDITOR_CHROME.textSecondary }, children: "\u7F16\u8F91" }) : null,
+            props.onRemove || props.onRemoveMany ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", "aria-label": `\u5220\u9664\u6279\u6CE8 ${entry.label}`, disabled: Boolean(busy) || loadState.status !== "ready" || entry.state === "editing", onClick: () => removeIds([entry.id]), style: { border: 0, background: "transparent", padding: 3, color: EDITOR_CHROME.textMuted }, children: removingId === entry.id ? "\u5220\u9664\u4E2D\u2026" : "\u5220\u9664" }) : null
+          ] }) : null,
+          entry.disabledReason ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "we-comment-list__hint", children: entry.disabledReason }) : null
+        ] }, entry.id)) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("footer", { className: "we-comment-list__footer", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "we-comment-list__actions", children: [
+            purposeMode ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "we-comment-list__action",
+                "aria-label": "\u53D1\u9001\u6240\u9009\u6279\u6CE8",
+                "aria-busy": Boolean(busy),
+                disabled: loadState.status !== "ready" || Boolean(busy) || !selected.length || unavailableSelection || mixedPurpose || !selectedAction || Boolean(readError) || !props[actions.find((item) => item.action === selectedAction.action)?.available || "sendAvailable"],
+                onClick: () => {
+                  if (selectedAction) return run(selectedAction.action);
+                },
+                children: busy ? "\u5904\u7406\u4E2D\u2026" : selectedAction && !mixedPurpose ? `\u53D1\u9001 \xB7 ${selectedAction.label}` : "\u53D1\u9001"
+              }
+            ) : actions.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
+              {
+                className: "we-comment-list__action",
+                "aria-label": item.label,
+                "aria-busy": busy === item.action,
+                disabled: loadState.status !== "ready" || Boolean(busy) || !selected.length || unavailableSelection || !props[item.available] || Boolean(readError),
+                onClick: () => run(item.action),
+                children: busy === item.action ? "\u5904\u7406\u4E2D\u2026" : item.label
+              },
+              item.action
+            )),
+            props.onRemoveMany ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", className: "we-comment-list__action", "aria-label": "\u5220\u9664\u6240\u9009\u6279\u6CE8", disabled: !selected.length || Boolean(busy) || loadState.status !== "ready" || undeletableSelection || Boolean(readError), onClick: () => {
+              setConfirmIds(selected.slice());
+              setError("");
+            }, style: { color: EDITOR_CHROME.textDanger }, children: [
+              "\u5220\u9664",
+              selected.length ? ` (${selected.length})` : ""
+            ] }) : null
+          ] }),
+          confirmIds.length ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { role: "alertdialog", "aria-label": "\u786E\u8BA4\u5220\u9664\u6240\u9009\u6279\u6CE8", "aria-describedby": "we-comment-delete-description", style: { marginTop: 10 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { id: "we-comment-delete-description", children: [
+              "\u5220\u9664\u8FD9 ",
+              confirmIds.length,
+              " \u6761\u6279\u6CE8\uFF1F\u5220\u9664\u540E\u65E0\u6CD5\u6062\u590D\u3002"
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "we-comment-list__actions", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", className: "we-comment-list__action", "aria-label": "\u786E\u8BA4\u5220\u9664\u6279\u6CE8", disabled: Boolean(busy), onClick: () => removeIds(confirmIds), children: busy === "delete" ? "\u5220\u9664\u4E2D\u2026" : "\u786E\u8BA4\u5220\u9664" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", className: "we-comment-list__action", "aria-label": "\u53D6\u6D88\u5220\u9664\u6279\u6CE8", disabled: Boolean(busy), onClick: () => setConfirmIds([]), children: "\u53D6\u6D88" })
+            ] })
+          ] }) : null,
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "we-comment-list__hint", children: purposeMode ? mixedPurpose ? "\u5DF2\u9009\u6279\u6CE8\u7528\u9014\u4E0D\u540C\uFF0C\u8BF7\u6309\u7528\u9014\u5206\u522B\u53D1\u9001\u3002" : "\u9009\u62E9\u540C\u4E00\u7528\u9014\u7684\u6279\u6CE8\uFF0C\u53EF\u4E00\u6B21\u53D1\u9001\u591A\u6761\u3002" : "\u4E09\u4E2A\u52A8\u4F5C\u53EF\u5206\u522B\u6267\u884C\uFF0C\u6682\u5B58\u6279\u6CE8\u4F9B\u540E\u7EED\u7EE7\u7EED\u4F7F\u7528\u3002" }),
+          error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { role: "alert", style: { color: EDITOR_CHROME.textDanger, marginBottom: 0 }, children: error }) : null,
+          message ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { role: "status", style: { color: EDITOR_CHROME.accent, marginBottom: 0 }, children: message }) : null
+        ] })
+      ]
+    }
+  );
+}
+
+// src/ui/runtime/comment-list-dock-protocol.ts
+var COMMENT_LIST_DOCK_MESSAGE = "AXHUB_COMMENT_LIST_DOCK";
+function isCommentListDockState(value) {
+  if (!value || typeof value !== "object") return false;
+  const state2 = value;
+  return typeof state2.session === "string" && Boolean(state2.session) && typeof state2.scope === "string" && typeof state2.open === "boolean" && Array.isArray(state2.entries) && state2.entries.length <= 1e3 && state2.entries.every((entry) => typeof entry.id === "string" && typeof entry.label === "string" && typeof entry.note === "string" && (entry.disabledReason === void 0 || typeof entry.disabledReason === "string")) && Array.isArray(state2.selectedIds) && state2.selectedIds.length <= 1e3 && state2.selectedIds.every((id) => typeof id === "string") && ["loading", "error", "ready"].includes(state2.loadState?.status);
+}
 
 // src/acp-runtime-events.ts
 var DEFAULT_TERMINAL_STATUS_TIMEOUT_MS = 31e4;
@@ -2336,6 +3214,7 @@ var DEFAULT_WEB_EDITOR_UI_SETTINGS = {
   documentCommentMode: false,
   pageZoomEnabled: false,
   promptCardPinnedToTopRight: false,
+  commentListPinned: false,
   agentRunConcurrency: 5
 };
 var AGENT_PROVIDER_SET = /* @__PURE__ */ new Set([
@@ -2378,7 +3257,8 @@ function sanitizeWebEditorUiSettings(value) {
     captureTargetScreenshot: record.captureTargetScreenshot === void 0 ? DEFAULT_WEB_EDITOR_UI_SETTINGS.captureTargetScreenshot : Boolean(record.captureTargetScreenshot),
     documentCommentMode: Boolean(record.documentCommentMode),
     pageZoomEnabled: Boolean(record.pageZoomEnabled),
-    promptCardPinnedToTopRight: Boolean(record.promptCardPinnedToTopRight)
+    promptCardPinnedToTopRight: Boolean(record.promptCardPinnedToTopRight),
+    commentListPinned: Boolean(record.commentListPinned)
   };
 }
 function applyInteractionProfileToUiSettings(settings, profile) {
@@ -2458,6 +3338,7 @@ function resolveWebEditorOptions(options = {}) {
       compactToolbar: false,
       toolbarExtraContent: null,
       commentListLoadingContent: null,
+      commentListDockOrigin: "",
       externalAnnotationMode: false,
       commenterName: "",
       onCommenterNameChange: void 0,
@@ -2585,6 +3466,7 @@ function createEditorRuntimeState() {
     propertyPanelPosition: null,
     uiResizeCleanup: null,
     editMetaByKey: /* @__PURE__ */ new Map(),
+    componentCommentsById: /* @__PURE__ */ new Map(),
     deleteElementAnnotationsByTransactionId: /* @__PURE__ */ new Map(),
     processedEditTimestampsByKey: /* @__PURE__ */ new Map(),
     pendingMarkerAnchors: /* @__PURE__ */ new Map(),
@@ -2613,6 +3495,7 @@ function clearAnnotationBridgeSelection(state2) {
 function resetEditorTransientState(state2) {
   clearAnnotationBridgeSelection(state2);
   state2.editMetaByKey.clear();
+  state2.componentCommentsById?.clear();
   state2.deleteElementAnnotationsByTransactionId.clear();
   state2.processedEditTimestampsByKey.clear();
   state2.pendingMarkerAnchors.clear();
@@ -4015,7 +4898,7 @@ function createChangesService(options) {
 }
 
 // src/core/editor/feedback.ts
-var import_react = __toESM(require("react"), 1);
+var import_react2 = __toESM(require("react"), 1);
 var ReactDOMClient = __toESM(require("react-dom/client"), 1);
 var import_antd = require("antd");
 
@@ -4044,12 +4927,12 @@ function flushWebEditorFeedbackMessages() {
 }
 
 // src/core/editor/feedback.ts
-var PromptDialogContent = import_react.default.forwardRef(
+var PromptDialogContent = import_react2.default.forwardRef(
   (props, ref) => {
-    const [value, setValue] = import_react.default.useState(props.defaultValue ?? "");
-    const [error, setError] = import_react.default.useState("");
-    const inputElementRef = import_react.default.useRef(null);
-    import_react.default.useImperativeHandle(ref, () => ({
+    const [value, setValue] = import_react2.default.useState(props.defaultValue ?? "");
+    const [error, setError] = import_react2.default.useState("");
+    const inputElementRef = import_react2.default.useRef(null);
+    import_react2.default.useImperativeHandle(ref, () => ({
       getValue: () => value,
       setError: (nextError) => {
         setError(nextError);
@@ -4069,7 +4952,7 @@ var PromptDialogContent = import_react.default.forwardRef(
         setError("");
       }
     };
-    const field = props.multiline ? import_react.default.createElement(import_antd.Input.TextArea, {
+    const field = props.multiline ? import_react2.default.createElement(import_antd.Input.TextArea, {
       ref: (instance) => {
         inputElementRef.current = instance?.resizableTextArea?.textArea ?? null;
       },
@@ -4078,7 +4961,7 @@ var PromptDialogContent = import_react.default.forwardRef(
       readOnly: props.readOnly,
       placeholder: props.placeholder,
       onChange: handleChange
-    }) : import_react.default.createElement(import_antd.Input, {
+    }) : import_react2.default.createElement(import_antd.Input, {
       ref: (instance) => {
         inputElementRef.current = instance?.input ?? null;
       },
@@ -4087,17 +4970,17 @@ var PromptDialogContent = import_react.default.forwardRef(
       placeholder: props.placeholder,
       onChange: handleChange
     });
-    return import_react.default.createElement(
+    return import_react2.default.createElement(
       "div",
       { style: { display: "grid", gap: 10 } },
-      props.content ? import_react.default.createElement("div", { style: { whiteSpace: "pre-line" } }, props.content) : null,
-      props.label ? import_react.default.createElement(
+      props.content ? import_react2.default.createElement("div", { style: { whiteSpace: "pre-line" } }, props.content) : null,
+      props.label ? import_react2.default.createElement(
         "div",
         { style: { fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.88)" } },
         props.label
       ) : null,
       field,
-      error ? import_react.default.createElement(
+      error ? import_react2.default.createElement(
         "div",
         { style: { fontSize: 12, color: "#ff4d4f" } },
         error
@@ -4117,7 +5000,7 @@ function showPromptModal(container, options) {
   container.appendChild(mountNode);
   const root = ReactDOMClient.createRoot(mountNode);
   return new Promise((resolve) => {
-    const contentRef = import_react.default.createRef();
+    const contentRef = import_react2.default.createRef();
     const cleanup = () => {
       window.setTimeout(() => {
         root.unmount();
@@ -4128,10 +5011,10 @@ function showPromptModal(container, options) {
       resolve(value);
       cleanup();
     };
-    const PromptModal = () => import_react.default.createElement(
+    const PromptModal = () => import_react2.default.createElement(
       import_antd.App,
       null,
-      import_react.default.createElement(
+      import_react2.default.createElement(
         import_antd.Modal,
         {
           open: true,
@@ -4162,7 +5045,7 @@ function showPromptModal(container, options) {
             handleResolve(null);
           }
         },
-        import_react.default.createElement(PromptDialogContent, {
+        import_react2.default.createElement(PromptDialogContent, {
           ref: contentRef,
           content: options.content,
           label: options.label,
@@ -4174,7 +5057,7 @@ function showPromptModal(container, options) {
         })
       )
     );
-    root.render(import_react.default.createElement(PromptModal));
+    root.render(import_react2.default.createElement(PromptModal));
     window.setTimeout(() => {
       contentRef.current?.focus(Boolean(options.selectOnOpen));
     }, 0);
@@ -4223,10 +5106,10 @@ function createFeedbackService(options) {
         maskClosable: true,
         getContainer: () => container,
         cancelButtonProps: dialog.cancelText ? void 0 : { style: { display: "none" } },
-        footer: dialog.secondaryConfirmText ? (_originNode, { OkBtn }) => import_react.default.createElement(
-          import_react.default.Fragment,
+        footer: dialog.secondaryConfirmText ? (_originNode, { OkBtn }) => import_react2.default.createElement(
+          import_react2.default.Fragment,
           null,
-          import_react.default.createElement(
+          import_react2.default.createElement(
             import_antd.Button,
             {
               key: "secondary",
@@ -4237,7 +5120,7 @@ function createFeedbackService(options) {
             },
             dialog.secondaryConfirmText
           ),
-          import_react.default.createElement(OkBtn)
+          import_react2.default.createElement(OkBtn)
         ) : void 0,
         onOk: () => settle(true),
         onCancel: () => settle(false)
@@ -9132,27 +10015,6 @@ var Disposer = class {
   }
 };
 
-// src/ui/csp-nonce.ts
-function resolveCspNonce(ownerDocument) {
-  const documentRef = ownerDocument ?? (typeof document !== "undefined" ? document : null);
-  if (!documentRef) return void 0;
-  const metaNonce = typeof documentRef.querySelector === "function" ? documentRef.querySelector('meta[name="csp-nonce"], meta[property="csp-nonce"]')?.getAttribute("content")?.trim() : void 0;
-  if (metaNonce) return metaNonce;
-  if (typeof documentRef.querySelectorAll === "function") {
-    for (const element of Array.from(documentRef.querySelectorAll("style"))) {
-      const nonce = element.nonce?.trim();
-      if (nonce) return nonce;
-    }
-  }
-  if (typeof documentRef.querySelectorAll === "function") {
-    for (const element of Array.from(documentRef.querySelectorAll("script"))) {
-      const nonce = element.nonce?.trim();
-      if (nonce) return nonce;
-    }
-  }
-  return void 0;
-}
-
 // src/ui/shadow-host.ts
 var SHADOW_HOST_FOCUS_TRAP_SELECTORS = [
   ".ant-modal-wrap",
@@ -9959,304 +10821,13 @@ function mountShadowHost(_options = {}) {
 }
 
 // src/ui/runtime/create-web-editor-ui-runtime.tsx
-var import_react23 = __toESM(require("react"), 1);
+var import_react26 = __toESM(require("react"), 1);
 var import_client = require("react-dom/client");
 var import_antd10 = require("antd");
 var import_cssinjs = require("@ant-design/cssinjs");
 
 // src/ui/runtime/runtime-shell.tsx
-var import_react22 = __toESM(require("react"), 1);
-
-// src/ui/runtime/theme.ts
-var ANCHOR_GAP_PX = 12;
-var SAFE_PADDING_PX = 12;
-var PAGE_CONFIG_PANEL_MIN_WIDTH = 232;
-var PAGE_CONFIG_PANEL_MAX_WIDTH = 360;
-var PAGE_CONFIG_PANEL_WIDTH = 248;
-var PROPERTY_PANEL_WIDTH = PAGE_CONFIG_PANEL_WIDTH;
-var PROPERTY_PANEL_RADIUS = 20;
-var PROPERTY_PANEL_TOP = 24;
-var PROPERTY_PANEL_RIGHT = 16;
-var TOOLBAR_BOTTOM = 24;
-var PROPERTY_PANEL_EXPANDED_HEIGHT_PX = PROPERTY_PANEL_TOP + TOOLBAR_BOTTOM;
-var PROPERTY_PANEL_EXPANDED_HEIGHT = `calc(100vh - ${PROPERTY_PANEL_TOP + TOOLBAR_BOTTOM}px)`;
-var PROMPT_CARD_WIDTH = 280;
-var PROMPT_CARD_ESTIMATED_HEIGHT = 104;
-var TEXT_INPUT_PLACEHOLDER = "\u7F16\u8F91\u5F53\u524D\u6587\u672C";
-var FLOATING_CLAMP_MARGIN = 16;
-var POPUP_LAYER_Z_INDEX = 10040;
-var HEADER_HORIZONTAL_PADDING = 10;
-var HEADER_VERTICAL_PADDING = 8;
-var HEADER_CONTROL_SIZE = 28;
-var COMPACT_TOOL_SIZE = 44;
-var COMPACT_TOOLBAR_WIDTH = 251;
-var COMPACT_TOOLBAR_HEIGHT = 44;
-var WEB_EDITOR_POPUP_ROOT_ATTR = "data-we-popup-root";
-var ACTION_ICON_SIZE = 15;
-var ACTION_ICON_STROKE = 1.8;
-var ACTION_BUTTON_SIZE = 28;
-var WEB_EDITOR_V2_PASTE_DEBUG_KEY = "__WEB_EDITOR_V2_PASTE_DEBUG__";
-var BRAND_PRIMARY = "#008F5D";
-var BRAND_PRIMARY_HOVER = "#00A36A";
-var BRAND_PRIMARY_ACTIVE = "#007A4F";
-var BRAND_PRIMARY_SOFT = "rgba(0, 143, 93, 0.16)";
-var BRAND_PRIMARY_RING = "rgba(0, 143, 93, 0.28)";
-var BRAND_PRIMARY_SHADOW = "rgba(0, 143, 93, 0.28)";
-var BRAND_ACCENT = "#00D68F";
-var SLEEPING_ICON = "#A1A1AA";
-var SLEEPING_ICON_STRONG = "#71717A";
-var WEB_EDITOR_PARENT_PASTE_BRIDGE_CLEANUP_KEY = "__webEditorV2ParentPasteBridgeCleanup__";
-var LIGHT_EDITOR_CHROME = {
-  accent: BRAND_PRIMARY,
-  accentBright: BRAND_ACCENT,
-  accentHover: BRAND_PRIMARY_HOVER,
-  accentActive: BRAND_PRIMARY_ACTIVE,
-  accentSoft: BRAND_PRIMARY_SOFT,
-  accentRing: BRAND_PRIMARY_RING,
-  surface: "#FFFFFF",
-  surfaceElevated: "#FFFFFF",
-  surfaceMuted: "#FAFAFA",
-  surfaceInteractive: "#F4F4F5",
-  surfaceOverlay: "rgba(255, 255, 255, 0.96)",
-  border: "rgba(39, 39, 42, 0.10)",
-  borderStrong: "rgba(39, 39, 42, 0.16)",
-  divider: "rgba(228, 228, 231, 0.95)",
-  textPrimary: "#18181B",
-  textSecondary: "#3F3F46",
-  textMuted: "#A1A1AA",
-  textSleeping: "#A1A1AA",
-  textSleepingStrong: "#71717A",
-  textDanger: "#DC2626",
-  hoverSubtle: "rgba(244, 244, 245, 1)",
-  hoverGhost: "rgba(15, 23, 42, 0.035)",
-  toolbarShellBorder: "rgba(228, 228, 231, 0.80)",
-  toolbarShellInset: "inset 0 1px 0 rgba(255, 255, 255, 0.88)",
-  toolbarGlow: "0 0 20px -5px rgba(0, 143, 93, 0.20)",
-  shadow: "0 24px 60px rgba(15, 23, 42, 0.14), 0 8px 24px rgba(15, 23, 42, 0.08)",
-  shadowCompact: "0 10px 28px rgba(15, 23, 42, 0.10), 0 2px 8px rgba(15, 23, 42, 0.06)",
-  overlayCloseBackground: "rgba(255, 255, 255, 0.94)"
-};
-var DARK_EDITOR_CHROME = {
-  accent: BRAND_PRIMARY,
-  accentBright: BRAND_ACCENT,
-  accentHover: BRAND_PRIMARY_HOVER,
-  accentActive: BRAND_PRIMARY_ACTIVE,
-  accentSoft: BRAND_PRIMARY_SOFT,
-  accentRing: BRAND_PRIMARY_RING,
-  surface: "#121212",
-  surfaceElevated: "#161616",
-  surfaceMuted: "#18181B",
-  surfaceInteractive: "#27272A",
-  surfaceOverlay: "rgba(18, 18, 18, 0.96)",
-  border: "rgba(255, 255, 255, 0.08)",
-  borderStrong: "rgba(255, 255, 255, 0.12)",
-  divider: "rgba(39, 39, 42, 0.95)",
-  textPrimary: "rgba(255, 255, 255, 0.94)",
-  textSecondary: "#D4D4D8",
-  textMuted: "#A1A1AA",
-  textSleeping: SLEEPING_ICON,
-  textSleepingStrong: SLEEPING_ICON_STRONG,
-  textDanger: "#ff7875",
-  hoverSubtle: "rgba(39, 39, 42, 0.80)",
-  hoverGhost: "rgba(255, 255, 255, 0.04)",
-  toolbarShellBorder: "rgba(39, 39, 42, 0.82)",
-  toolbarShellInset: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
-  toolbarGlow: "0 0 20px -5px rgba(0, 143, 93, 0.15)",
-  shadow: "0 18px 48px rgba(0, 0, 0, 0.42), 0 4px 18px rgba(0, 0, 0, 0.28)",
-  shadowCompact: "0 10px 28px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.20)",
-  overlayCloseBackground: "rgba(18, 18, 18, 0.92)"
-};
-function cssVar(name) {
-  return `var(${name})`;
-}
-var EDITOR_CHROME = {
-  accent: cssVar("--we-editor-accent"),
-  accentBright: cssVar("--we-editor-accent-bright"),
-  accentHover: cssVar("--we-editor-accent-hover"),
-  accentActive: cssVar("--we-editor-accent-active"),
-  accentSoft: cssVar("--we-editor-accent-soft"),
-  accentRing: cssVar("--we-editor-accent-ring"),
-  surface: cssVar("--we-editor-surface"),
-  surfaceElevated: cssVar("--we-editor-surface-elevated"),
-  surfaceMuted: cssVar("--we-editor-surface-muted"),
-  surfaceInteractive: cssVar("--we-editor-surface-interactive"),
-  surfaceOverlay: cssVar("--we-editor-surface-overlay"),
-  border: cssVar("--we-editor-border"),
-  borderStrong: cssVar("--we-editor-border-strong"),
-  divider: cssVar("--we-editor-divider"),
-  textPrimary: cssVar("--we-editor-text-primary"),
-  textSecondary: cssVar("--we-editor-text-secondary"),
-  textMuted: cssVar("--we-editor-text-muted"),
-  textSleeping: cssVar("--we-editor-text-sleeping"),
-  textSleepingStrong: cssVar("--we-editor-text-sleeping-strong"),
-  textDanger: cssVar("--we-editor-text-danger"),
-  hoverSubtle: cssVar("--we-editor-hover-subtle"),
-  hoverGhost: cssVar("--we-editor-hover-ghost"),
-  toolbarShellBorder: cssVar("--we-editor-toolbar-shell-border"),
-  toolbarShellInset: cssVar("--we-editor-toolbar-shell-inset"),
-  toolbarGlow: cssVar("--we-editor-toolbar-glow"),
-  shadow: cssVar("--we-editor-shadow"),
-  shadowCompact: cssVar("--we-editor-shadow-compact"),
-  overlayCloseBackground: cssVar("--we-editor-overlay-close-background")
-};
-function getEditorChromeValues(mode) {
-  return mode === "dark" ? DARK_EDITOR_CHROME : LIGHT_EDITOR_CHROME;
-}
-function createEditorChromeCssVars(mode) {
-  const chrome = getEditorChromeValues(mode);
-  return {
-    ["--we-editor-accent"]: chrome.accent,
-    ["--we-editor-accent-bright"]: chrome.accentBright,
-    ["--we-editor-accent-hover"]: chrome.accentHover,
-    ["--we-editor-accent-active"]: chrome.accentActive,
-    ["--we-editor-accent-soft"]: chrome.accentSoft,
-    ["--we-editor-accent-ring"]: chrome.accentRing,
-    ["--we-editor-surface"]: chrome.surface,
-    ["--we-editor-surface-elevated"]: chrome.surfaceElevated,
-    ["--we-editor-surface-muted"]: chrome.surfaceMuted,
-    ["--we-editor-surface-interactive"]: chrome.surfaceInteractive,
-    ["--we-editor-surface-overlay"]: chrome.surfaceOverlay,
-    ["--we-editor-border"]: chrome.border,
-    ["--we-editor-border-strong"]: chrome.borderStrong,
-    ["--we-editor-divider"]: chrome.divider,
-    ["--we-editor-text-primary"]: chrome.textPrimary,
-    ["--we-editor-text-secondary"]: chrome.textSecondary,
-    ["--we-editor-text-muted"]: chrome.textMuted,
-    ["--we-editor-text-sleeping"]: chrome.textSleeping,
-    ["--we-editor-text-sleeping-strong"]: chrome.textSleepingStrong,
-    ["--we-editor-text-danger"]: chrome.textDanger,
-    ["--we-editor-hover-subtle"]: chrome.hoverSubtle,
-    ["--we-editor-hover-ghost"]: chrome.hoverGhost,
-    ["--we-editor-toolbar-shell-border"]: chrome.toolbarShellBorder,
-    ["--we-editor-toolbar-shell-inset"]: chrome.toolbarShellInset,
-    ["--we-editor-toolbar-glow"]: chrome.toolbarGlow,
-    ["--we-editor-shadow"]: chrome.shadow,
-    ["--we-editor-shadow-compact"]: chrome.shadowCompact,
-    ["--we-editor-overlay-close-background"]: chrome.overlayCloseBackground
-  };
-}
-function createRuntimeAntdTheme(mode) {
-  const chrome = getEditorChromeValues(mode);
-  return {
-    token: {
-      colorPrimary: chrome.accent,
-      colorInfo: chrome.accent,
-      colorSuccess: chrome.accent,
-      colorLink: chrome.accent,
-      colorPrimaryHover: chrome.accentHover,
-      colorPrimaryActive: chrome.accentActive,
-      colorPrimaryBorder: chrome.accent,
-      colorPrimaryBorderHover: chrome.accentHover,
-      colorPrimaryBg: chrome.accentSoft,
-      colorPrimaryBgHover: "rgba(0, 143, 93, 0.22)",
-      borderRadius: 8,
-      fontSize: 11,
-      fontSizeSM: 11,
-      colorBgBase: chrome.surface,
-      colorBgContainer: chrome.surfaceElevated,
-      colorBgElevated: chrome.surfaceElevated,
-      colorFill: mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.06)",
-      colorFillSecondary: chrome.surfaceMuted,
-      colorFillTertiary: chrome.surfaceInteractive,
-      colorText: chrome.textPrimary,
-      colorTextSecondary: chrome.textSecondary,
-      colorTextTertiary: chrome.textMuted,
-      colorBorder: chrome.border,
-      colorBorderSecondary: chrome.borderStrong,
-      colorTextPlaceholder: chrome.textMuted,
-      colorSplit: chrome.border,
-      boxShadowSecondary: chrome.shadow,
-      colorIcon: chrome.textSecondary,
-      colorIconHover: chrome.textPrimary,
-      controlOutline: chrome.accentSoft,
-      controlOutlineWidth: 2,
-      controlHeight: 32,
-      controlHeightSM: 28
-    },
-    components: {
-      Button: {
-        borderRadius: 12,
-        paddingInlineSM: 8,
-        controlHeightSM: 28,
-        defaultShadow: "none",
-        primaryShadow: "none",
-        dangerShadow: "none",
-        textTextColor: chrome.textPrimary,
-        textHoverBg: chrome.hoverSubtle,
-        defaultBg: chrome.surfaceMuted,
-        defaultColor: chrome.textPrimary,
-        defaultBorderColor: chrome.border,
-        defaultHoverBg: chrome.surfaceInteractive,
-        defaultHoverColor: chrome.textPrimary,
-        defaultHoverBorderColor: chrome.borderStrong
-      },
-      Collapse: {
-        contentBg: "transparent",
-        headerBg: "transparent",
-        borderlessContentBg: "transparent",
-        contentPadding: "0 0 8px",
-        borderlessContentPadding: "0 0 8px"
-      },
-      Input: {
-        colorBgContainer: chrome.surfaceMuted,
-        activeBg: chrome.surfaceInteractive,
-        hoverBg: chrome.surfaceInteractive,
-        activeBorderColor: chrome.accent,
-        hoverBorderColor: chrome.borderStrong,
-        activeShadow: `0 0 0 2px ${chrome.accentSoft}`
-      },
-      InputNumber: {
-        colorBgContainer: chrome.surfaceMuted,
-        activeBg: chrome.surfaceInteractive,
-        hoverBg: chrome.surfaceInteractive,
-        activeBorderColor: chrome.accent,
-        hoverBorderColor: chrome.borderStrong,
-        activeShadow: `0 0 0 2px ${chrome.accentSoft}`
-      },
-      Select: {
-        optionSelectedBg: chrome.accentSoft,
-        optionActiveBg: chrome.hoverSubtle,
-        selectorBg: chrome.surfaceMuted,
-        activeBorderColor: chrome.accent,
-        hoverBorderColor: chrome.borderStrong
-      },
-      Slider: {
-        colorPrimary: chrome.accent,
-        handleSize: 8,
-        railBg: mode === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(15, 23, 42, 0.12)",
-        railHoverBg: mode === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(15, 23, 42, 0.18)",
-        trackBg: chrome.accent,
-        trackHoverBg: chrome.accentHover
-      },
-      ColorPicker: {
-        colorPrimary: chrome.accent
-      },
-      Dropdown: {
-        colorBgElevated: chrome.surfaceElevated,
-        colorText: chrome.textPrimary,
-        colorTextDescription: chrome.textSecondary,
-        controlItemBgHover: chrome.hoverSubtle,
-        controlItemBgActive: chrome.accentSoft,
-        borderRadiusLG: 16
-      },
-      Modal: {
-        contentBg: chrome.surfaceElevated,
-        headerBg: chrome.surfaceElevated,
-        titleColor: chrome.textPrimary,
-        titleFontSize: 14,
-        borderRadiusLG: 18
-      },
-      Tooltip: {
-        colorBgSpotlight: mode === "dark" ? "#050608" : "#0F172A",
-        colorTextLightSolid: "#FFFFFF"
-      },
-      Popover: {
-        colorBgElevated: chrome.surfaceElevated,
-        colorText: chrome.textPrimary
-      }
-    }
-  };
-}
+var import_react25 = __toESM(require("react"), 1);
 
 // src/ui/runtime/styles/property-panel-styles.ts
 var panelContainerStyle = {
@@ -11919,7 +12490,7 @@ var promptCardStyle = {
 };
 
 // src/ui/runtime/element-agent-task-overlays.tsx
-var import_react2 = __toESM(require("react"), 1);
+var import_react3 = __toESM(require("react"), 1);
 
 // src/ui/runtime/session-activity-utils.ts
 function limitVisibleSessionActivities(items, limit = 3) {
@@ -11947,7 +12518,7 @@ function resolveSessionActivityTarget(options) {
 }
 
 // src/ui/runtime/element-agent-task-overlays.tsx
-var import_jsx_runtime = require("react/jsx-runtime");
+var import_jsx_runtime2 = require("react/jsx-runtime");
 var INLINE_STATUS_MIN_WIDTH = 110;
 var INLINE_STATUS_MIN_HEIGHT = 40;
 var OVERLAY_ACTIVITY_LIMIT = 2;
@@ -12061,9 +12632,9 @@ function ElementAgentTaskOverlays(props) {
   const { tasks } = props;
   void props.renderTick;
   void props.onDismissTask;
-  const animationFrameRef = import_react2.default.useRef(null);
-  const animationTimeoutRef = import_react2.default.useRef(null);
-  const activityFeeds = import_react2.default.useMemo(() => {
+  const animationFrameRef = import_react3.default.useRef(null);
+  const animationTimeoutRef = import_react3.default.useRef(null);
+  const activityFeeds = import_react3.default.useMemo(() => {
     const feeds = /* @__PURE__ */ new Map();
     for (const task of tasks) {
       const target = resolveSessionActivityTarget({
@@ -12077,16 +12648,16 @@ function ElementAgentTaskOverlays(props) {
     }
     return Array.from(feeds.entries()).map(([key, target]) => ({ key, target }));
   }, [tasks]);
-  const activityHostElementKey = import_react2.default.useMemo(
+  const activityHostElementKey = import_react3.default.useMemo(
     () => pickOverlayActivityHostTask(tasks),
     [tasks]
   );
-  const [recentActivities, setRecentActivities] = import_react2.default.useState([]);
-  const [displayedActivities, setDisplayedActivities] = import_react2.default.useState([]);
-  const [animatedActivities, setAnimatedActivities] = import_react2.default.useState(null);
-  const [animatedTranslateY, setAnimatedTranslateY] = import_react2.default.useState(0);
-  const [animationPhase, setAnimationPhase] = import_react2.default.useState("idle");
-  const clearAnimationState = import_react2.default.useCallback(() => {
+  const [recentActivities, setRecentActivities] = import_react3.default.useState([]);
+  const [displayedActivities, setDisplayedActivities] = import_react3.default.useState([]);
+  const [animatedActivities, setAnimatedActivities] = import_react3.default.useState(null);
+  const [animatedTranslateY, setAnimatedTranslateY] = import_react3.default.useState(0);
+  const [animationPhase, setAnimationPhase] = import_react3.default.useState("idle");
+  const clearAnimationState = import_react3.default.useCallback(() => {
     if (animationFrameRef.current !== null) {
       window.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -12099,7 +12670,7 @@ function ElementAgentTaskOverlays(props) {
     setAnimatedTranslateY(0);
     setAnimationPhase("idle");
   }, []);
-  import_react2.default.useEffect(() => {
+  import_react3.default.useEffect(() => {
     return () => {
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
@@ -12109,7 +12680,7 @@ function ElementAgentTaskOverlays(props) {
       }
     };
   }, []);
-  import_react2.default.useEffect(() => {
+  import_react3.default.useEffect(() => {
     if (activityFeeds.length === 0) {
       if (shouldResetOverlayActivityState({
         recentCount: recentActivities.length,
@@ -12148,7 +12719,7 @@ function ElementAgentTaskOverlays(props) {
     props.subscribeSessionActivity,
     recentActivities.length
   ]);
-  const activityHostPresentation = import_react2.default.useMemo(() => {
+  const activityHostPresentation = import_react3.default.useMemo(() => {
     const hostTask = tasks.find((task) => task.elementKey === activityHostElementKey) ?? null;
     if (!hostTask) {
       return {
@@ -12171,7 +12742,7 @@ function ElementAgentTaskOverlays(props) {
       height: rect.height
     });
   }, [activityHostElementKey, tasks, props.renderTick]);
-  import_react2.default.useEffect(() => {
+  import_react3.default.useEffect(() => {
     const visibleCount = activityHostPresentation.maxVisibleItems;
     if (!activityHostElementKey || visibleCount <= 0 || recentActivities.length === 0) {
       if (shouldClearOverlayDisplayedActivities({
@@ -12254,7 +12825,7 @@ function ElementAgentTaskOverlays(props) {
     });
     const showInlineStatus = rect.width > INLINE_STATUS_MIN_WIDTH && rect.height > INLINE_STATUS_MIN_HEIGHT && (!running || !showActivityFeed);
     const scanSize = Math.max(48, Math.min(88, Math.round(rect.height * 0.28)));
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
       "div",
       {
         style: {
@@ -12269,7 +12840,7 @@ function ElementAgentTaskOverlays(props) {
           zIndex: 10024
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "div",
             {
               style: {
@@ -12283,7 +12854,7 @@ function ElementAgentTaskOverlays(props) {
               }
             }
           ),
-          running ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          running ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "div",
             {
               style: {
@@ -12292,7 +12863,7 @@ function ElementAgentTaskOverlays(props) {
                 overflow: "hidden",
                 borderRadius: "inherit"
               },
-              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                 "div",
                 {
                   className: "we-runtime-agent-task__scanner",
@@ -12304,7 +12875,7 @@ function ElementAgentTaskOverlays(props) {
               )
             }
           ) : null,
-          showInlineStatus ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          showInlineStatus ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "div",
             {
               style: {
@@ -12322,10 +12893,10 @@ function ElementAgentTaskOverlays(props) {
                 pointerEvents: "none",
                 textShadow: `0 1px 6px ${tone.glow}`
               },
-              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: tone.text })
+              children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: tone.text })
             }
           ) : null,
-          showActivityFeed ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          showActivityFeed ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "div",
             {
               style: {
@@ -12340,7 +12911,7 @@ function ElementAgentTaskOverlays(props) {
                 padding: "10px 12px",
                 textAlign: "center"
               },
-              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                 "div",
                 {
                   style: {
@@ -12349,7 +12920,7 @@ function ElementAgentTaskOverlays(props) {
                     height: activityPresentation.maxVisibleItems * OVERLAY_ACTIVITY_ROW_HEIGHT + Math.max(0, activityPresentation.maxVisibleItems - 1) * OVERLAY_ACTIVITY_ROW_GAP,
                     overflow: "hidden"
                   },
-                  children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "div",
                     {
                       style: {
@@ -12363,7 +12934,7 @@ function ElementAgentTaskOverlays(props) {
                       children: activityItems.map((item, index) => {
                         const lastAnimatedIndex = activityItems.length - 1;
                         const rowOpacity = animatedActivities ? animationPhase === "idle" ? index === lastAnimatedIndex ? 0 : 1 : index === 0 ? 0 : 1 : 1;
-                        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                           "span",
                           {
                             style: {
@@ -12398,15 +12969,15 @@ function ElementAgentTaskOverlays(props) {
     );
   }).filter(Boolean);
   if (overlayNodes.length === 0) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children: overlayNodes });
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(import_jsx_runtime2.Fragment, { children: overlayNodes });
 }
 
 // src/ui/runtime/prompt-card-view.tsx
-var import_react10 = __toESM(require("react"), 1);
+var import_react12 = __toESM(require("react"), 1);
 var import_react_dom = require("react-dom");
 
 // src/ui/runtime/mobile-selection-overlay.tsx
-var import_react3 = __toESM(require("react"), 1);
+var import_react4 = __toESM(require("react"), 1);
 
 // src/core/editor/screenshot.ts
 var SCREENSHOT_IMAGE_PROXY_PATH = "/api/export/image-proxy";
@@ -12836,7 +13407,7 @@ async function captureElementScreenshot(element, fileNameHint, options = {}) {
 }
 
 // src/ui/runtime/mobile-selection-overlay.tsx
-var import_jsx_runtime2 = require("react/jsx-runtime");
+var import_jsx_runtime3 = require("react/jsx-runtime");
 var OVERLAY_Z_INDEX = POPUP_LAYER_Z_INDEX + 5;
 var THUMBNAIL_MAX_WIDTH_RATIO = 0.85;
 var THUMBNAIL_MAX_HEIGHT = 120;
@@ -12953,16 +13524,16 @@ async function createScreenshotThumbnail(element, maxWidth, maxHeight) {
 }
 function MobileSelectionOverlay(props) {
   const { currentTarget, promptVisible, promptCardTop, onDismiss } = props;
-  const thumbnailHostRef = import_react3.default.useRef(null);
-  const [animateIn, setAnimateIn] = import_react3.default.useState(false);
-  const visibleAtRef = import_react3.default.useRef(0);
+  const thumbnailHostRef = import_react4.default.useRef(null);
+  const [animateIn, setAnimateIn] = import_react4.default.useState(false);
+  const visibleAtRef = import_react4.default.useRef(0);
   const visible = isMobileDevice() && promptVisible && Boolean(currentTarget);
-  import_react3.default.useEffect(() => {
+  import_react4.default.useEffect(() => {
     if (visible) {
       visibleAtRef.current = Date.now();
     }
   }, [visible]);
-  import_react3.default.useEffect(() => {
+  import_react4.default.useEffect(() => {
     if (!visible) {
       setAnimateIn(false);
       return;
@@ -12970,7 +13541,7 @@ function MobileSelectionOverlay(props) {
     const raf = requestAnimationFrame(() => setAnimateIn(true));
     return () => cancelAnimationFrame(raf);
   }, [visible]);
-  import_react3.default.useEffect(() => {
+  import_react4.default.useEffect(() => {
     const host = thumbnailHostRef.current;
     if (!host || !currentTarget || !visible) {
       if (host) host.innerHTML = "";
@@ -13001,8 +13572,8 @@ function MobileSelectionOverlay(props) {
     };
   }, [currentTarget, visible]);
   if (!visible) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
       "div",
       {
         "data-mobile-selection-overlay": "true",
@@ -13032,7 +13603,7 @@ function MobileSelectionOverlay(props) {
         }
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
       {
         "data-mobile-selection-thumbnail": "true",
@@ -13057,7 +13628,7 @@ function MobileSelectionOverlay(props) {
           justifyContent: "center"
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
             "div",
             {
               style: {
@@ -13076,7 +13647,7 @@ function MobileSelectionOverlay(props) {
               children: "\u5F53\u524D\u9009\u4E2D\u5143\u7D20"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { ref: thumbnailHostRef })
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { ref: thumbnailHostRef })
         ]
       }
     )
@@ -13084,7 +13655,7 @@ function MobileSelectionOverlay(props) {
 }
 
 // src/ui/runtime/prompt-card-view.tsx
-var import_icons6 = require("@ant-design/icons");
+var import_icons7 = require("@ant-design/icons");
 var import_antd5 = require("antd");
 
 // src/ui/prompt-card-position.ts
@@ -13107,6 +13678,9 @@ function computePromptCardPosition(options) {
     propertyPanelRight = 16,
     anchorGapPx = 12
   } = options;
+  if (options.stackWithCommentList && viewportWidth <= 760) {
+    return { left: 8, top: Math.round(Math.max(8, viewportHeight - Math.min(cardHeight, viewportHeight * 0.48 - 16) - 8)) };
+  }
   if (isMobileDevice()) {
     const visualHeight = getVisualViewportHeight();
     const mobileCardPadding = 8;
@@ -13294,15 +13868,15 @@ async function executePromptCardDocumentAction(options) {
 
 // src/ui/runtime/component-prompt-footer.tsx
 var import_icons = require("@ant-design/icons");
-var import_jsx_runtime3 = require("react/jsx-runtime");
+var import_jsx_runtime4 = require("react/jsx-runtime");
 function ComponentPromptFooter(props) {
   const { newPrototype, loading } = props;
   const actionDisabled = props.disabled || loading || props.saving;
   const destinationDisabled = props.selectedElementCount !== 1 || loading || props.saving;
   const explanation = props.selectedElementCount !== 1 ? "\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u540E\uFF0C\u53EF\u751F\u6210\u72EC\u7ACB\u72B6\u6001\u9875" : newPrototype ? "\u5728\u72EC\u7ACB\u9875\u9762\u5C55\u793A\u7EC4\u4EF6\u7684\u4E0D\u540C\u72B6\u6001" : "\u8C03\u6574\u5F53\u524D\u9009\u4E2D\u7684\u7EC4\u4EF6";
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { "data-we-component-prompt-footer": "true", style: { flexShrink: 0, padding: "0 12px 12px" }, children: [
-    props.newPrototypeAvailable ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { "data-we-component-states-option": "true", style: { padding: "0 0 10px" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("label", { style: {
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { "data-we-component-prompt-footer": "true", style: { flexShrink: 0, padding: "0 12px 12px" }, children: [
+    props.newPrototypeAvailable ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { "data-we-component-states-option": "true", style: { padding: "0 0 10px" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("label", { style: {
         display: "inline-flex",
         alignItems: "center",
         gap: 7,
@@ -13312,7 +13886,7 @@ function ComponentPromptFooter(props) {
         color: EDITOR_CHROME.textSecondary,
         cursor: destinationDisabled ? "not-allowed" : "pointer"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           "input",
           {
             type: "checkbox",
@@ -13325,12 +13899,12 @@ function ComponentPromptFooter(props) {
         ),
         "\u751F\u6210\u5230\u65B0\u539F\u578B"
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { "aria-live": "polite", style: { color: EDITOR_CHROME.textMuted, fontSize: 11, lineHeight: "18px", paddingLeft: 22 }, children: explanation })
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { "aria-live": "polite", style: { color: EDITOR_CHROME.textMuted, fontSize: 11, lineHeight: "18px", paddingLeft: 22 }, children: explanation })
     ] }) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, paddingTop: 10, borderTop: `1px solid ${EDITOR_CHROME.border}` }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { display: "flex", alignItems: "center", gap: 2 }, children: props.leadingActions }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { flex: 1 } }),
-      props.onSave ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, paddingTop: 10, borderTop: `1px solid ${EDITOR_CHROME.border}` }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", alignItems: "center", gap: 2 }, children: props.leadingActions }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { flex: 1 } }),
+      props.onSave ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
         "button",
         {
           type: "button",
@@ -13342,9 +13916,9 @@ function ComponentPromptFooter(props) {
           children: props.saving ? "\u6682\u5B58\u4E2D\u2026" : "\u6682\u5B58\u6279\u6CE8"
         }
       ) : null,
-      props.actionVisible ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-        !props.onSave ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { "aria-hidden": "true", style: { color: EDITOR_CHROME.textMuted, fontSize: 10, whiteSpace: "nowrap" }, children: props.shortcut }) : null,
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+      props.actionVisible ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+        !props.onSave ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { "aria-hidden": "true", style: { color: EDITOR_CHROME.textMuted, fontSize: 10, whiteSpace: "nowrap" }, children: props.shortcut }) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
           "button",
           {
             type: "button",
@@ -13372,12 +13946,369 @@ function ComponentPromptFooter(props) {
               cursor: actionDisabled ? "not-allowed" : "pointer"
             },
             children: [
-              loading ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_icons.LoadingOutlined, { spin: true }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_icons.ArrowUpOutlined, {}),
+              loading ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_icons.LoadingOutlined, { spin: true }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_icons.ArrowUpOutlined, {}),
               loading ? newPrototype ? "\u51C6\u5907\u622A\u56FE\u2026" : "\u5904\u7406\u4E2D\u2026" : newPrototype ? "\u751F\u6210\u72B6\u6001\u9875" : "\u53D1\u9001\u4FEE\u6539"
             ]
           }
         )
       ] }) : null
+    ] })
+  ] });
+}
+
+// src/ui/runtime/component-comment-composer.tsx
+var import_react5 = __toESM(require("react"), 1);
+var import_icons2 = require("@ant-design/icons");
+
+// src/ui/runtime/image-attachments.ts
+var MAX_PROMPT_IMAGE_ATTACHMENTS = 3;
+var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+function createAttachmentId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `img_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+function inferExtension(mimeType) {
+  const normalized = String(mimeType ?? "").trim().toLowerCase();
+  if (!normalized.startsWith("image/")) return "png";
+  const ext = normalized.slice("image/".length).replace(/[^a-z0-9+.-]/g, "");
+  if (!ext) return "png";
+  if (ext === "jpeg") return "jpg";
+  if (ext === "svg+xml") return "svg";
+  return ext;
+}
+function normalizeImageName(name, mimeType, index) {
+  const trimmed = String(name ?? "").trim();
+  if (trimmed) return trimmed;
+  return `clipboard-image-${index + 1}.${inferExtension(mimeType)}`;
+}
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("blob-read-failed"));
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.readAsDataURL(blob);
+  });
+}
+async function createPromptImageAttachment(blob, index = 0, fallbackName) {
+  const mimeType = String(blob.type ?? "").trim() || "image/png";
+  return {
+    id: createAttachmentId(),
+    name: normalizeImageName(
+      "name" in blob && typeof blob.name === "string" ? blob.name : fallbackName,
+      mimeType,
+      index
+    ),
+    data: await blobToDataUrl(blob),
+    mimeType,
+    size: Number(blob.size ?? 0),
+    createdAt: Date.now(),
+    source: "user"
+  };
+}
+function isStandardSvgText(value) {
+  const source = String(value ?? "").trim();
+  if (!source || typeof DOMParser === "undefined") return false;
+  try {
+    const document2 = new DOMParser().parseFromString(source, "image/svg+xml");
+    const root = document2.documentElement;
+    return root.localName === "svg" && root.namespaceURI === SVG_NAMESPACE;
+  } catch {
+    return false;
+  }
+}
+async function createPromptImageAttachmentFromSvgText(value) {
+  const source = String(value ?? "").trim();
+  if (!isStandardSvgText(source)) return null;
+  const blob = new Blob([source], { type: "image/svg+xml" });
+  return createPromptImageAttachment(blob, 0, "clipboard-image-1.svg");
+}
+async function readPromptImageAttachmentsFromDataTransferItems(items) {
+  if (!items) return [];
+  const imageFiles = Array.from(items).filter((item) => item.kind === "file" && String(item.type ?? "").startsWith("image/")).map((item) => item.getAsFile()).filter((file) => Boolean(file));
+  return Promise.all(imageFiles.map((file, index) => createPromptImageAttachment(file, index)));
+}
+async function readPromptImageAttachmentsFromClipboardItems(items) {
+  if (!items?.length) return [];
+  const blobs = await Promise.all(
+    items.flatMap(
+      (item) => item.types.filter((type) => String(type ?? "").startsWith("image/")).map(async (type) => ({
+        blob: await item.getType(type),
+        type
+      }))
+    )
+  );
+  return Promise.all(
+    blobs.map(({ blob }, index) => createPromptImageAttachment(blob, index))
+  );
+}
+function mergePromptImageAttachments(existing, incoming, maxCount = MAX_PROMPT_IMAGE_ATTACHMENTS) {
+  const safeExisting = existing.slice(0, maxCount);
+  const capacity = Math.max(0, maxCount - safeExisting.length);
+  const accepted = incoming.slice(0, capacity);
+  return {
+    images: [...safeExisting, ...accepted],
+    acceptedCount: accepted.length,
+    droppedCount: Math.max(0, incoming.length - accepted.length)
+  };
+}
+function isTargetScreenshotImage(image) {
+  return image.source === "target-screenshot";
+}
+function splitPromptImageAttachments(images) {
+  const userImages = [];
+  let targetScreenshot = null;
+  for (const image of images) {
+    if (isTargetScreenshotImage(image)) {
+      targetScreenshot = image;
+    } else {
+      userImages.push(image);
+    }
+  }
+  return { userImages, targetScreenshot };
+}
+function replaceUserPromptImageAttachments(existing, nextUserImages, maxCount = MAX_PROMPT_IMAGE_ATTACHMENTS) {
+  const { targetScreenshot } = splitPromptImageAttachments(existing);
+  const userImages = nextUserImages.filter((image) => !isTargetScreenshotImage(image)).slice(0, maxCount);
+  return targetScreenshot ? [...userImages, targetScreenshot] : userImages;
+}
+function buildPromptImageAttachmentSignature(elementKey, image) {
+  return [
+    String(elementKey ?? "").trim(),
+    String(image.mimeType ?? "").trim(),
+    String(Number(image.size ?? 0)),
+    String(image.data ?? "").slice(0, 96)
+  ].join("::");
+}
+
+// src/ui/runtime/component-comment-composer.tsx
+var import_jsx_runtime5 = require("react/jsx-runtime");
+function ComponentCommentComposer(props) {
+  const [purpose, setPurpose] = import_react5.default.useState("modify-prototype");
+  const scope = props.api.getScopeKey();
+  const [draft, setDraft] = import_react5.default.useState(() => props.api.getDraft(props.element, purpose));
+  const [busy, setBusy] = import_react5.default.useState(null);
+  const [error, setError] = import_react5.default.useState("");
+  const [message, setMessage] = import_react5.default.useState("");
+  const [loadState, setLoadState] = import_react5.default.useState(() => props.getLoadState?.() ?? { status: "ready" });
+  const busyRef = import_react5.default.useRef(false);
+  const mounted = import_react5.default.useRef(true);
+  const context = import_react5.default.useRef({ element: props.element, purpose, scope });
+  context.current = { element: props.element, purpose, scope };
+  const tabId = import_react5.default.useId();
+  const item = COMMENT_PURPOSES.find((item2) => item2.id === purpose);
+  const skills = mergePromptCardSkills(props.skillOptions ?? []).filter((skill) => !props.enabledSkillIds || props.enabledSkillIds.includes(skill.id));
+  const trigger = findPromptCardSkillTrigger(draft.note);
+  import_react5.default.useEffect(() => {
+    setDraft(props.api.getDraft(props.element, purpose));
+    setError("");
+    setMessage("");
+  }, [props.api, props.element, purpose, scope, props.editRequest?.revision]);
+  import_react5.default.useEffect(() => {
+    if (props.editRequest) setPurpose(props.editRequest.purpose);
+  }, [props.editRequest]);
+  import_react5.default.useEffect(() => {
+    mounted.current = true;
+    const timer = globalThis.setInterval(() => {
+      const state2 = props.getLoadState?.() ?? { status: "ready" };
+      setLoadState((previous) => previous.status === state2.status && previous.revision === state2.revision && previous.error === state2.error ? previous : state2);
+    }, 300);
+    return () => {
+      mounted.current = false;
+      globalThis.clearInterval(timer);
+    };
+  }, [props.getLoadState]);
+  const update = (patch) => {
+    props.api.updateDraft(props.element, purpose, patch);
+    setDraft(props.api.getDraft(props.element, purpose));
+    setError("");
+    setMessage("");
+  };
+  const perform = async (action) => {
+    if (busyRef.current) return;
+    if (action !== "export" && (loadState.status !== "ready" || !props.available[purpose] || action === "send" && !draft.note.trim())) return;
+    const origin = context.current;
+    const stillCurrent = () => mounted.current && context.current.element === origin.element && context.current.purpose === origin.purpose && props.api.getScopeKey() === origin.scope;
+    busyRef.current = true;
+    setBusy(action);
+    setError("");
+    setMessage("");
+    let savedId;
+    try {
+      if (action === "export") {
+        await props.onExport?.();
+        return;
+      }
+      const entry = await props.api.saveDraft(origin.element, origin.purpose);
+      savedId = entry.id;
+      if (stillCurrent()) setDraft(props.api.getDraft(origin.element, origin.purpose));
+      props.onSaved?.();
+      if (action === "send") {
+        if (props.api.getScopeKey() !== origin.scope) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\uFF0C\u6279\u6CE8\u5DF2\u6682\u5B58\uFF0C\u8BF7\u5728\u539F\u9875\u9762\u53D1\u9001");
+        await props.api.run(item.action, [entry.id]);
+      }
+      if (stillCurrent()) setMessage(action === "save" ? "\u5DF2\u6682\u5B58\uFF0C\u53EF\u7EE7\u7EED\u6DFB\u52A0\u6279\u6CE8" : purpose === "modify-prototype" ? "\u5DF2\u53D1\u9001\u4FEE\u6539" : purpose === "generate-prototype" ? "\u5DF2\u6253\u5F00\u65B0\u539F\u578B\u786E\u8BA4\u7A97\u53E3" : "\u5DF2\u6253\u5F00\u5F15\u5165\u8BF4\u660E\u7A97\u53E3");
+    } catch (cause) {
+      if (stillCurrent()) {
+        if (savedId && !props.api.getDraft(origin.element, origin.purpose).note) {
+          try {
+            props.api.edit(savedId);
+            setDraft(props.api.getDraft(origin.element, origin.purpose));
+          } catch {
+          }
+        }
+        setError(cause instanceof Error ? cause.message : "\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
+      }
+    } finally {
+      busyRef.current = false;
+      if (mounted.current) setBusy(null);
+    }
+  };
+  const disabled = busy !== null || loadState.status !== "ready" || !props.available[purpose] || !props.element.isConnected;
+  const sendDisabled = disabled || !draft.note.trim();
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("section", { className: "we-purpose-composer", "aria-label": "\u7EC4\u4EF6\u6279\u6CE8", onKeyDown: (event) => {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      props.onClose();
+    }
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!sendDisabled) void perform("send");
+    }
+  }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("style", { nonce: resolveCspNonce(), children: `
+      .we-purpose-composer{font-family:inherit;color:${EDITOR_CHROME.textPrimary};min-width:0;width:100%;display:flex;flex-direction:column;max-height:inherit;min-height:0}
+      .we-purpose-composer *{box-sizing:border-box}
+      .we-purpose-composer button,.we-purpose-composer select{font-family:inherit;cursor:pointer;color:inherit}
+      .we-purpose-composer button:disabled{cursor:not-allowed;opacity:.5}
+      .we-purpose-composer button:focus-visible,.we-purpose-composer textarea:focus-visible,.we-purpose-composer select:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:2px}
+      .we-purpose-composer__header{display:flex;flex-shrink:0;align-items:center;gap:6px;padding:12px;border-bottom:1px solid ${EDITOR_CHROME.border}}
+      .we-purpose-composer__title{flex:1;min-width:0}.we-purpose-composer__title small{display:block;font-size:10px;color:${EDITOR_CHROME.textMuted};margin-bottom:3px}.we-purpose-composer__title strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .we-purpose-composer__icon{border:0;background:transparent;border-radius:6px;min-width:28px;min-height:28px;font-size:18px}
+      .we-purpose-composer__tabs{display:grid;flex-shrink:0;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin:12px 12px 0;padding:3px;background:${EDITOR_CHROME.surfaceMuted};border:1px solid ${EDITOR_CHROME.border};border-radius:9px}
+      .we-purpose-composer__tab{padding:8px 2px;white-space:nowrap;border:0;border-radius:6px;background:transparent;color:${EDITOR_CHROME.textSecondary}!important;font-size:12px}
+      .we-purpose-composer__tab[aria-selected=true]{background:${EDITOR_CHROME.surface};color:${EDITOR_CHROME.accent}!important;box-shadow:0 1px 3px #00000012;font-weight:600}
+      .we-purpose-composer__body{padding:12px;max-height:48dvh;min-height:0;flex:1;overflow:auto}
+      .we-purpose-composer__input{display:block;resize:vertical;width:100%;min-height:100px;max-height:220px;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:10px;background:${EDITOR_CHROME.surfaceMuted};color:${EDITOR_CHROME.textPrimary};font:inherit;font-size:13px;line-height:1.7;padding:10px 12px}
+      .we-purpose-composer__input::placeholder{color:${EDITOR_CHROME.textMuted}}
+      .we-purpose-composer__hint{font-size:11px;line-height:1.6;color:${EDITOR_CHROME.textMuted};margin:8px 0 0}
+      .we-purpose-composer__skills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+      .we-purpose-composer__skills button,.we-purpose-composer select{font-size:11px;border:1px solid ${EDITOR_CHROME.border};border-radius:6px;padding:4px 6px;background:${EDITOR_CHROME.surface}}
+      .we-purpose-composer__footer{display:flex;flex-shrink:0;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid ${EDITOR_CHROME.border};padding:10px 12px 12px}
+      .we-purpose-composer__action{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:7px 10px;font-size:12px;white-space:nowrap;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:8px;background:${EDITOR_CHROME.surface}}
+      .we-purpose-composer__send{background:${EDITOR_CHROME.accent};border-color:transparent;color:white!important}
+      @media(max-width:380px){.we-purpose-composer__header{padding:10px}.we-purpose-composer__tab{font-size:11px}.we-purpose-composer__action{padding:7px 8px}}
+      @media(prefers-reduced-motion:reduce){.we-purpose-composer *{animation:none!important;transition:none!important}}
+    ` }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("header", { className: "we-purpose-composer__header", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "we-purpose-composer__title", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("small", { children: [
+          "\u7EC4\u4EF6\u6279\u6CE8",
+          draft.editingCommentId ? " \xB7 \u7F16\u8F91\u4E2D" : ""
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("strong", { title: props.label, children: props.label })
+      ] }),
+      props.tools,
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "we-purpose-composer__icon", "aria-label": "\u5173\u95ED\u7EC4\u4EF6\u6279\u6CE8", title: "\u5173\u95ED\uFF0C\u4FDD\u7559\u8349\u7A3F", onClick: props.onClose, children: "\xD7" })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { role: "tablist", "aria-label": "\u6279\u6CE8\u7528\u9014", className: "we-purpose-composer__tabs", children: COMMENT_PURPOSES.map((tab, index) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+      "button",
+      {
+        type: "button",
+        role: "tab",
+        "aria-label": tab.label,
+        id: `${tabId}-${tab.id}`,
+        "aria-controls": `${tabId}-panel`,
+        "aria-selected": purpose === tab.id,
+        tabIndex: purpose === tab.id ? 0 : -1,
+        className: "we-purpose-composer__tab",
+        onClick: () => setPurpose(tab.id),
+        onKeyDown: (event) => {
+          const next = event.key === "ArrowRight" ? (index + 1) % 3 : event.key === "ArrowLeft" ? (index + 2) % 3 : event.key === "Home" ? 0 : event.key === "End" ? 2 : null;
+          if (next !== null) {
+            event.preventDefault();
+            setPurpose(COMMENT_PURPOSES[next].id);
+            event.currentTarget.parentElement?.children[next]?.focus();
+          }
+        },
+        children: tab.label
+      },
+      tab.id
+    )) }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { role: "tabpanel", id: `${tabId}-panel`, "aria-labelledby": `${tabId}-${purpose}`, className: "we-purpose-composer__body", children: [
+      loadState.status === "loading" ? props.loadingContent : loadState.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { role: "alert", children: loadState.error || "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25" }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", onClick: () => {
+          setLoadState({ status: "loading" });
+          void props.onRetry?.().catch((cause) => setLoadState({ status: "error", error: String(cause) }));
+        }, children: "\u91CD\u65B0\u52A0\u8F7D" })
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          "textarea",
+          {
+            className: "we-purpose-composer__input",
+            "aria-label": "\u7ED9 AI \u7684\u6307\u793A",
+            rows: 4,
+            value: draft.note,
+            maxLength: 8e3,
+            placeholder: purpose === "generate-prototype" ? "\u63CF\u8FF0\u9700\u8981\u751F\u6210\u7684\u7EC4\u4EF6\u72B6\u6001\uFF0C\u4F8B\u5982\u9ED8\u8BA4\u3001\u52A0\u8F7D\u4E2D\u3001\u9519\u8BEF\u2026" : purpose === "document-component" ? "\u63CF\u8FF0\u8981\u5199\u5165 PRD \u7684\u7EC4\u4EF6\u8BF4\u660E\u4E0E\u4EA4\u4E92\u89C4\u5219\u2026" : "\u8F93\u5165\u5BF9\u5F53\u524D\u7EC4\u4EF6\u7684\u4FEE\u6539\u8981\u6C42\uFF0C/ \u9009\u62E9\u6280\u80FD",
+            onChange: (event) => update({ note: event.target.value }),
+            onPaste: (event) => {
+              if (!Array.from(event.clipboardData.items).some((item2) => item2.kind === "file" && item2.type.startsWith("image/"))) return;
+              event.preventDefault();
+              const origin = context.current;
+              void readPromptImageAttachmentsFromDataTransferItems(event.clipboardData.items).then((incoming) => {
+                if (!mounted.current || props.api.getScopeKey() !== origin.scope) return;
+                const previous = props.api.getDraft(origin.element, origin.purpose);
+                const merged = mergePromptImageAttachments(previous.images, incoming);
+                props.api.updateDraft(origin.element, origin.purpose, { images: merged.images });
+                if (context.current.element === origin.element && context.current.purpose === origin.purpose) setDraft(props.api.getDraft(origin.element, origin.purpose));
+                if (merged.droppedCount) setError("\u6700\u591A\u6DFB\u52A0 3 \u5F20\u56FE\u7247");
+              }).catch((cause) => {
+                if (mounted.current) setError(cause instanceof Error ? cause.message : "\u56FE\u7247\u8BFB\u53D6\u5931\u8D25");
+              });
+            }
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "we-purpose-composer__skills", children: [
+          draft.skillIds.map((id) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("button", { type: "button", "aria-label": `\u79FB\u9664\u6280\u80FD ${id}`, onClick: () => update({ skillIds: draft.skillIds.filter((value) => value !== id) }), children: [
+            skills.find((skill) => skill.id === id)?.label || id,
+            " \xD7"
+          ] }, id)),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("select", { "aria-label": "\u6DFB\u52A0\u6280\u80FD", value: "", onChange: (event) => {
+            if (!event.target.value) return;
+            update({ skillIds: Array.from(/* @__PURE__ */ new Set([...draft.skillIds, event.target.value])), ...trigger ? { note: draft.note.slice(0, trigger.start) + draft.note.slice(trigger.end) } : {} });
+          }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("option", { value: "", children: "\uFF0B \u6280\u80FD" }),
+            skills.filter((skill) => !draft.skillIds.includes(skill.id) && (!trigger?.query || `${skill.label} ${skill.description}`.includes(trigger.query))).map((skill) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("option", { value: skill.id, children: skill.label }, skill.id))
+          ] })
+        ] }),
+        draft.images.length ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "we-purpose-composer__skills", children: draft.images.map((image) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("button", { type: "button", "aria-label": `\u79FB\u9664\u9644\u4EF6 ${image.name}`, onClick: () => update({ images: draft.images.filter((item2) => item2.id !== image.id) }), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("img", { src: image.data || image.assetPath, alt: image.name, width: 24, height: 24, style: { objectFit: "cover", verticalAlign: "middle", borderRadius: 4 } }),
+          " \xD7"
+        ] }, image.id)) }) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { className: "we-purpose-composer__hint", children: props.available[purpose] ? item.hint : "\u5F53\u524D\u9875\u9762\u6682\u4E0D\u652F\u6301\u6B64\u7528\u9014\uFF0C\u8BF7\u5207\u6362\u5176\u4ED6\u6807\u7B7E\u3002" }),
+        draft.editingCommentId ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", "aria-label": "\u65B0\u589E\u6279\u6CE8", className: "we-purpose-composer__action", onClick: () => {
+          props.api.startNew(props.element, purpose);
+          setDraft(props.api.getDraft(props.element, purpose));
+        }, children: "\u65B0\u589E\u6279\u6CE8" }) : null
+      ] }),
+      error ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { role: "alert", style: { color: EDITOR_CHROME.textDanger, fontSize: 12, margin: "8px 0 0" }, children: error }) : null,
+      message ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { role: "status", className: "we-purpose-composer__hint", children: message }) : null
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("footer", { className: "we-purpose-composer__footer", children: [
+      props.onExport ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("button", { type: "button", className: "we-purpose-composer__action", "aria-label": "\u5BFC\u51FA\u7EC4\u4EF6", title: props.exportTitle || "\u5BFC\u51FA\u9009\u4E2D\u7EC4\u4EF6", disabled: Boolean(busy) || props.exportDisabled, "aria-busy": busy === "export", onClick: () => perform("export"), children: [
+        busy === "export" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(import_icons2.LoadingOutlined, { spin: true }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(import_icons2.ExportOutlined, {}),
+        "\u5BFC\u51FA"
+      ] }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { style: { flex: 1 } }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { type: "button", className: "we-purpose-composer__action", "aria-label": "\u6682\u5B58\u6279\u6CE8", disabled, "aria-busy": busy === "save", onClick: () => perform("save"), children: busy === "save" ? "\u6682\u5B58\u4E2D\u2026" : "\u6682\u5B58\u6279\u6CE8" }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("button", { type: "button", className: "we-purpose-composer__action we-purpose-composer__send", "aria-label": "\u53D1\u9001", title: `\u53D1\u9001\uFF1A${item.label}\uFF08\u2318/Ctrl Enter\uFF09`, disabled: sendDisabled, "aria-busy": busy === "send", onClick: () => perform("send"), children: [
+        busy === "send" ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(import_icons2.LoadingOutlined, { spin: true }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(import_icons2.ArrowUpOutlined, {}),
+        busy === "send" ? "\u5904\u7406\u4E2D\u2026" : "\u53D1\u9001"
+      ] })
     ] })
   ] });
 }
@@ -13389,10 +14320,10 @@ function resolvePromptCardCloseActionTitle(platform) {
 }
 
 // src/ui/runtime/action-buttons.tsx
-var import_react4 = __toESM(require("react"), 1);
-var import_react5 = require("motion/react");
+var import_react6 = __toESM(require("react"), 1);
+var import_react7 = require("motion/react");
 var import_antd2 = require("antd");
-var import_icons2 = require("@ant-design/icons");
+var import_icons3 = require("@ant-design/icons");
 
 // src/ui/runtime/popup-container.ts
 var SELECTION_LOCK_ROOT_SELECTOR = '[data-we-selection-lock-root="true"]';
@@ -13468,7 +14399,7 @@ function resolveRuntimePopupContainerFromTrigger(trigger, fallbackContainer) {
 }
 
 // src/ui/runtime/action-buttons.tsx
-var import_jsx_runtime4 = require("react/jsx-runtime");
+var import_jsx_runtime6 = require("react/jsx-runtime");
 var ICON_ACTION_TONE_STYLES = {
   neutral: {
     color: EDITOR_CHROME.textPrimary
@@ -13487,7 +14418,7 @@ var ICON_ACTION_TONE_STYLES = {
 };
 function SvgIcon(props) {
   const { children, size = ACTION_ICON_SIZE, strokeWidth = ACTION_ICON_STROKE } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
     "svg",
     {
       width: size,
@@ -13496,7 +14427,7 @@ function SvgIcon(props) {
       fill: "none",
       "aria-hidden": "true",
       style: { display: "block" },
-      children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
         "g",
         {
           stroke: "currentColor",
@@ -13510,32 +14441,32 @@ function SvgIcon(props) {
   );
 }
 function AgentSparkleIcon() {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(SvgIcon, { children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M8 2.5l1.4 4.1L13.5 8l-4.1 1.4L8 13.5 6.6 9.4 2.5 8l4.1-1.4L8 2.5z" }) });
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SvgIcon, { children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M8 2.5l1.4 4.1L13.5 8l-4.1 1.4L8 13.5 6.6 9.4 2.5 8l4.1-1.4L8 2.5z" }) });
 }
 function CloseToolIcon() {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { role: "img", "aria-hidden": "true", className: "anticon anticon-close", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(SvgIcon, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M4.5 4.5l7 7" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M11.5 4.5l-7 7" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { role: "img", "aria-hidden": "true", className: "anticon anticon-close", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(SvgIcon, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M4.5 4.5l7 7" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M11.5 4.5l-7 7" })
   ] }) });
 }
 function TooltipButton(props) {
   const { title, children, disabled } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_antd2.Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { display: "inline-flex" }, children: import_react4.default.cloneElement(children, { disabled }) }) });
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_antd2.Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { display: "inline-flex" }, children: import_react6.default.cloneElement(children, { disabled }) }) });
 }
 function IconActionButton(props) {
   const { title, icon, onClick, disabled, loading, tone = "neutral", style, pressed, label } = props;
-  const [hovered, setHovered] = import_react4.default.useState(false);
+  const [hovered, setHovered] = import_react6.default.useState(false);
   const toneStyle = ICON_ACTION_TONE_STYLES[tone];
   const mobile = isMobileDevice();
   const btnSize = mobile ? Math.max(ACTION_BUTTON_SIZE, 36) : ACTION_BUTTON_SIZE;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(TooltipButton, { title, disabled, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TooltipButton, { title, disabled, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
     import_antd2.Button,
     {
       size: "small",
       type: "text",
       "aria-label": title,
       "aria-pressed": pressed,
-      icon: loading ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_icons2.LoadingOutlined, { spin: true }) : icon,
+      icon: loading ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_icons3.LoadingOutlined, { spin: true }) : icon,
       disabled,
       onClick,
       onMouseEnter: () => setHovered(true),
@@ -13565,14 +14496,14 @@ function IconActionButton(props) {
 }
 function AgentToolbarIconButton(props) {
   const { title, icon, awake, active = false, disabled = false, loading = false, onClick, ariaLabel } = props;
-  const [hovered, setHovered] = import_react4.default.useState(false);
+  const [hovered, setHovered] = import_react6.default.useState(false);
   const mobile = isMobileDevice();
   const btnSize = mobile ? 36 : 32;
   const defaultColor = disabled ? awake ? EDITOR_CHROME.textMuted : EDITOR_CHROME.textSleepingStrong : awake ? EDITOR_CHROME.textSecondary : EDITOR_CHROME.textSleepingStrong;
   const color = active && !disabled ? EDITOR_CHROME.accent : defaultColor;
   const background = hovered && !disabled && !active ? awake ? EDITOR_CHROME.hoverSubtle : EDITOR_CHROME.hoverGhost : "transparent";
   const hoverColor = active ? EDITOR_CHROME.accentActive : EDITOR_CHROME.textPrimary;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(TooltipButton, { title, disabled, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(TooltipButton, { title, disabled, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
     "button",
     {
       type: "button",
@@ -13599,7 +14530,7 @@ function AgentToolbarIconButton(props) {
         transition: "background-color 220ms ease, color 220ms ease, transform 220ms ease",
         transform: hovered && !disabled ? "translateY(-0.5px)" : "translateY(0)"
       },
-      children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { display: "inline-flex", alignItems: "center", justifyContent: "center" }, children: loading ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_icons2.LoadingOutlined, { spin: true }) : icon })
+      children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { display: "inline-flex", alignItems: "center", justifyContent: "center" }, children: loading ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_icons3.LoadingOutlined, { spin: true }) : icon })
     }
   ) });
 }
@@ -13615,7 +14546,7 @@ function AgentToolbarShell(props) {
   const shellBorderColor = EDITOR_CHROME.toolbarShellBorder;
   const shellSurfaceShadow = EDITOR_CHROME.toolbarShellInset;
   const shellShadow = awake ? EDITOR_CHROME.toolbarGlow : EDITOR_CHROME.shadowCompact;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
     "div",
     {
       className: "we-runtime-prop-panel__drag-handle",
@@ -13635,7 +14566,7 @@ function AgentToolbarShell(props) {
         ...style
       },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
           "div",
           {
             style: {
@@ -13646,8 +14577,8 @@ function AgentToolbarShell(props) {
             }
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_react5.AnimatePresence, { children: connected ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
-          import_react5.motion.div,
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_react7.AnimatePresence, { children: connected ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+          import_react7.motion.div,
           {
             initial: { opacity: 0 },
             animate: { opacity: 1 },
@@ -13661,7 +14592,7 @@ function AgentToolbarShell(props) {
               borderRadius: 999
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                 "div",
                 {
                   className: "we-runtime-toolbar__spinner",
@@ -13671,7 +14602,7 @@ function AgentToolbarShell(props) {
                   }
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                 "div",
                 {
                   className: "we-runtime-toolbar__spinner",
@@ -13686,7 +14617,7 @@ function AgentToolbarShell(props) {
           },
           "toolbar-ring"
         ) : null }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
           "div",
           {
             style: {
@@ -13706,7 +14637,7 @@ function AgentToolbarShell(props) {
               minWidth: fullWidth ? 0 : "unset"
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                 "div",
                 {
                   ref: dragHandleRef,
@@ -13717,7 +14648,7 @@ function AgentToolbarShell(props) {
                   style: {
                     color: EDITOR_CHROME.textMuted
                   },
-                  children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                  children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
                     "svg",
                     {
                       width: "8",
@@ -13727,12 +14658,12 @@ function AgentToolbarShell(props) {
                       focusable: "false",
                       style: { display: "block", pointerEvents: "none" },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "2", cy: "4", r: "1.25" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "6", cy: "4", r: "1.25" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "2", cy: "9", r: "1.25" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "6", cy: "9", r: "1.25" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "2", cy: "14", r: "1.25" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "6", cy: "14", r: "1.25" })
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "2", cy: "4", r: "1.25" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "6", cy: "4", r: "1.25" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "2", cy: "9", r: "1.25" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "6", cy: "9", r: "1.25" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "2", cy: "14", r: "1.25" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "6", cy: "14", r: "1.25" })
                       ]
                     }
                   )
@@ -13793,18 +14724,18 @@ function deriveAgentUiState(options) {
 }
 
 // src/ui/runtime/prompt-image-strip.tsx
-var import_react6 = __toESM(require("react"), 1);
-var import_icons3 = require("@ant-design/icons");
-var import_jsx_runtime5 = require("react/jsx-runtime");
+var import_react8 = __toESM(require("react"), 1);
+var import_icons4 = require("@ant-design/icons");
+var import_jsx_runtime7 = require("react/jsx-runtime");
 var THUMB_SIZE = 28;
 var PREVIEW_WIDTH = 220;
 var PREVIEW_HEIGHT = 160;
 var IMAGE_RADIUS = 12;
 function PromptImageStrip(props) {
   const { images, onRemoveImage, readOnly = false } = props;
-  const [hoveredId, setHoveredId] = import_react6.default.useState(null);
+  const [hoveredId, setHoveredId] = import_react8.default.useState(null);
   if (images.length === 0) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
     "div",
     {
       style: {
@@ -13816,7 +14747,7 @@ function PromptImageStrip(props) {
       children: images.map((image) => {
         const hovered = hoveredId === image.id;
         const canRemove = !readOnly;
-        return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+        return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
           "div",
           {
             onMouseEnter: () => setHoveredId(image.id),
@@ -13827,7 +14758,7 @@ function PromptImageStrip(props) {
               height: THUMB_SIZE
             },
             children: [
-              hovered ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              hovered ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
                 "div",
                 {
                   style: {
@@ -13847,7 +14778,7 @@ function PromptImageStrip(props) {
                     justifyContent: "center",
                     zIndex: 2
                   },
-                  children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+                  children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
                     "img",
                     {
                       src: image.data,
@@ -13863,7 +14794,7 @@ function PromptImageStrip(props) {
                   )
                 }
               ) : null,
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
                 "button",
                 {
                   type: "button",
@@ -13886,7 +14817,7 @@ function PromptImageStrip(props) {
                     justifyContent: "center",
                     boxShadow: hovered ? EDITOR_CHROME.shadow : "none"
                   },
-                  children: hovered && canRemove ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(import_icons3.CloseOutlined, { style: { fontSize: 12, color: EDITOR_CHROME.textPrimary } }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+                  children: hovered && canRemove ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(import_icons4.CloseOutlined, { style: { fontSize: 12, color: EDITOR_CHROME.textPrimary } }) : /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
                     "img",
                     {
                       src: image.data,
@@ -13910,15 +14841,15 @@ function PromptImageStrip(props) {
 }
 
 // src/ui/runtime/prompt-card-design-editor.tsx
-var import_react9 = __toESM(require("react"), 1);
-var import_icons5 = require("@ant-design/icons");
+var import_react11 = __toESM(require("react"), 1);
+var import_icons6 = require("@ant-design/icons");
 var import_antd4 = require("antd");
 
 // src/ui/property-panel/react-design-panel.tsx
-var import_react7 = __toESM(require("react"), 1);
+var import_react9 = __toESM(require("react"), 1);
 var import_antd3 = require("antd");
-var import_icons4 = require("@ant-design/icons");
-var import_jsx_runtime6 = require("react/jsx-runtime");
+var import_icons5 = require("@ant-design/icons");
+var import_jsx_runtime8 = require("react/jsx-runtime");
 var TEXT_ALIGN_OPTIONS = [
   { value: "left", label: "\u5DE6" },
   { value: "center", label: "\u4E2D" },
@@ -14030,27 +14961,27 @@ var compactUnitSelectWideStyle = {
 };
 function SizeSection(props) {
   const { snapshot, target, transactionManager, disabled, onRefreshRequest, variant = "full" } = props;
-  const [width, setWidth] = import_react7.default.useState(snapshot.width);
-  const [height, setHeight] = import_react7.default.useState(snapshot.height);
-  const [minWidth, setMinWidth] = import_react7.default.useState(snapshot.minWidth);
-  const [minHeight, setMinHeight] = import_react7.default.useState(snapshot.minHeight);
-  const [maxWidth, setMaxWidth] = import_react7.default.useState(snapshot.maxWidth);
-  const [maxHeight, setMaxHeight] = import_react7.default.useState(snapshot.maxHeight);
-  const [widthMode, setWidthMode] = import_react7.default.useState(inferSizeMode(snapshot.width));
-  const [heightMode, setHeightMode] = import_react7.default.useState(inferSizeMode(snapshot.height));
-  const [showConstraints, setShowConstraints] = import_react7.default.useState(() => hasCustomSizeConstraints(snapshot));
-  const previousTargetRef = import_react7.default.useRef(target);
-  const constraintsPresent = import_react7.default.useMemo(
+  const [width, setWidth] = import_react9.default.useState(snapshot.width);
+  const [height, setHeight] = import_react9.default.useState(snapshot.height);
+  const [minWidth, setMinWidth] = import_react9.default.useState(snapshot.minWidth);
+  const [minHeight, setMinHeight] = import_react9.default.useState(snapshot.minHeight);
+  const [maxWidth, setMaxWidth] = import_react9.default.useState(snapshot.maxWidth);
+  const [maxHeight, setMaxHeight] = import_react9.default.useState(snapshot.maxHeight);
+  const [widthMode, setWidthMode] = import_react9.default.useState(inferSizeMode(snapshot.width));
+  const [heightMode, setHeightMode] = import_react9.default.useState(inferSizeMode(snapshot.height));
+  const [showConstraints, setShowConstraints] = import_react9.default.useState(() => hasCustomSizeConstraints(snapshot));
+  const previousTargetRef = import_react9.default.useRef(target);
+  const constraintsPresent = import_react9.default.useMemo(
     () => hasCustomSizeConstraints(snapshot),
     [snapshot.maxHeight, snapshot.maxWidth, snapshot.minHeight, snapshot.minWidth]
   );
-  const commitLength = import_react7.default.useCallback(
+  const commitLength = import_react9.default.useCallback(
     (property, value) => {
       commitStyle(transactionManager, target, property, normalizeLength(value), onRefreshRequest);
     },
     [onRefreshRequest, target, transactionManager]
   );
-  import_react7.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     setWidth(snapshot.width);
     setHeight(snapshot.height);
     setMinWidth(snapshot.minWidth);
@@ -14067,7 +14998,7 @@ function SizeSection(props) {
     snapshot.minWidth,
     snapshot.width
   ]);
-  import_react7.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     if (previousTargetRef.current !== target) {
       previousTargetRef.current = target;
       setShowConstraints(constraintsPresent);
@@ -14078,8 +15009,8 @@ function SizeSection(props) {
     }
   }, [constraintsPresent, target]);
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: sectionStackStyle, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: sectionStackStyle, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         LengthField,
         {
           label: "\u5BBD\u5EA6 (px)",
@@ -14090,7 +15021,7 @@ function SizeSection(props) {
           onCommit: (value) => commitLength("width", value)
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         LengthField,
         {
           label: "\u9AD8\u5EA6 (px)",
@@ -14103,10 +15034,10 @@ function SizeSection(props) {
       )
     ] }) });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: modeGridStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u5BBD\u5EA6", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: modeFieldStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: modeGridStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u5BBD\u5EA6", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: modeFieldStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           UnitValueInput,
           {
             value: width,
@@ -14116,7 +15047,7 @@ function SizeSection(props) {
             onCommit: (value) => commitLength("width", value)
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           import_antd3.Segmented,
           {
             size: "small",
@@ -14137,8 +15068,8 @@ function SizeSection(props) {
           }
         )
       ] }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u9AD8\u5EA6", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: modeFieldStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u9AD8\u5EA6", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: modeFieldStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           UnitValueInput,
           {
             value: height,
@@ -14148,7 +15079,7 @@ function SizeSection(props) {
             onCommit: (value) => commitLength("height", value)
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           import_antd3.Segmented,
           {
             size: "small",
@@ -14170,11 +15101,11 @@ function SizeSection(props) {
         )
       ] }) })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       Subsection,
       {
         title: "\u5C3A\u5BF8\u7EA6\u675F",
-        action: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        action: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           SizeConstraintToggleButton,
           {
             expanded: showConstraints,
@@ -14182,9 +15113,9 @@ function SizeSection(props) {
             onClick: () => setShowConstraints((prev) => !prev)
           }
         ),
-        children: showConstraints ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        children: showConstraints ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
               LengthField,
               {
                 label: "\u6700\u5C0F\u5BBD\u5EA6",
@@ -14195,7 +15126,7 @@ function SizeSection(props) {
                 onCommit: (value) => commitLength("min-width", value)
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
               LengthField,
               {
                 label: "\u6700\u5C0F\u9AD8\u5EA6",
@@ -14207,8 +15138,8 @@ function SizeSection(props) {
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
               LengthField,
               {
                 label: "\u6700\u5927\u5BBD\u5EA6",
@@ -14219,7 +15150,7 @@ function SizeSection(props) {
                 onCommit: (value) => commitLength("max-width", value)
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
               LengthField,
               {
                 label: "\u6700\u5927\u9AD8\u5EA6",
@@ -14238,7 +15169,7 @@ function SizeSection(props) {
 }
 function SpacingSection(props) {
   const { snapshot, target, transactionManager, disabled, onRefreshRequest } = props;
-  const [values, setValues] = import_react7.default.useState({
+  const [values, setValues] = import_react9.default.useState({
     marginTop: snapshot.marginTop,
     marginRight: snapshot.marginRight,
     marginBottom: snapshot.marginBottom,
@@ -14248,14 +15179,14 @@ function SpacingSection(props) {
     paddingBottom: snapshot.paddingBottom,
     paddingLeft: snapshot.paddingLeft
   });
-  const [expandedGroups, setExpandedGroups] = import_react7.default.useState({ margin: false, padding: false });
-  const commit = import_react7.default.useCallback(
+  const [expandedGroups, setExpandedGroups] = import_react9.default.useState({ margin: false, padding: false });
+  const commit = import_react9.default.useCallback(
     (property, value) => {
       commitStyle(transactionManager, target, property, normalizeLength(value), onRefreshRequest);
     },
     [onRefreshRequest, target, transactionManager]
   );
-  const commitPair = import_react7.default.useCallback(
+  const commitPair = import_react9.default.useCallback(
     (properties, value) => {
       const normalized = normalizeLength(value);
       const handle = transactionManager.beginMultiStyle(target, properties);
@@ -14270,7 +15201,7 @@ function SpacingSection(props) {
     },
     [onRefreshRequest, target, transactionManager]
   );
-  import_react7.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     setValues({
       marginTop: snapshot.marginTop,
       marginRight: snapshot.marginRight,
@@ -14291,12 +15222,12 @@ function SpacingSection(props) {
     snapshot.paddingRight,
     snapshot.paddingTop
   ]);
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       Subsection,
       {
         title: "\u5916\u8FB9\u8DDD",
-        action: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        action: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           SpacingModeToggleButton,
           {
             expanded: expandedGroups.margin,
@@ -14304,8 +15235,8 @@ function SpacingSection(props) {
             onClick: () => setExpandedGroups((prev) => ({ ...prev, margin: !prev.margin }))
           }
         ),
-        children: expandedGroups.margin ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        children: expandedGroups.margin ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u4E0A",
@@ -14315,7 +15246,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-top", value)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u53F3",
@@ -14325,7 +15256,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-right", value)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u4E0B",
@@ -14335,7 +15266,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-bottom", value)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u5DE6",
@@ -14345,8 +15276,8 @@ function SpacingSection(props) {
               onCommit: (value) => commit("margin-left", value)
             }
           )
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             PairLengthField,
             {
               label: "\u6C34\u5E73",
@@ -14357,7 +15288,7 @@ function SpacingSection(props) {
               onCommit: (value) => commitPair(["margin-left", "margin-right"], value)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             PairLengthField,
             {
               label: "\u5782\u76F4",
@@ -14371,11 +15302,11 @@ function SpacingSection(props) {
         ] })
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       Subsection,
       {
         title: "\u5185\u8FB9\u8DDD",
-        action: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        action: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           SpacingModeToggleButton,
           {
             expanded: expandedGroups.padding,
@@ -14383,8 +15314,8 @@ function SpacingSection(props) {
             onClick: () => setExpandedGroups((prev) => ({ ...prev, padding: !prev.padding }))
           }
         ),
-        children: expandedGroups.padding ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        children: expandedGroups.padding ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u4E0A",
@@ -14394,7 +15325,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-top", value)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u53F3",
@@ -14404,7 +15335,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-right", value)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u4E0B",
@@ -14414,7 +15345,7 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-bottom", value)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u5DE6",
@@ -14424,8 +15355,8 @@ function SpacingSection(props) {
               onCommit: (value) => commit("padding-left", value)
             }
           )
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             PairLengthField,
             {
               label: "\u6C34\u5E73",
@@ -14436,7 +15367,7 @@ function SpacingSection(props) {
               onCommit: (value) => commitPair(["padding-left", "padding-right"], value)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             PairLengthField,
             {
               label: "\u5782\u76F4",
@@ -14462,15 +15393,15 @@ function TypographySection(props) {
     onRefreshRequest,
     variant = "full"
   } = props;
-  const [fontFamily, setFontFamily] = import_react7.default.useState(snapshot.fontFamily);
-  const [fontSize, setFontSize] = import_react7.default.useState(snapshot.fontSize);
-  const [fontWeight, setFontWeight] = import_react7.default.useState(snapshot.fontWeight || "400");
-  const [lineHeight, setLineHeight] = import_react7.default.useState(snapshot.lineHeight);
-  const [letterSpacing, setLetterSpacing] = import_react7.default.useState(snapshot.letterSpacing);
-  const [textAlign, setTextAlign] = import_react7.default.useState(snapshot.textAlign || "left");
-  const [textDecorationLine, setTextDecorationLine] = import_react7.default.useState(snapshot.textDecorationLine || "none");
-  const [color, setColor] = import_react7.default.useState(snapshot.color);
-  import_react7.default.useEffect(() => {
+  const [fontFamily, setFontFamily] = import_react9.default.useState(snapshot.fontFamily);
+  const [fontSize, setFontSize] = import_react9.default.useState(snapshot.fontSize);
+  const [fontWeight, setFontWeight] = import_react9.default.useState(snapshot.fontWeight || "400");
+  const [lineHeight, setLineHeight] = import_react9.default.useState(snapshot.lineHeight);
+  const [letterSpacing, setLetterSpacing] = import_react9.default.useState(snapshot.letterSpacing);
+  const [textAlign, setTextAlign] = import_react9.default.useState(snapshot.textAlign || "left");
+  const [textDecorationLine, setTextDecorationLine] = import_react9.default.useState(snapshot.textDecorationLine || "none");
+  const [color, setColor] = import_react9.default.useState(snapshot.color);
+  import_react9.default.useEffect(() => {
     setFontFamily(snapshot.fontFamily);
     setFontSize(snapshot.fontSize);
     setFontWeight(snapshot.fontWeight || "400");
@@ -14490,8 +15421,8 @@ function TypographySection(props) {
     snapshot.textDecorationLine
   ]);
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: sectionStackStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: sectionStackStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         import_antd3.Input,
         {
           value: fontFamily,
@@ -14502,8 +15433,8 @@ function TypographySection(props) {
           onPressEnter: () => commitStyle(transactionManager, target, "font-family", fontFamily.trim(), onRefreshRequest)
         }
       ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           import_antd3.Select,
           {
             value: fontWeight || "400",
@@ -14516,7 +15447,7 @@ function TypographySection(props) {
             }
           }
         ) }),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           import_antd3.Select,
           {
             value: textAlign || "left",
@@ -14530,8 +15461,8 @@ function TypographySection(props) {
           }
         ) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           LengthField,
           {
             label: "\u5B57\u53F7 (px)",
@@ -14542,7 +15473,7 @@ function TypographySection(props) {
             onCommit: (value) => commitStyle(transactionManager, target, "font-size", normalizeLength(value), onRefreshRequest)
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           LengthField,
           {
             label: "\u884C\u9AD8 (px)",
@@ -14556,8 +15487,8 @@ function TypographySection(props) {
       ] })
     ] });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u5B57\u4F53\u5BB6\u65CF", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Input,
       {
         value: fontFamily,
@@ -14568,8 +15499,8 @@ function TypographySection(props) {
         onPressEnter: () => commitStyle(transactionManager, target, "font-family", fontFamily.trim(), onRefreshRequest)
       }
     ) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u5B57\u91CD", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         import_antd3.Select,
         {
           value: fontWeight || "400",
@@ -14582,7 +15513,7 @@ function TypographySection(props) {
           }
         }
       ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         LengthField,
         {
           label: "\u5B57\u53F7",
@@ -14593,7 +15524,7 @@ function TypographySection(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       ColorField,
       {
         label: "\u6587\u5B57\u989C\u8272",
@@ -14607,8 +15538,8 @@ function TypographySection(props) {
         onValueChange: setColor
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         LengthField,
         {
           label: "\u884C\u9AD8",
@@ -14619,7 +15550,7 @@ function TypographySection(props) {
           onCommit: (value) => commitStyle(transactionManager, target, "line-height", value.trim(), onRefreshRequest)
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         LengthField,
         {
           label: "\u5B57\u95F4\u8DDD",
@@ -14630,7 +15561,7 @@ function TypographySection(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u5BF9\u9F50", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Segmented,
       {
         size: "small",
@@ -14645,7 +15576,7 @@ function TypographySection(props) {
         }
       }
     ) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u6587\u672C\u88C5\u9970", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u6587\u672C\u88C5\u9970", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Segmented,
       {
         size: "small",
@@ -14669,12 +15600,12 @@ function TypographySection(props) {
 }
 function AppearanceSection(props) {
   const { snapshot, target, transactionManager, disabled, onRefreshRequest } = props;
-  const [opacity, setOpacity] = import_react7.default.useState(toOpacityPercent(snapshot.opacity));
-  import_react7.default.useEffect(() => {
+  const [opacity, setOpacity] = import_react9.default.useState(toOpacityPercent(snapshot.opacity));
+  import_react9.default.useEffect(() => {
     setOpacity(toOpacityPercent(snapshot.opacity));
   }, [snapshot.opacity]);
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: sectionStackStyle, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u900F\u660E\u5EA6", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 72px", gap: 10, alignItems: "center" }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: sectionStackStyle, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u900F\u660E\u5EA6", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 72px", gap: 10, alignItems: "center" }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Slider,
       {
         min: 0,
@@ -14691,7 +15622,7 @@ function AppearanceSection(props) {
         )
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.InputNumber,
       {
         min: 0,
@@ -14715,17 +15646,17 @@ function CommonColorsSection(props) {
   const { snapshot, target, transactionManager, tokensService, disabled, onRefreshRequest } = props;
   const initialBackgroundImage = snapshot.backgroundImage === "none" ? "" : snapshot.backgroundImage;
   const initialFillValue = isGradientCss(initialBackgroundImage) ? initialBackgroundImage : snapshot.backgroundColor;
-  const [fillValue, setFillValue] = import_react7.default.useState(initialFillValue);
-  const [textColor, setTextColor] = import_react7.default.useState(snapshot.color);
-  const [borderColor, setBorderColor] = import_react7.default.useState(snapshot.borderColor);
-  import_react7.default.useEffect(() => {
+  const [fillValue, setFillValue] = import_react9.default.useState(initialFillValue);
+  const [textColor, setTextColor] = import_react9.default.useState(snapshot.color);
+  const [borderColor, setBorderColor] = import_react9.default.useState(snapshot.borderColor);
+  import_react9.default.useEffect(() => {
     const nextBackgroundImage = snapshot.backgroundImage === "none" ? "" : snapshot.backgroundImage;
     setFillValue(isGradientCss(nextBackgroundImage) ? nextBackgroundImage : snapshot.backgroundColor);
     setTextColor(snapshot.color);
     setBorderColor(snapshot.borderColor);
   }, [snapshot.backgroundColor, snapshot.backgroundImage, snapshot.borderColor, snapshot.color]);
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       BackgroundFillField,
       {
         label: "\u80CC\u666F\u989C\u8272",
@@ -14738,7 +15669,7 @@ function CommonColorsSection(props) {
         onValueChange: setFillValue
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       ColorField,
       {
         label: "\u6587\u5B57\u989C\u8272",
@@ -14752,7 +15683,7 @@ function CommonColorsSection(props) {
         onValueChange: setTextColor
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       ColorField,
       {
         label: "\u8FB9\u6846\u989C\u8272",
@@ -14779,25 +15710,25 @@ function BorderSection(props) {
     variant = "full",
     hideColorField = false
   } = props;
-  const [borderStyle, setBorderStyle] = import_react7.default.useState(snapshot.borderStyle || "none");
-  const [widthLinked, setWidthLinked] = import_react7.default.useState(isLinkedBorderWidth(snapshot));
-  const [borderWidth, setBorderWidth] = import_react7.default.useState(snapshot.borderWidth);
-  const [widths, setWidths] = import_react7.default.useState({
+  const [borderStyle, setBorderStyle] = import_react9.default.useState(snapshot.borderStyle || "none");
+  const [widthLinked, setWidthLinked] = import_react9.default.useState(isLinkedBorderWidth(snapshot));
+  const [borderWidth, setBorderWidth] = import_react9.default.useState(snapshot.borderWidth);
+  const [widths, setWidths] = import_react9.default.useState({
     top: snapshot.borderTopWidth,
     right: snapshot.borderRightWidth,
     bottom: snapshot.borderBottomWidth,
     left: snapshot.borderLeftWidth
   });
-  const [borderColor, setBorderColor] = import_react7.default.useState(snapshot.borderColor);
-  const [radiusLinked, setRadiusLinked] = import_react7.default.useState(isLinkedRadius(snapshot));
-  const [borderRadius, setBorderRadius] = import_react7.default.useState(snapshot.borderRadius);
-  const [corners, setCorners] = import_react7.default.useState({
+  const [borderColor, setBorderColor] = import_react9.default.useState(snapshot.borderColor);
+  const [radiusLinked, setRadiusLinked] = import_react9.default.useState(isLinkedRadius(snapshot));
+  const [borderRadius, setBorderRadius] = import_react9.default.useState(snapshot.borderRadius);
+  const [corners, setCorners] = import_react9.default.useState({
     tl: snapshot.borderTopLeftRadius,
     tr: snapshot.borderTopRightRadius,
     br: snapshot.borderBottomRightRadius,
     bl: snapshot.borderBottomLeftRadius
   });
-  import_react7.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     setBorderStyle(snapshot.borderStyle || "none");
     setWidthLinked(isLinkedBorderWidth(snapshot));
     setBorderWidth(snapshot.borderWidth);
@@ -14830,7 +15761,7 @@ function BorderSection(props) {
     snapshot.borderTopWidth,
     snapshot.borderWidth
   ]);
-  const commitRadiusGroup = import_react7.default.useCallback(
+  const commitRadiusGroup = import_react9.default.useCallback(
     (value) => {
       const normalized = normalizeLength(value);
       const handle = transactionManager.beginMultiStyle(target, [
@@ -14854,7 +15785,7 @@ function BorderSection(props) {
     },
     [onRefreshRequest, target, transactionManager]
   );
-  const commitWidthGroup = import_react7.default.useCallback(
+  const commitWidthGroup = import_react9.default.useCallback(
     (value) => {
       const normalized = normalizeLength(value);
       const handle = transactionManager.beginMultiStyle(target, [
@@ -14879,8 +15810,8 @@ function BorderSection(props) {
     [onRefreshRequest, target, transactionManager]
   );
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: sectionStackStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: sectionStackStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         LengthField,
         {
           label: "\u8FB9\u6846\u5BBD\u5EA6 (px)",
@@ -14891,7 +15822,7 @@ function BorderSection(props) {
           onCommit: (value) => commitWidthGroup(value)
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         import_antd3.Select,
         {
           value: borderStyle || "none",
@@ -14904,7 +15835,7 @@ function BorderSection(props) {
           }
         }
       ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         LengthField,
         {
           label: "\u5706\u89D2 (px)",
@@ -14915,7 +15846,7 @@ function BorderSection(props) {
           onCommit: (value) => commitRadiusGroup(value)
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         ColorField,
         {
           label: "\u8FB9\u6846\u989C\u8272",
@@ -14931,8 +15862,8 @@ function BorderSection(props) {
       )
     ] });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: "\u8FB9\u6846\u7C7B\u578B", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Select,
       {
         value: borderStyle || "none",
@@ -14945,11 +15876,11 @@ function BorderSection(props) {
         }
       }
     ) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       Field,
       {
         label: "\u8FB9\u6846\u5BBD\u5EA6",
-        action: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        action: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           AxisModeToggleButton,
           {
             expanded: !widthLinked,
@@ -14957,7 +15888,7 @@ function BorderSection(props) {
             onClick: () => setWidthLinked((prev) => !prev)
           }
         ),
-        children: widthLinked ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        children: widthLinked ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           UnitValueInput,
           {
             value: borderWidth,
@@ -14966,8 +15897,8 @@ function BorderSection(props) {
             onChange: setBorderWidth,
             onCommit: (value) => commitWidthGroup(value)
           }
-        ) : /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        ) : /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u4E0A",
@@ -14977,7 +15908,7 @@ function BorderSection(props) {
               onCommit: (value) => commitStyle(transactionManager, target, "border-top-width", normalizeLength(value), onRefreshRequest)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u53F3",
@@ -14987,7 +15918,7 @@ function BorderSection(props) {
               onCommit: (value) => commitStyle(transactionManager, target, "border-right-width", normalizeLength(value), onRefreshRequest)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u4E0B",
@@ -14997,7 +15928,7 @@ function BorderSection(props) {
               onCommit: (value) => commitStyle(transactionManager, target, "border-bottom-width", normalizeLength(value), onRefreshRequest)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u5DE6",
@@ -15010,7 +15941,7 @@ function BorderSection(props) {
         ] })
       }
     ),
-    hideColorField ? null : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    hideColorField ? null : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       ColorField,
       {
         label: "\u8FB9\u6846\u989C\u8272",
@@ -15024,11 +15955,11 @@ function BorderSection(props) {
         onValueChange: setBorderColor
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       Field,
       {
         label: "\u5706\u89D2",
-        action: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        action: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           AxisModeToggleButton,
           {
             expanded: !radiusLinked,
@@ -15036,7 +15967,7 @@ function BorderSection(props) {
             onClick: () => setRadiusLinked((prev) => !prev)
           }
         ),
-        children: radiusLinked ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        children: radiusLinked ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           UnitValueInput,
           {
             value: borderRadius,
@@ -15045,8 +15976,8 @@ function BorderSection(props) {
             onChange: setBorderRadius,
             onCommit: (value) => commitRadiusGroup(value)
           }
-        ) : /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        ) : /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u5DE6\u4E0A",
@@ -15062,7 +15993,7 @@ function BorderSection(props) {
               )
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u53F3\u4E0A",
@@ -15078,7 +16009,7 @@ function BorderSection(props) {
               )
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u53F3\u4E0B",
@@ -15094,7 +16025,7 @@ function BorderSection(props) {
               )
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
             LengthField,
             {
               label: "\u5DE6\u4E0B",
@@ -15117,14 +16048,14 @@ function BorderSection(props) {
 }
 function EffectsSection(props) {
   const { snapshot, target, transactionManager, disabled, onRefreshRequest, variant = "full" } = props;
-  const parsedShadow = import_react7.default.useMemo(() => parseShadow(snapshot.boxShadow), [snapshot.boxShadow]);
-  const [shadowColor, setShadowColor] = import_react7.default.useState(parsedShadow.color);
-  const [shadowX, setShadowX] = import_react7.default.useState(parsedShadow.x);
-  const [shadowY, setShadowY] = import_react7.default.useState(parsedShadow.y);
-  const [shadowBlur, setShadowBlur] = import_react7.default.useState(parsedShadow.blur);
-  const [shadowSpread, setShadowSpread] = import_react7.default.useState(parsedShadow.spread);
-  const [boxShadow, setBoxShadow] = import_react7.default.useState(snapshot.boxShadow === "none" ? "" : snapshot.boxShadow);
-  import_react7.default.useEffect(() => {
+  const parsedShadow = import_react9.default.useMemo(() => parseShadow(snapshot.boxShadow), [snapshot.boxShadow]);
+  const [shadowColor, setShadowColor] = import_react9.default.useState(parsedShadow.color);
+  const [shadowX, setShadowX] = import_react9.default.useState(parsedShadow.x);
+  const [shadowY, setShadowY] = import_react9.default.useState(parsedShadow.y);
+  const [shadowBlur, setShadowBlur] = import_react9.default.useState(parsedShadow.blur);
+  const [shadowSpread, setShadowSpread] = import_react9.default.useState(parsedShadow.spread);
+  const [boxShadow, setBoxShadow] = import_react9.default.useState(snapshot.boxShadow === "none" ? "" : snapshot.boxShadow);
+  import_react9.default.useEffect(() => {
     const nextParsedShadow = parseShadow(snapshot.boxShadow);
     setShadowColor(nextParsedShadow.color);
     setShadowX(nextParsedShadow.x);
@@ -15133,7 +16064,7 @@ function EffectsSection(props) {
     setShadowSpread(nextParsedShadow.spread);
     setBoxShadow(snapshot.boxShadow === "none" ? "" : snapshot.boxShadow);
   }, [snapshot.boxShadow]);
-  const commitShadow = import_react7.default.useCallback(() => {
+  const commitShadow = import_react9.default.useCallback(() => {
     const next = composeShadow({
       color: shadowColor,
       x: shadowX,
@@ -15145,8 +16076,8 @@ function EffectsSection(props) {
     commitStyle(transactionManager, target, "box-shadow", next, onRefreshRequest);
   }, [onRefreshRequest, shadowBlur, shadowColor, shadowSpread, shadowX, shadowY, target, transactionManager]);
   if (variant === "prompt-card") {
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: sectionStackStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: sectionStackStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         ColorField,
         {
           label: "\u9634\u5F71\u989C\u8272",
@@ -15160,8 +16091,8 @@ function EffectsSection(props) {
           onValueChange: setShadowColor
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           LengthField,
           {
             label: "\u6A2A\u5411",
@@ -15171,7 +16102,7 @@ function EffectsSection(props) {
             onCommit: () => commitShadow()
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           LengthField,
           {
             label: "\u7EB5\u5411",
@@ -15181,7 +16112,7 @@ function EffectsSection(props) {
             onCommit: () => commitShadow()
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           LengthField,
           {
             label: "\u6A21\u7CCA",
@@ -15194,8 +16125,8 @@ function EffectsSection(props) {
       ] })
     ] });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: sectionStackStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: sectionStackStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       ColorField,
       {
         label: "\u9634\u5F71\u989C\u8272",
@@ -15209,13 +16140,13 @@ function EffectsSection(props) {
         onValueChange: setShadowColor
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: grid2Style, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(LengthField, { label: "\u6A2A\u5411", value: shadowX, disabled, onChange: setShadowX, onCommit: () => commitShadow() }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(LengthField, { label: "\u7EB5\u5411", value: shadowY, disabled, onChange: setShadowY, onCommit: () => commitShadow() }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(LengthField, { label: "\u6A21\u7CCA", value: shadowBlur, disabled, onChange: setShadowBlur, onCommit: () => commitShadow() }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(LengthField, { label: "\u6269\u6563", value: shadowSpread, disabled, onChange: setShadowSpread, onCommit: () => commitShadow() })
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: grid2Style, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(LengthField, { label: "\u6A2A\u5411", value: shadowX, disabled, onChange: setShadowX, onCommit: () => commitShadow() }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(LengthField, { label: "\u7EB5\u5411", value: shadowY, disabled, onChange: setShadowY, onCommit: () => commitShadow() }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(LengthField, { label: "\u6A21\u7CCA", value: shadowBlur, disabled, onChange: setShadowBlur, onCommit: () => commitShadow() }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(LengthField, { label: "\u6269\u6563", value: shadowSpread, disabled, onChange: setShadowSpread, onCommit: () => commitShadow() })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Subsection, { title: "\u9AD8\u7EA7\u9634\u5F71", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Subsection, { title: "\u9AD8\u7EA7\u9634\u5F71", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Input.TextArea,
       {
         autoSize: { minRows: 2, maxRows: 5 },
@@ -15235,9 +16166,9 @@ function EffectsSection(props) {
   ] });
 }
 function Field(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: fieldStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { ...labelStyle, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: props.label }),
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: fieldStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { ...labelStyle, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: props.label }),
       props.action
     ] }),
     props.children
@@ -15246,21 +16177,21 @@ function Field(props) {
 function AxisModeToggleButton(props) {
   const { expanded, disabled, onClick } = props;
   const title = expanded ? "\u805A\u5408\u7F16\u8F91" : "\u9010\u9879\u7F16\u8F91";
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_antd3.Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_antd3.Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
     import_antd3.Button,
     {
       type: "text",
       size: "small",
       "aria-label": title,
-      icon: expanded ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_icons4.FullscreenExitOutlined, {}) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_icons4.FullscreenOutlined, {}),
+      icon: expanded ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.FullscreenExitOutlined, {}) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.FullscreenOutlined, {}),
       disabled,
       onClick
     }
   ) });
 }
 function Subsection(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 4 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
       "div",
       {
         style: {
@@ -15274,7 +16205,7 @@ function Subsection(props) {
           gap: 8
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: props.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: props.title }),
           props.action
         ]
       }
@@ -15285,14 +16216,14 @@ function Subsection(props) {
 function SpacingModeToggleButton(props) {
   const { expanded, disabled, onClick } = props;
   const title = expanded ? "\u805A\u5408\u7F16\u8F91" : "\u9010\u9879\u7F16\u8F91";
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_antd3.Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_antd3.Tooltip, { title, getPopupContainer: resolveRuntimePopupContainer, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
     import_antd3.Button,
     {
       type: "text",
       size: "small",
       disabled,
       "aria-label": title,
-      icon: expanded ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_icons4.FullscreenExitOutlined, {}) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_icons4.FullscreenOutlined, {}),
+      icon: expanded ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.FullscreenExitOutlined, {}) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.FullscreenOutlined, {}),
       onClick
     }
   ) });
@@ -15300,7 +16231,7 @@ function SpacingModeToggleButton(props) {
 function SizeConstraintToggleButton(props) {
   const { expanded, disabled, onClick } = props;
   const title = expanded ? "\u9690\u85CF\u6700\u5C0F\u503C\u548C\u6700\u5927\u503C" : "\u663E\u793A\u6700\u5C0F\u503C\u548C\u6700\u5927\u503C";
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
     import_antd3.Button,
     {
       type: "text",
@@ -15309,15 +16240,15 @@ function SizeConstraintToggleButton(props) {
       "aria-label": title,
       onClick,
       style: { paddingInline: 4, color: PANEL_TEXT_SECONDARY },
-      children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: "Min Max" }),
-        expanded ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_icons4.UpOutlined, { style: { fontSize: 10 } }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_icons4.DownOutlined, { style: { fontSize: 10 } })
+      children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { display: "inline-flex", alignItems: "center", gap: 6 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Min Max" }),
+        expanded ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.UpOutlined, { style: { fontSize: 10 } }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.DownOutlined, { style: { fontSize: 10 } })
       ] })
     }
   );
 }
 function LengthField(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: props.label, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: props.label, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
     UnitValueInput,
     {
       value: props.value,
@@ -15339,8 +16270,8 @@ function BackgroundFillField(props) {
     onRefreshRequest,
     onValueChange
   } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: colorRowStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: colorRowStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.ColorPicker,
       {
         mode: ["single", "gradient"],
@@ -15357,10 +16288,10 @@ function BackgroundFillField(props) {
           onValueChange("");
           commitBackgroundFill(transactionManager, target, "", onRefreshRequest);
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SquareColorTriggerButton, { value })
+        children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(SquareColorTriggerButton, { value })
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Input,
       {
         value,
@@ -15379,7 +16310,7 @@ function BackgroundFillField(props) {
         }
       }
     ),
-    tokensService && !isGradientCss(value) ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    tokensService && !isGradientCss(value) ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       TokenPickerButton,
       {
         target,
@@ -15395,7 +16326,7 @@ function BackgroundFillField(props) {
   ] }) });
 }
 function PairLengthField(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label: props.label, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label: props.label, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
     UnitValueInput,
     {
       value: props.value,
@@ -15410,21 +16341,21 @@ function PairLengthField(props) {
   ) });
 }
 function UnitValueInput(props) {
-  const parsed = import_react7.default.useMemo(() => parseUnitValue(props.value), [props.value]);
-  const commitRawValue = import_react7.default.useCallback(
+  const parsed = import_react9.default.useMemo(() => parseUnitValue(props.value), [props.value]);
+  const commitRawValue = import_react9.default.useCallback(
     (nextRawValue) => {
       props.onCommit(nextRawValue);
     },
     [props]
   );
-  const commitAmountValue = import_react7.default.useCallback(
+  const commitAmountValue = import_react9.default.useCallback(
     (nextAmountValue, unit) => {
       props.onCommit(resolveUnitAmountCommitValue(nextAmountValue, unit));
     },
     [props]
   );
   if (parsed.kind === "raw") {
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Input,
       {
         size: "small",
@@ -15453,8 +16384,8 @@ function UnitValueInput(props) {
   const amountPlaceholder = isSpecialUnit ? selectedUnitLabel : props.placeholder;
   const amountInputStyle = isSpecialUnit ? compactValueInputWideStyle : compactValueInputStyle;
   const unitSelectStyle = isSpecialUnit ? compactUnitSelectWideStyle : compactUnitSelectStyle;
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_antd3.Space.Compact, { block: true, className: "we-runtime-prop-panel__unit-input", style: unitInputRowStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_antd3.Space.Compact, { block: true, className: "we-runtime-prop-panel__unit-input", style: unitInputRowStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Input,
       {
         className: "we-runtime-prop-panel__unit-input-amount",
@@ -15469,7 +16400,7 @@ function UnitValueInput(props) {
         onPressEnter: (event) => commitAmountValue(event.currentTarget.value, parsed.unit)
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Select,
       {
         className: "we-runtime-prop-panel__unit-input-unit",
@@ -15504,7 +16435,7 @@ function ColorField(props) {
   } = props;
   const tokenRef = tokensService?.parseCssVar(value.trim()) ?? null;
   const literalValue = tokenRef ? tokensService?.resolveToken(target, tokenRef.name).computedValue ?? "" : value;
-  const commitValue = import_react7.default.useCallback(
+  const commitValue = import_react9.default.useCallback(
     (nextValue) => {
       if (property === "box-shadow-color") {
         const current = readStyleValue(target, "box-shadow");
@@ -15519,8 +16450,8 @@ function ColorField(props) {
     },
     [onRefreshRequest, onValueChange, property, target, transactionManager]
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Field, { label, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: colorRowStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(Field, { label, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: colorRowStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.ColorPicker,
       {
         value: isColorValue(literalValue) ? literalValue : "#ffffff",
@@ -15531,10 +16462,10 @@ function ColorField(props) {
           const nextValue = css || next.toCssString();
           commitValue(nextValue);
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SquareColorTriggerButton, { value: literalValue })
+        children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(SquareColorTriggerButton, { value: literalValue })
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Input,
       {
         value,
@@ -15545,7 +16476,7 @@ function ColorField(props) {
         onPressEnter: () => commitValue(value.trim())
       }
     ),
-    tokensService ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    tokensService ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       TokenPickerButton,
       {
         target,
@@ -15558,7 +16489,7 @@ function ColorField(props) {
         onValueChange
       }
     ) : null,
-    tokenRef && tokensService ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    tokenRef && tokensService ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       import_antd3.Button,
       {
         size: "small",
@@ -15573,18 +16504,18 @@ function ColorField(props) {
     ) : null
   ] }) });
 }
-var SquareColorTriggerButton = import_react7.default.forwardRef(
+var SquareColorTriggerButton = import_react9.default.forwardRef(
   function SquareColorTriggerButton2(props, ref) {
     const { value, style, ...triggerProps } = props;
     const previewBackground = resolveColorPreviewBackground(value);
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       "span",
       {
         ...triggerProps,
         ref,
         "data-we-prompt-primary-focus-exempt": "true",
         style: { ...squareColorTriggerStyle, ...style },
-        children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           "span",
           {
             style: {
@@ -15608,14 +16539,14 @@ function TokenPickerButton(props) {
     onApplied,
     onValueChange
   } = props;
-  const [open, setOpen] = import_react7.default.useState(false);
-  const [query, setQuery] = import_react7.default.useState("");
-  const tokens = import_react7.default.useMemo(() => {
+  const [open, setOpen] = import_react9.default.useState(false);
+  const [query, setQuery] = import_react9.default.useState("");
+  const tokens = import_react9.default.useMemo(() => {
     return tokensService.getContextTokens(target).tokens.filter((entry) => {
       return entry.computedValue.trim() !== "";
     });
   }, [target, tokensService]);
-  const filteredTokens = import_react7.default.useMemo(() => {
+  const filteredTokens = import_react9.default.useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return tokens;
     return tokens.filter((entry) => {
@@ -15624,15 +16555,15 @@ function TokenPickerButton(props) {
       return name.includes(keyword) || value.includes(keyword);
     });
   }, [query, tokens]);
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
     import_antd3.Popover,
     {
       trigger: ["click"],
       open,
       onOpenChange: setOpen,
       getPopupContainer: resolveRuntimePopupContainer,
-      content: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: { width: 280, display: "flex", flexDirection: "column", gap: 8 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      content: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { width: 280, display: "flex", flexDirection: "column", gap: 8 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           import_antd3.Input,
           {
             size: "small",
@@ -15641,7 +16572,7 @@ function TokenPickerButton(props) {
             onChange: (event) => setQuery(event.target.value)
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
           "div",
           {
             style: {
@@ -15651,7 +16582,7 @@ function TokenPickerButton(props) {
               maxHeight: 280,
               overflowY: "auto"
             },
-            children: filteredTokens.length > 0 ? filteredTokens.map((entry) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            children: filteredTokens.length > 0 ? filteredTokens.map((entry) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
               import_antd3.Button,
               {
                 size: "small",
@@ -15674,16 +16605,16 @@ function TokenPickerButton(props) {
                   setOpen(false);
                   setQuery("");
                 },
-                children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_antd3.Space, { direction: "vertical", size: 0, style: { alignItems: "flex-start" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { fontSize: 11, fontWeight: 600, color: PANEL_TEXT_PRIMARY }, children: entry.token.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: { fontSize: 10, color: PANEL_TOKEN_NOTE }, children: entry.computedValue })
+                children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_antd3.Space, { direction: "vertical", size: 0, style: { alignItems: "flex-start" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { fontSize: 11, fontWeight: 600, color: PANEL_TEXT_PRIMARY }, children: entry.token.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { fontSize: 10, color: PANEL_TOKEN_NOTE }, children: entry.computedValue })
                 ] })
               },
               entry.token.name
-            )) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { fontSize: 11, color: PANEL_TOKEN_NOTE }, children: "\u6CA1\u6709\u5339\u914D\u5230\u8BBE\u8BA1\u4EE4\u724C\u3002" })
+            )) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontSize: 11, color: PANEL_TOKEN_NOTE }, children: "\u6CA1\u6709\u5339\u914D\u5230\u8BBE\u8BA1\u4EE4\u724C\u3002" })
           }
         ),
-        currentValue ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+        currentValue ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
           import_antd3.Button,
           {
             size: "small",
@@ -15699,7 +16630,7 @@ function TokenPickerButton(props) {
           }
         ) : null
       ] }),
-      children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_antd3.Button, { size: "small", icon: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_icons4.LinkOutlined, {}), disabled })
+      children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_antd3.Button, { size: "small", icon: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.LinkOutlined, {}), disabled })
     }
   );
 }
@@ -15961,9 +16892,9 @@ function normalizeLength(raw) {
 }
 
 // src/ui/runtime/prompt-card-scroll-area.tsx
-var import_react8 = __toESM(require("react"), 1);
+var import_react10 = __toESM(require("react"), 1);
 var import_overlayscrollbars_react = require("overlayscrollbars-react");
-var import_jsx_runtime7 = require("react/jsx-runtime");
+var import_jsx_runtime9 = require("react/jsx-runtime");
 var PROMPT_CARD_SCROLL_OPTIONS = {
   overflow: {
     x: "hidden",
@@ -16012,8 +16943,8 @@ function resolvePromptCardScrollViewport(rootRef) {
 }
 function PromptCardScrollArea(props) {
   const { children, style } = props;
-  const rootRef = import_react8.default.useRef(null);
-  const handleWheelCapture = import_react8.default.useCallback((event) => {
+  const rootRef = import_react10.default.useRef(null);
+  const handleWheelCapture = import_react10.default.useCallback((event) => {
     const viewport = resolvePromptCardScrollViewport(rootRef.current);
     if (!viewport) {
       return;
@@ -16035,7 +16966,7 @@ function PromptCardScrollArea(props) {
     event.stopPropagation();
     viewport.scrollTop = nextOffset;
   }, []);
-  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
     import_overlayscrollbars_react.OverlayScrollbarsComponent,
     {
       ref: rootRef,
@@ -16045,43 +16976,43 @@ function PromptCardScrollArea(props) {
       style: { width: "100%", ...style },
       options: PROMPT_CARD_SCROLL_OPTIONS,
       onWheelCapture: handleWheelCapture,
-      children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "we-runtime-prompt-card__scroll-content", children })
+      children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "we-runtime-prompt-card__scroll-content", children })
     }
   );
 }
 
 // src/ui/runtime/prompt-card-design-editor.tsx
-var import_jsx_runtime8 = require("react/jsx-runtime");
+var import_jsx_runtime10 = require("react/jsx-runtime");
 var mergedGroupStackStyle = {
   display: "flex",
   flexDirection: "column",
   gap: 10
 };
 function PromptCardGroupDivider() {
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "we-runtime-prompt-card__group-divider", "aria-hidden": "true" });
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "we-runtime-prompt-card__group-divider", "aria-hidden": "true" });
 }
 function PromptCardLayoutPanel(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: mergedGroupStackStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(SpacingSection, { ...props }),
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(PromptCardGroupDivider, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(SizeSection, { ...props, variant: "prompt-card" })
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: mergedGroupStackStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(SpacingSection, { ...props }),
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(PromptCardGroupDivider, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(SizeSection, { ...props, variant: "prompt-card" })
   ] });
 }
 function PromptCardTypographyPanel(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(TypographySection, { ...props, variant: "prompt-card" });
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(TypographySection, { ...props, variant: "prompt-card" });
 }
 function PromptCardCommonColorsPanel(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: mergedGroupStackStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(CommonColorsSection, { ...props }),
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(PromptCardGroupDivider, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(AppearanceSection, { ...props })
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: mergedGroupStackStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CommonColorsSection, { ...props }),
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(PromptCardGroupDivider, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(AppearanceSection, { ...props })
   ] });
 }
 function PromptCardBorderEffectsPanel(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: mergedGroupStackStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(BorderSection, { ...props, hideColorField: true }),
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(PromptCardGroupDivider, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(EffectsSection, { ...props, variant: "prompt-card" })
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: mergedGroupStackStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(BorderSection, { ...props, hideColorField: true }),
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(PromptCardGroupDivider, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(EffectsSection, { ...props, variant: "prompt-card" })
   ] });
 }
 var GROUPS = [
@@ -16115,12 +17046,12 @@ function PromptCardDesignEditor(props) {
     onDeleteElement,
     defaultGroupId = "colors"
   } = props;
-  const [activeGroupId, setActiveGroupId] = import_react9.default.useState(defaultGroupId);
-  const snapshot = import_react9.default.useMemo(
+  const [activeGroupId, setActiveGroupId] = import_react11.default.useState(defaultGroupId);
+  const snapshot = import_react11.default.useMemo(
     () => target ? createStyleSnapshot(target) : null,
     [target, refreshKey]
   );
-  import_react9.default.useEffect(() => {
+  import_react11.default.useEffect(() => {
     setActiveGroupId((current) => {
       if (GROUPS.some((group) => group.id === current)) {
         return current;
@@ -16129,7 +17060,7 @@ function PromptCardDesignEditor(props) {
     });
   }, [defaultGroupId]);
   if (!target || !snapshot) {
-    return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { paddingTop: 10 }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { paddingTop: 10 }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
       import_antd4.Empty,
       {
         image: import_antd4.Empty.PRESENTED_IMAGE_SIMPLE,
@@ -16148,9 +17079,9 @@ function PromptCardDesignEditor(props) {
   };
   const activeGroup = GROUPS.find((group) => group.id === activeGroupId) ?? GROUPS[0];
   const ActiveGroupPanel = activeGroup.render;
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { "data-we-prompt-primary-focus-exempt": "true", style: editorShellStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: tabStripStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { "data-we-prompt-primary-focus-exempt": "true", style: editorShellStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: tabStripStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         import_antd4.Segmented,
         {
           value: activeGroup.id,
@@ -16161,7 +17092,7 @@ function PromptCardDesignEditor(props) {
           onChange: (value) => setActiveGroupId(String(value))
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         import_antd4.Popconfirm,
         {
           title: "\u5220\u9664\u5F53\u524D\u5143\u7D20",
@@ -16172,11 +17103,11 @@ function PromptCardDesignEditor(props) {
           disabled: disabled || !onDeleteElement,
           getPopupContainer: resolveRuntimePopupContainer,
           onConfirm: () => onDeleteElement?.(target),
-          children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             IconActionButton,
             {
               title: "\u5220\u9664\u5F53\u524D\u5143\u7D20\uFF08Delete / Backspace\uFF09",
-              icon: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_icons5.DeleteOutlined, {}),
+              icon: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(import_icons6.DeleteOutlined, {}),
               tone: "dark",
               disabled: disabled || !onDeleteElement
             }
@@ -16184,12 +17115,12 @@ function PromptCardDesignEditor(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(PromptCardScrollArea, { style: contentStyle, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(ActiveGroupPanel, { ...sectionProps }) })
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(PromptCardScrollArea, { style: contentStyle, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(ActiveGroupPanel, { ...sectionProps }) })
   ] });
 }
 
 // src/ui/runtime/prompt-card-view.tsx
-var import_jsx_runtime9 = require("react/jsx-runtime");
+var import_jsx_runtime11 = require("react/jsx-runtime");
 function normalizePromptStyleSummaryLine(line) {
   return line.replace(/^样式\s+/u, "").trim();
 }
@@ -16412,7 +17343,7 @@ function dismissPromptCardTerminalState(options) {
   onDismissSelection?.();
   return true;
 }
-var PromptCardView = import_react10.default.forwardRef(
+var PromptCardView = import_react12.default.forwardRef(
   function PromptCardView2(props, ref) {
     const {
       options,
@@ -16496,61 +17427,62 @@ var PromptCardView = import_react10.default.forwardRef(
     const isAnnotationSession = interactionProfile === "annotation";
     const textCommentMode = interactionProfile === "text-comment";
     const componentComposer = Boolean(onDocumentComponent && !isAnnotationSession && !externalAnnotationMode && !textCommentMode);
-    const rootRef = import_react10.default.useRef(null);
-    const textComposerRef = import_react10.default.useRef(null);
-    const noteComposerRef = import_react10.default.useRef(null);
-    const inlineTextEditingRef = import_react10.default.useRef(inlineTextEditing);
-    const [portalContainer, setPortalContainer] = import_react10.default.useState(null);
-    const [promptCardSize, setPromptCardSize] = import_react10.default.useState(null);
-    const [sendingCurrentElementPrompt, setSendingCurrentElementPrompt] = import_react10.default.useState(false);
-    const [savingComment, setSavingComment] = import_react10.default.useState(false);
-    const savingCommentRef = import_react10.default.useRef(false);
-    const [refreshKey, setRefreshKey] = import_react10.default.useState(0);
-    const [selectedSkills, setSelectedSkills] = import_react10.default.useState([]);
-    const [promptDismissed, setPromptDismissed] = import_react10.default.useState(false);
-    const [newPrototypeRequested, setGenerateNewPrototype] = import_react10.default.useState(false);
+    const purposeComposer = componentComposer && Boolean(props.componentComments) && selectedElementCount === 1;
+    const rootRef = import_react12.default.useRef(null);
+    const textComposerRef = import_react12.default.useRef(null);
+    const noteComposerRef = import_react12.default.useRef(null);
+    const inlineTextEditingRef = import_react12.default.useRef(inlineTextEditing);
+    const [portalContainer, setPortalContainer] = import_react12.default.useState(null);
+    const [promptCardSize, setPromptCardSize] = import_react12.default.useState(null);
+    const [sendingCurrentElementPrompt, setSendingCurrentElementPrompt] = import_react12.default.useState(false);
+    const [savingComment, setSavingComment] = import_react12.default.useState(false);
+    const savingCommentRef = import_react12.default.useRef(false);
+    const [refreshKey, setRefreshKey] = import_react12.default.useState(0);
+    const [selectedSkills, setSelectedSkills] = import_react12.default.useState([]);
+    const [promptDismissed, setPromptDismissed] = import_react12.default.useState(false);
+    const [newPrototypeRequested, setGenerateNewPrototype] = import_react12.default.useState(false);
     const generateNewPrototype = resolveComponentPrototypeDestination({
       requested: newPrototypeRequested,
       generatorAvailable: Boolean(onGenerateComponentStates),
       interactionProfile,
       externalAnnotationMode
     });
-    import_react10.default.useEffect(() => setGenerateNewPrototype(false), [currentTarget, selectedElementCount, isAnnotationSession, externalAnnotationMode, textCommentMode, onGenerateComponentStates]);
-    const [externalCommentsToolOpen, setExternalCommentsToolOpen] = import_react10.default.useState(true);
-    const [hoveredExternalCommentId, setHoveredExternalCommentId] = import_react10.default.useState(null);
-    const [annotationEditorOpen, setAnnotationEditorOpen] = import_react10.default.useState(
+    import_react12.default.useEffect(() => setGenerateNewPrototype(false), [currentTarget, selectedElementCount, isAnnotationSession, externalAnnotationMode, textCommentMode, onGenerateComponentStates]);
+    const [externalCommentsToolOpen, setExternalCommentsToolOpen] = import_react12.default.useState(true);
+    const [hoveredExternalCommentId, setHoveredExternalCommentId] = import_react12.default.useState(null);
+    const [annotationEditorOpen, setAnnotationEditorOpen] = import_react12.default.useState(
       () => readAnnotationInputModePreference() === "edit"
     );
-    const setAnnotationInputMode = import_react10.default.useCallback((mode) => {
+    const setAnnotationInputMode = import_react12.default.useCallback((mode) => {
       writeAnnotationInputModePreference(mode);
       setAnnotationEditorOpen(mode === "edit");
     }, []);
-    const [runningElementToolId, setRunningElementToolId] = import_react10.default.useState(null);
-    const [elementToolError, setElementToolError] = import_react10.default.useState("");
-    const externalComments = import_react10.default.useMemo(
+    const [runningElementToolId, setRunningElementToolId] = import_react12.default.useState(null);
+    const [elementToolError, setElementToolError] = import_react12.default.useState("");
+    const externalComments = import_react12.default.useMemo(
       () => savedNoteMeta?.externalComments ?? [],
       [savedNoteMeta?.externalComments, refreshKey]
     );
-    const externalCommentGroups = import_react10.default.useMemo(
+    const externalCommentGroups = import_react12.default.useMemo(
       () => groupExternalCommentsByAuthor(externalComments),
       [externalComments, refreshKey]
     );
-    const externalCommentEntries = import_react10.default.useMemo(
+    const externalCommentEntries = import_react12.default.useMemo(
       () => externalCommentGroups.flatMap((group) => group.comments.map((comment) => ({ group, comment }))),
       [externalCommentGroups]
     );
     const elementTools = options.getElementTools?.(currentTarget) ?? [];
     const hasElementTools = elementTools.length > 0;
-    const skillTrigger = import_react10.default.useMemo(() => findPromptCardSkillTrigger(draftNote), [draftNote]);
-    const promptCardSkills = import_react10.default.useMemo(
+    const skillTrigger = import_react12.default.useMemo(() => findPromptCardSkillTrigger(draftNote), [draftNote]);
+    const promptCardSkills = import_react12.default.useMemo(
       () => mergePromptCardSkills(skillOptions ?? []),
       [skillOptions]
     );
-    const filteredSkills = import_react10.default.useMemo(
+    const filteredSkills = import_react12.default.useMemo(
       () => filterPromptCardSkills(skillTrigger?.query ?? "", enabledSkillIds, promptCardSkills),
       [enabledSkillIds, promptCardSkills, skillTrigger?.query]
     );
-    const selectedSkillsDirty = import_react10.default.useMemo(() => {
+    const selectedSkillsDirty = import_react12.default.useMemo(() => {
       const savedSkillIds = savedNoteMeta?.skillIds ?? [];
       const selectedSkillIds = selectedSkills.map((skill) => skill.id);
       return selectedSkillIds.join("\0") !== savedSkillIds.join("\0");
@@ -16558,32 +17490,32 @@ var PromptCardView = import_react10.default.forwardRef(
     const skillMenuOpen = Boolean(
       skillTrigger && !inlineTextEditing && canEditNote && filteredSkills.length > 0
     );
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       inlineTextEditingRef.current = inlineTextEditing;
     }, [inlineTextEditing]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       setSelectedSkills(
         deserializePromptCardSkillSelection(savedNoteMeta, enabledSkillIds, skillOptions ?? [])
       );
       setRunningElementToolId(null);
       setElementToolError("");
     }, [enabledSkillIds, savedNoteMeta, currentTarget, skillOptions]);
-    import_react10.default.useLayoutEffect(() => {
+    import_react12.default.useLayoutEffect(() => {
       setPromptDismissed(false);
-    }, [currentTarget]);
-    import_react10.default.useLayoutEffect(() => {
+    }, [currentTarget, props.commentEditRequest?.revision]);
+    import_react12.default.useLayoutEffect(() => {
       setExternalCommentsToolOpen(true);
     }, [currentTarget, externalAnnotationMode]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (isAnnotationSession && bubbleStyleEditorOpen) {
         onBubbleStyleEditorOpenChange(false);
       }
     }, [bubbleStyleEditorOpen, isAnnotationSession, onBubbleStyleEditorOpenChange]);
-    const onConfirmNoteWithSelectedSkills = import_react10.default.useCallback(async () => {
+    const onConfirmNoteWithSelectedSkills = import_react12.default.useCallback(async () => {
       const payload = buildPromptCardSkillSavePayload(draftNote, selectedSkills);
       await onConfirmNote({ skillIds: payload.skillIds });
     }, [draftNote, onConfirmNote, selectedSkills]);
-    import_react10.default.useImperativeHandle(
+    import_react12.default.useImperativeHandle(
       ref,
       () => ({
         setTarget(element) {
@@ -16601,7 +17533,7 @@ var PromptCardView = import_react10.default.forwardRef(
       }),
       [onAnchorRectChange, onInlineTextEditingChange, onTargetChange]
     );
-    const focusPromptTextInput = import_react10.default.useCallback(() => {
+    const focusPromptTextInput = import_react12.default.useCallback(() => {
       if (inlineTextEditing) return false;
       if (inlineTextEditingRef.current) return false;
       const input = textComposerRef.current?.querySelector("input");
@@ -16618,7 +17550,7 @@ var PromptCardView = import_react10.default.forwardRef(
       }
       return true;
     }, [inlineTextEditing]);
-    const focusPromptTextarea = import_react10.default.useCallback(() => {
+    const focusPromptTextarea = import_react12.default.useCallback(() => {
       if (inlineTextEditing) return false;
       if (inlineTextEditingRef.current) return false;
       const textarea = noteComposerRef.current?.querySelector("textarea");
@@ -16636,7 +17568,7 @@ var PromptCardView = import_react10.default.forwardRef(
       }
       return true;
     }, [inlineTextEditing]);
-    const ensurePromptPrimaryFocus = import_react10.default.useCallback(
+    const ensurePromptPrimaryFocus = import_react12.default.useCallback(
       (attempts = 6) => {
         if (inlineTextEditingRef.current) return;
         let rafId = 0;
@@ -16670,7 +17602,7 @@ var PromptCardView = import_react10.default.forwardRef(
     const promptPositionBaseVisible = Boolean(
       currentTarget && anchorRect && !toolMinimized && uiMode === "bubble-card"
     );
-    import_react10.default.useLayoutEffect(() => {
+    import_react12.default.useLayoutEffect(() => {
       if (!promptPositionBaseVisible) {
         setPromptCardSize(null);
         return;
@@ -16707,8 +17639,8 @@ var PromptCardView = import_react10.default.forwardRef(
       propertyPanelEnabled,
       bubbleStyleEditorOpen
     ]);
-    const [visualViewportKey, setVisualViewportKey] = import_react10.default.useState(0);
-    import_react10.default.useEffect(() => {
+    const [visualViewportKey, setVisualViewportKey] = import_react12.default.useState(0);
+    import_react12.default.useEffect(() => {
       const vv = isMobileDevice() ? window.visualViewport : null;
       const handleResize = () => setVisualViewportKey((k) => k + 1);
       window.addEventListener("resize", handleResize);
@@ -16718,7 +17650,7 @@ var PromptCardView = import_react10.default.forwardRef(
         vv?.removeEventListener("resize", handleResize);
       };
     }, []);
-    const promptPosition = import_react10.default.useMemo(() => {
+    const promptPosition = import_react12.default.useMemo(() => {
       if (!currentTarget || !anchorRect || toolMinimized || uiMode !== "bubble-card") return null;
       const mobileWidth = isMobileDevice() ? Math.max(200, window.innerWidth - 16) : promptCardSize?.width ?? (componentComposer ? 360 : PROMPT_CARD_WIDTH);
       return computePromptCardPosition({
@@ -16729,6 +17661,7 @@ var PromptCardView = import_react10.default.forwardRef(
         viewportHeight: window.innerHeight,
         propertyPanelEnabled: commentListOpen && window.innerWidth > 760 || propertyPanelEnabled && (!pinnedToTopRight || propertyPanelOpen),
         pinnedToTopRight,
+        stackWithCommentList: purposeComposer && commentListOpen,
         safePaddingPx: SAFE_PADDING_PX,
         propertyPanelWidth: commentListOpen && window.innerWidth > 760 ? 320 : PROPERTY_PANEL_WIDTH,
         propertyPanelRight: commentListOpen && window.innerWidth > 760 ? 52 : PROPERTY_PANEL_RIGHT,
@@ -16738,6 +17671,7 @@ var PromptCardView = import_react10.default.forwardRef(
       anchorRect,
       currentTarget,
       componentComposer,
+      purposeComposer,
       promptCardSize,
       propertyPanelEnabled,
       pinnedToTopRight,
@@ -16750,7 +17684,7 @@ var PromptCardView = import_react10.default.forwardRef(
     const promptVisible = Boolean(
       currentTarget && promptPosition && promptCardSize && !toolMinimized && uiMode === "bubble-card" && !promptDismissed
     );
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!promptVisible || uiMode !== "bubble-card") {
         setSelectedSkills([]);
       }
@@ -16758,31 +17692,31 @@ var PromptCardView = import_react10.default.forwardRef(
         setAnnotationEditorOpen(false);
       }
     }, [isAnnotationSession, promptVisible, uiMode]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!isAnnotationSession && !canEditAnnotationMarkdown) {
         setAnnotationEditorOpen(false);
       }
     }, [canEditAnnotationMarkdown, isAnnotationSession]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!isAnnotationSession) return;
       setAnnotationEditorOpen(readAnnotationInputModePreference() === "edit");
     }, [isAnnotationSession]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!isAnnotationSession && bubbleStyleEditorOpen) {
         setAnnotationEditorOpen(false);
       }
     }, [bubbleStyleEditorOpen, isAnnotationSession]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!hasElementTools || !bubbleStyleEditorOpen) return;
       onBubbleStyleEditorOpenChange(false);
     }, [bubbleStyleEditorOpen, hasElementTools, onBubbleStyleEditorOpenChange]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       onPromptCardVisibleChange?.(promptVisible);
     }, [onPromptCardVisibleChange, promptVisible]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       return () => onPromptCardVisibleChange?.(false);
     }, [onPromptCardVisibleChange]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!promptVisible || !currentTarget || toolMinimized || uiMode !== "bubble-card" || inlineTextEditing)
         return;
       if (!isMobileDevice()) {
@@ -16802,11 +17736,11 @@ var PromptCardView = import_react10.default.forwardRef(
       toolMinimized,
       uiMode
     ]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!inlineTextEditing || promptVisible) return;
       onInlineTextEditingChange(false);
     }, [inlineTextEditing, onInlineTextEditingChange, promptVisible]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!inlineTextEditing) return;
       const textarea = noteComposerRef.current?.querySelector("textarea");
       if (textarea instanceof HTMLTextAreaElement) {
@@ -16817,7 +17751,7 @@ var PromptCardView = import_react10.default.forwardRef(
         input.blur();
       }
     }, [inlineTextEditing]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!promptVisible || uiMode !== "bubble-card") return;
       const handleWheel = (event) => {
         const root = rootRef.current;
@@ -16834,7 +17768,7 @@ var PromptCardView = import_react10.default.forwardRef(
         window.removeEventListener("wheel", handleWheel, true);
       };
     }, [promptVisible, uiMode]);
-    const saveAndCloseNoteComposer = import_react10.default.useCallback(async () => {
+    const saveAndCloseNoteComposer = import_react12.default.useCallback(async () => {
       await onConfirmNoteWithSelectedSkills();
       setSelectedSkills([]);
       const textarea = noteComposerRef.current?.querySelector("textarea");
@@ -16843,7 +17777,7 @@ var PromptCardView = import_react10.default.forwardRef(
       }
       onDismissSelection?.();
     }, [onConfirmNoteWithSelectedSkills, onDismissSelection]);
-    const handleSaveComment = import_react10.default.useCallback(async () => {
+    const handleSaveComment = import_react12.default.useCallback(async () => {
       if (savingCommentRef.current || !canEditNote) return;
       savingCommentRef.current = true;
       setSavingComment(true);
@@ -16857,7 +17791,7 @@ var PromptCardView = import_react10.default.forwardRef(
         setSavingComment(false);
       }
     }, [canEditNote, onConfirmNoteWithSelectedSkills, onPersistComments, onCommentSaved]);
-    const saveAndDismissPromptCard = import_react10.default.useCallback(async () => {
+    const saveAndDismissPromptCard = import_react12.default.useCallback(async () => {
       setSelectedSkills([]);
       setPromptDismissed(true);
       const activeElement = document.activeElement;
@@ -16888,7 +17822,7 @@ var PromptCardView = import_react10.default.forwardRef(
       options.getCreateAnnotationBlockReason,
       options.resolveAnnotationTarget
     ]);
-    const saveAndCloseAnnotationMarkdownComposer = import_react10.default.useCallback(async () => {
+    const saveAndCloseAnnotationMarkdownComposer = import_react12.default.useCallback(async () => {
       if (!documentSourceMarkdownEditor && getAnnotationManualEditLocatorState(
         currentTarget,
         void 0,
@@ -16911,10 +17845,10 @@ var PromptCardView = import_react10.default.forwardRef(
       options.getCreateAnnotationBlockReason,
       options.resolveAnnotationTarget
     ]);
-    const clearSelectedSkills = import_react10.default.useCallback(() => {
+    const clearSelectedSkills = import_react12.default.useCallback(() => {
       setSelectedSkills([]);
     }, []);
-    const handleSkillSelect = import_react10.default.useCallback(
+    const handleSkillSelect = import_react12.default.useCallback(
       (skill) => {
         const nextDraftNote = clearPromptCardSkillTrigger(draftNote);
         setSelectedSkills((current) => addPromptCardSkillSelection(current, skill));
@@ -16925,23 +17859,23 @@ var PromptCardView = import_react10.default.forwardRef(
       },
       [draftNote, ensurePromptPrimaryFocus, onDraftChange]
     );
-    const handleSkillRemove = import_react10.default.useCallback((skillId) => {
+    const handleSkillRemove = import_react12.default.useCallback((skillId) => {
       setSelectedSkills((current) => current.filter((skill) => skill.id !== skillId));
     }, []);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       setPortalContainer(
         options.container.querySelector(
           `[${WEB_EDITOR_POPUP_ROOT_ATTR}="true"]`
         )
       );
     }, [options.container]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       if (!promptVisible) {
         onHoverSelectionSuppressedChange(false);
         onSelectionInteractionLockChange(false);
       }
     }, [onHoverSelectionSuppressedChange, onSelectionInteractionLockChange, promptVisible]);
-    import_react10.default.useEffect(() => {
+    import_react12.default.useEffect(() => {
       return () => {
         onHoverSelectionSuppressedChange(false);
         onSelectionInteractionLockChange(false);
@@ -16991,7 +17925,7 @@ var PromptCardView = import_react10.default.forwardRef(
       getHasReusableAgentConversation,
       getAgentBridgeConnected
     });
-    const dismissTerminalTaskAndSelection = import_react10.default.useCallback(
+    const dismissTerminalTaskAndSelection = import_react12.default.useCallback(
       () => dismissPromptCardTerminalState({
         currentTarget,
         currentTaskTerminal,
@@ -16999,7 +17933,7 @@ var PromptCardView = import_react10.default.forwardRef(
       }),
       [currentTarget, currentTaskTerminal, onDismissSelection]
     );
-    const handlePromptCardClose = import_react10.default.useCallback(() => {
+    const handlePromptCardClose = import_react12.default.useCallback(() => {
       if (generateNewPrototype) {
         setPromptDismissed(true);
         onDismissSelection?.();
@@ -17042,11 +17976,12 @@ var PromptCardView = import_react10.default.forwardRef(
       getSendCurrentElementPromptToAgentBlockReason: () => currentElementBlockReason,
       hasReusableConversation
     });
-    import_react10.default.useLayoutEffect(() => {
+    import_react12.default.useLayoutEffect(() => {
+      if (purposeComposer) return;
       if (!currentElementPromptAction.dismissBubble) return;
       setPromptDismissed(true);
-    }, [currentElementPromptAction.dismissBubble]);
-    import_react10.default.useEffect(() => {
+    }, [currentElementPromptAction.dismissBubble, purposeComposer]);
+    import_react12.default.useEffect(() => {
       if (!promptVisible || uiMode !== "bubble-card" || !currentTaskTerminal) return;
       const handleWindowKeyDown = (event) => {
         if (event.isComposing || event.key !== "Escape") return;
@@ -17059,7 +17994,7 @@ var PromptCardView = import_react10.default.forwardRef(
         window.removeEventListener("keydown", handleWindowKeyDown, true);
       };
     }, [currentTaskTerminal, dismissTerminalTaskAndSelection, promptVisible, uiMode]);
-    const wakeAgentForCurrentElementAction = import_react10.default.useCallback(async () => {
+    const wakeAgentForCurrentElementAction = import_react12.default.useCallback(async () => {
       if (hideExecutionControls) {
         return true;
       }
@@ -17086,7 +18021,7 @@ var PromptCardView = import_react10.default.forwardRef(
       onAgentVisualStateChange,
       onWakeAgent
     ]);
-    const handleConfirmSendCurrentElementPrompt = import_react10.default.useCallback(async () => {
+    const handleConfirmSendCurrentElementPrompt = import_react12.default.useCallback(async () => {
       if (savingCommentRef.current || sendingCurrentElementPrompt || generateNewPrototype && selectedElementCount !== 1) return;
       if (componentComposer && (hideCurrentElementExecutionAction || !generateNewPrototype && (!currentElementPromptAction.visible || currentElementPromptAction.disabled))) return;
       if (generateNewPrototype && !draftNote.trim()) return;
@@ -17128,7 +18063,7 @@ var PromptCardView = import_react10.default.forwardRef(
       sendingCurrentElementPrompt,
       wakeAgentForCurrentElementAction
     ]);
-    const handlePromptKeyDown = import_react10.default.useCallback(
+    const handlePromptKeyDown = import_react12.default.useCallback(
       (event) => {
         const isComposing = event.nativeEvent.isComposing;
         if (isComposing) return;
@@ -17156,7 +18091,7 @@ var PromptCardView = import_react10.default.forwardRef(
       [dismissTerminalTaskAndSelection, saveAndCloseNoteComposer, componentComposer, generateNewPrototype, handleConfirmSendCurrentElementPrompt, handlePromptCardClose]
     );
     if (!promptPositionBaseVisible || !currentTarget || !promptPosition || toolMinimized || uiMode !== "bubble-card") {
-      return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { ref: rootRef, style: { ...promptCardStyle, visibility: "hidden" } });
+      return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { ref: rootRef, style: { ...promptCardStyle, visibility: "hidden" } });
     }
     const promptTarget = currentTarget;
     const handleElementToolAction = async (tool) => {
@@ -17206,10 +18141,10 @@ var PromptCardView = import_react10.default.forwardRef(
     const showContextAppendExecutionControls = !hideExecutionControls;
     const showPromptCardExecutionActions = !isAnnotationSession || !annotationMarkdownEditorOpen;
     const componentName = selectedElementCount > 1 ? `\u5DF2\u9009 ${selectedElementCount} \u4E2A\u5143\u7D20` : currentTarget.getAttribute("aria-label") || currentTarget.getAttribute("data-label") || currentTarget.id || currentTarget.tagName.toLowerCase();
-    const appendContextAction = showContextAppendExecutionControls && agentAvailable ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(IconActionButton, { title: agentSelectionActionTitle, icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(AgentSparkleIcon, {}), tone: "dark", disabled: !currentTarget, onClick: () => {
+    const appendContextAction = showContextAppendExecutionControls && agentAvailable ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(IconActionButton, { title: agentSelectionActionTitle, icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(AgentSparkleIcon, {}), tone: "dark", disabled: !currentTarget, onClick: () => {
       triggerAgentPromptAction({ currentTarget: promptTarget, onAppendElementToAgentContext: options.onAppendElementToAgentContext });
     } }) : null;
-    const clearEditsAction = !hideClearEditsAction && canClearCurrentElementEdits ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(IconActionButton, { title: "\u6E05\u7A7A\u6279\u6CE8", icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.ClearOutlined, {}), tone: "dark", disabled: !currentTarget || sendingCurrentElementPrompt, onClick: () => {
+    const clearEditsAction = !hideClearEditsAction && canClearCurrentElementEdits ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(IconActionButton, { title: "\u6E05\u7A7A\u6279\u6CE8", icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.ClearOutlined, {}), tone: "dark", disabled: !currentTarget || sendingCurrentElementPrompt, onClick: () => {
       clearSelectedSkills();
       void onClearCurrentElementEdits();
     } }) : null;
@@ -17218,7 +18153,7 @@ var PromptCardView = import_react10.default.forwardRef(
       externalAnnotationMode
     );
     const promptCardCloseActionTitle = componentComposer ? generateNewPrototype ? "\u5173\u95ED\uFF08Esc\uFF09" : "\u5173\u95ED\u5E76\u4FDD\u5B58\uFF08Esc\uFF09" : resolvePromptCardCloseActionTitle(globalThis.navigator?.platform);
-    const annotationDeleteAction = !documentSourceMarkdownEditor ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+    const annotationDeleteAction = !documentSourceMarkdownEditor ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
       import_antd5.Popconfirm,
       {
         title: "\u5220\u9664\u6807\u6CE8",
@@ -17231,18 +18166,18 @@ var PromptCardView = import_react10.default.forwardRef(
         onConfirm: () => {
           void onDeleteCurrentAnnotationNode?.();
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
           IconActionButton,
           {
             title: "\u5220\u9664\u6807\u6CE8",
-            icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.DeleteOutlined, {}),
+            icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.DeleteOutlined, {}),
             tone: "dark",
             disabled: annotationLoading || annotationSaving || !onDeleteCurrentAnnotationNode
           }
         ) })
       }
     ) : null;
-    const promptCardNode = /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+    const promptCardNode = /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
       "div",
       {
         ref: rootRef,
@@ -17254,6 +18189,12 @@ var PromptCardView = import_react10.default.forwardRef(
           left: promptPosition.left,
           top: promptPosition.top,
           visibility: promptVisible ? "visible" : "hidden",
+          ...purposeComposer && commentListOpen && window.innerWidth <= 760 ? {
+            width: "calc(100vw - 16px)",
+            maxWidth: "calc(100vw - 16px)",
+            maxHeight: "calc(48dvh - 16px)",
+            overflow: "hidden"
+          } : {},
           // Mobile: full width prompt card
           ...isMobileDevice() ? {
             width: "calc(100vw - 16px)",
@@ -17270,7 +18211,7 @@ var PromptCardView = import_react10.default.forwardRef(
           onHoverSelectionSuppressedChange(false);
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("style", { nonce: resolveCspNonce(), children: `
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("style", { nonce: resolveCspNonce(), children: `
             .we-runtime-prompt-card__textarea,
             .we-runtime-prompt-card__textarea:disabled,
             .we-runtime-prompt-card__textarea textarea,
@@ -17309,1043 +18250,1075 @@ var PromptCardView = import_react10.default.forwardRef(
               background: ${EDITOR_CHROME.accentHover} !important;
             }
           ` }),
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-            "div",
+          purposeComposer && props.componentComments && !bubbleStyleEditorOpen ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+            ComponentCommentComposer,
             {
-              "data-we-annotation-session-toolbar": "true",
-              style: {
-                display: "flex",
-                flexWrap: componentComposer ? "nowrap" : "wrap",
-                alignItems: "center",
-                gap: 8,
-                ...componentComposer ? { padding: "10px 12px", borderBottom: `1px solid ${EDITOR_CHROME.border}`, flexShrink: 0, gap: 4 } : {}
+              api: props.componentComments,
+              element: currentTarget,
+              label: componentName,
+              editRequest: props.commentEditRequest,
+              onSaved: onCommentSaved,
+              onClose: () => {
+                setPromptDismissed(true);
+                onDismissSelection?.();
               },
-              children: [
-                componentComposer ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { flex: "1 1 80px", minWidth: 0, marginRight: 4 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { color: EDITOR_CHROME.textMuted, fontSize: 10, lineHeight: "15px" }, children: "\u7EC4\u4EF6\u6279\u6CE8" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { title: componentName, style: { color: EDITOR_CHROME.textPrimary, fontSize: 12, lineHeight: "18px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: componentName })
-                ] }) : null,
-                !componentComposer && selectedElementCount > 1 ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("span", { "data-we-selection-count": "true", style: { fontSize: 12, color: EDITOR_CHROME.textMuted }, children: [
-                  "\u5DF2\u9009 ",
-                  selectedElementCount,
-                  " \u4E2A\u5143\u7D20"
-                ] }) : null,
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                  "div",
-                  {
-                    "data-we-prompt-card-tool-actions": "true",
-                    style: { display: "flex", flexWrap: componentComposer ? "nowrap" : "wrap", alignItems: "center", gap: 2, ...componentComposer ? { flexShrink: 0 } : {} },
-                    children: [
-                      isAnnotationSession && showAnnotationMarkdownEditorButton ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                        "div",
-                        {
-                          "data-we-annotation-mode-tabs": "true",
-                          role: "tablist",
-                          "aria-label": `${annotationModeLabel}\u6807\u6CE8\u7F16\u8F91\u5DF2\u9009`,
-                          style: {
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 1,
-                            padding: 1,
-                            borderRadius: 7,
-                            background: EDITOR_CHROME.surface,
-                            border: `1px solid ${EDITOR_CHROME.border}`
-                          },
-                          children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                              "button",
-                              {
-                                type: "button",
-                                role: "tab",
-                                "aria-selected": annotationEditorOpen,
-                                style: {
-                                  border: 0,
-                                  borderRadius: 6,
-                                  background: annotationEditorOpen ? EDITOR_CHROME.surfaceInteractive : "transparent",
-                                  color: annotationEditorOpen ? EDITOR_CHROME.textPrimary : EDITOR_CHROME.textMuted,
-                                  padding: "3px 6px",
-                                  fontSize: 10,
-                                  fontWeight: 500,
-                                  lineHeight: "16px",
-                                  cursor: annotationLoading ? "default" : "pointer"
-                                },
-                                disabled: annotationLoading,
-                                onClick: () => {
-                                  setAnnotationInputMode("edit");
-                                  onBubbleStyleEditorOpenChange(false);
-                                },
-                                children: "\u7F16\u8F91"
-                              }
-                            ),
-                            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                              "button",
-                              {
-                                type: "button",
-                                role: "tab",
-                                "aria-selected": !annotationEditorOpen,
-                                style: {
-                                  border: 0,
-                                  borderRadius: 6,
-                                  background: !annotationEditorOpen ? EDITOR_CHROME.surfaceInteractive : "transparent",
-                                  color: !annotationEditorOpen ? EDITOR_CHROME.textPrimary : EDITOR_CHROME.textMuted,
-                                  padding: "3px 6px",
-                                  fontSize: 10,
-                                  fontWeight: 500,
-                                  lineHeight: "16px",
-                                  cursor: annotationLoading ? "default" : "pointer"
-                                },
-                                disabled: annotationLoading,
-                                onClick: () => {
-                                  setAnnotationInputMode("generate");
-                                  onBubbleStyleEditorOpenChange(false);
-                                },
-                                children: "\u751F\u6210"
-                              }
-                            )
-                          ]
-                        }
-                      ) : showAnnotationMarkdownEditorButton ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        IconActionButton,
-                        {
-                          title: documentSourceMarkdownEditor ? annotationEditorOpen ? "\u5173\u95ED Markdown \u6E90\u7801\u7F16\u8F91" : "Markdown \u6E90\u7801\u7F16\u8F91" : annotationEditorOpen ? "\u5173\u95ED\u6807\u6CE8\u7F16\u8F91" : "\u6807\u6CE8\u7F16\u8F91",
-                          icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.FileTextOutlined, {}),
-                          tone: annotationEditorOpen ? "accent" : "dark",
-                          disabled: annotationLoading,
-                          onClick: () => {
-                            const nextAnnotationEditorOpen = !annotationEditorOpen;
-                            setAnnotationEditorOpen(nextAnnotationEditorOpen);
-                            if (nextAnnotationEditorOpen && bubbleStyleEditorOpen) {
-                              onBubbleStyleEditorOpenChange(false);
-                            }
-                          }
-                        }
-                      ) : null,
-                      showAnnotationDocumentEditButton ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        IconActionButton,
-                        {
-                          title: "\u6587\u6863\u7F16\u8F91",
-                          icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.FileTextOutlined, {}),
-                          tone: "dark",
-                          onClick: () => {
-                            window.open(annotationDocumentEditUrl, "_blank", "noopener,noreferrer");
-                          }
-                        }
-                      ) : null,
-                      elementTools.map((tool) => {
-                        const running = runningElementToolId === tool.id;
-                        return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { "data-we-element-tool": tool.id, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                          IconActionButton,
-                          {
-                            title: running ? `${tool.label}\uFF08\u6B63\u5728\u6253\u5F00\uFF09` : tool.label,
-                            icon: tool.icon === "document" ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.FileTextOutlined, {}) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.ExportOutlined, {}),
-                            tone: "dark",
-                            loading: running,
-                            disabled: Boolean(tool.disabled || runningElementToolId),
-                            onClick: () => {
-                              void handleElementToolAction(tool);
-                            }
-                          }
-                        ) }, tool.id);
-                      }),
-                      !isAnnotationSession && !externalAnnotationMode && externalCommentGroups.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { "data-we-external-comments-tool-toggle": "true", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        IconActionButton,
-                        {
-                          title: externalCommentsToolOpen ? "\u5173\u95ED\u5916\u90E8\u6279\u6CE8" : "\u6253\u5F00\u5916\u90E8\u6279\u6CE8",
-                          icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.MessageOutlined, {}),
-                          tone: "dark",
-                          onClick: () => setExternalCommentsToolOpen((open) => !open)
-                        }
-                      ) }) : null,
-                      propertyPanelEnabled && styleDesignEnabled && !hasElementTools && !isAnnotationSession && !textCommentMode && !isCurrentAnnotationPanelTarget ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        IconActionButton,
-                        {
-                          title: styleEditorToggleTitle,
-                          icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.FormatPainterOutlined, {}),
-                          tone: bubbleStyleEditorOpen ? "accent" : "dark",
-                          onClick: () => {
-                            const nextBubbleStyleEditorOpen = !bubbleStyleEditorOpen;
-                            onBubbleStyleEditorOpenChange(nextBubbleStyleEditorOpen);
-                            if (nextBubbleStyleEditorOpen) {
-                              setGenerateNewPrototype(false);
-                              setAnnotationEditorOpen(false);
-                            }
-                          }
-                        }
-                      ) : null,
-                      onDocumentComponent && currentTarget && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        "button",
-                        {
-                          type: "button",
-                          "data-we-document-component": "true",
-                          title: selectedElementCount !== 1 ? "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668" : "\u622A\u56FE\u5E76\u5C06\u8BF4\u660E\u5F15\u5165 PRD \u6587\u6863",
-                          disabled: selectedElementCount !== 1 || savingComment,
-                          style: { border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 6, background: "transparent", color: EDITOR_CHROME.textSecondary, padding: "4px 8px", fontFamily: "inherit", fontSize: 12, whiteSpace: "nowrap", cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" },
-                          onClick: () => {
-                            void executePromptCardDocumentAction({
-                              currentTarget,
-                              note: draftNote,
-                              onConfirmNote: onConfirmNoteWithSelectedSkills,
-                              onDocumentComponent
-                            }).catch(() => {
-                            });
-                          },
-                          children: "\u5F15\u5165\u8BF4\u660E"
-                        }
-                      ) : null,
-                      axureSelectionExportAction.visible && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        IconActionButton,
-                        {
-                          title: axureSelectionExportAction.title,
-                          icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.ExportOutlined, {}),
-                          tone: "dark",
-                          disabled: axureSelectionExportAction.disabled,
-                          onClick: () => {
-                            triggerDesignToolExportAction({ tool: "axure", currentTarget: promptTarget, onExportSelectionToDesignTool });
-                          }
-                        }
-                      ) : null,
-                      designAdjustmentTool !== "axure" && designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        IconActionButton,
-                        {
-                          title: designToolExportAction.title,
-                          icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.ExportOutlined, {}),
-                          tone: "dark",
-                          disabled: designToolExportAction.disabled,
-                          onClick: () => {
-                            triggerDesignToolExportAction({
-                              tool: designAdjustmentTool,
-                              currentTarget: promptTarget,
-                              onExportSelectionToDesignTool
-                            });
-                          }
-                        }
-                      ) : null
-                    ]
-                  }
-                ),
-                !componentComposer ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { flex: 1 } }) : null,
-                showPromptCardExecutionActions && !componentComposer ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                  "div",
-                  {
-                    "data-we-prompt-card-execution-actions": "true",
-                    style: { display: "flex", alignItems: "center", gap: 2 },
-                    children: [
-                      appendContextAction,
-                      !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype) ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        IconActionButton,
-                        {
-                          title: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
-                          label: generateNewPrototype ? "\u751F\u6210\u7EC4\u4EF6\u72B6\u6001" : onDocumentComponent ? "AI \u751F\u6210\u539F\u578B" : void 0,
-                          icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.CaretRightFilled, {}),
-                          tone: "accent",
-                          loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
-                          disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
-                          onClick: () => {
-                            void handleConfirmSendCurrentElementPrompt();
-                          }
-                        }
-                      ) : null,
-                      clearEditsAction
-                    ]
-                  }
-                ) : null,
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                  "div",
-                  {
-                    style: {
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      paddingLeft: 8,
-                      marginLeft: 2,
-                      borderLeft: `1px solid ${EDITOR_CHROME.border}`,
-                      flexShrink: 0
-                    },
-                    children: [
-                      !isMobileDevice() && onPinnedToTopRightChange ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        IconActionButton,
-                        {
-                          title: pinnedToTopRight ? "\u53D6\u6D88\u56FA\u5B9A\uFF0C\u8DDF\u968F\u5143\u7D20" : "\u56FA\u5B9A\u5230\u53F3\u4E0A\u89D2",
-                          icon: pinnedToTopRight ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.PushpinFilled, {}) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.PushpinOutlined, {}),
-                          pressed: pinnedToTopRight,
-                          tone: pinnedToTopRight ? "accent" : "dark",
-                          onClick: () => onPinnedToTopRightChange(!pinnedToTopRight)
-                        }
-                      ) : null,
-                      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        IconActionButton,
-                        {
-                          title: promptCardCloseActionTitle,
-                          icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(CloseToolIcon, {}),
-                          tone: "dark",
-                          onClick: handlePromptCardClose
-                        }
-                      )
-                    ]
-                  }
-                )
-              ]
+              getLoadState: props.getCommentListLoadState,
+              loadingContent: props.commentListLoadingContent,
+              onRetry: props.onRetryCommentList,
+              skillOptions: skillOptions ?? void 0,
+              enabledSkillIds: enabledSkillIds ?? void 0,
+              available: {
+                "modify-prototype": !hideExecutionControls && !hideCurrentElementExecutionAction && canEditNote,
+                "generate-prototype": Boolean(onGenerateComponentStates) && selectedElementCount === 1 && canEditNote,
+                "document-component": Boolean(onDocumentComponent) && selectedElementCount === 1 && canEditNote
+              },
+              onExport: axureSelectionExportAction.visible ? () => onExportSelectionToDesignTool?.("axure", currentTarget) : designToolExportAction.visible && designAdjustmentTool ? () => onExportSelectionToDesignTool?.(designAdjustmentTool, currentTarget) : void 0,
+              exportDisabled: axureSelectionExportAction.visible ? axureSelectionExportAction.disabled : designToolExportAction.disabled,
+              exportTitle: axureSelectionExportAction.visible ? axureSelectionExportAction.title : designToolExportAction.title,
+              tools: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
+                styleDesignEnabled ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(IconActionButton, { title: styleEditorToggleTitle, icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.FormatPainterOutlined, {}), tone: "dark", onClick: () => onBubbleStyleEditorOpenChange(true) }) : null,
+                /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(IconActionButton, { title: pinnedToTopRight ? "\u53D6\u6D88\u56FA\u5B9A" : "\u56FA\u5B9A\u5230\u53F3\u4E0A\u89D2", icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.PushpinOutlined, {}), tone: pinnedToTopRight ? "accent" : "dark", onClick: () => onPinnedToTopRightChange?.(!pinnedToTopRight) })
+              ] })
             }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-            "div",
-            {
-              "data-we-prompt-card-content-scroll": "true",
-              style: {
-                display: "flex",
-                flex: "1 1 auto",
-                flexDirection: "column",
-                minHeight: 0,
-                overflowX: "hidden",
-                overflowY: "auto",
-                ...componentComposer ? { padding: "12px 12px 10px" } : {}
-              },
-              children: [
-                !isAnnotationSession && !externalAnnotationMode && externalCommentsToolOpen && externalCommentGroups.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                  "section",
-                  {
-                    "data-we-external-comments-tool": "true",
-                    "aria-label": "\u5916\u90E8\u6279\u6CE8",
-                    style: externalCommentsToolStyle,
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        "div",
-                        {
-                          style: {
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            paddingBottom: 6,
-                            color: EDITOR_CHROME.textSecondary,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            lineHeight: "16px"
-                          },
-                          children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                            "div",
-                            {
-                              "data-we-component-composer": componentComposer ? "true" : void 0,
-                              style: {
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 5
-                              },
-                              children: [
-                                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.MessageOutlined, {}),
-                                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: "\u5916\u90E8\u6279\u6CE8" }),
-                                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: externalComments.length })
-                              ]
-                            }
-                          )
-                        }
-                      ),
-                      externalCommentEntries.map(({ group, comment }, entryIndex) => /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                        "div",
-                        {
-                          "data-we-external-comments-entry": comment.id,
-                          "data-we-external-comments-author": group.authorId,
-                          onMouseEnter: () => setHoveredExternalCommentId(comment.id),
-                          onMouseLeave: () => setHoveredExternalCommentId(null),
-                          style: {
-                            display: "flex",
-                            position: "relative",
-                            alignItems: "flex-start",
-                            padding: "8px 0",
-                            borderTop: `1px solid ${EDITOR_CHROME.border}`,
-                            ...entryIndex === externalCommentEntries.length - 1 ? { paddingBottom: 7 } : {}
-                          },
-                          children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-                              /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                                "div",
+          ) : /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+              "div",
+              {
+                "data-we-annotation-session-toolbar": "true",
+                style: {
+                  display: "flex",
+                  flexWrap: componentComposer ? "nowrap" : "wrap",
+                  alignItems: "center",
+                  gap: 8,
+                  ...componentComposer ? { padding: "10px 12px", borderBottom: `1px solid ${EDITOR_CHROME.border}`, flexShrink: 0, gap: 4 } : {}
+                },
+                children: [
+                  componentComposer ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: { flex: "1 1 80px", minWidth: 0, marginRight: 4 }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { color: EDITOR_CHROME.textMuted, fontSize: 10, lineHeight: "15px" }, children: "\u7EC4\u4EF6\u6279\u6CE8" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { title: componentName, style: { color: EDITOR_CHROME.textPrimary, fontSize: 12, lineHeight: "18px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: componentName })
+                  ] }) : null,
+                  !componentComposer && selectedElementCount > 1 ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { "data-we-selection-count": "true", style: { fontSize: 12, color: EDITOR_CHROME.textMuted }, children: [
+                    "\u5DF2\u9009 ",
+                    selectedElementCount,
+                    " \u4E2A\u5143\u7D20"
+                  ] }) : null,
+                  /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                    "div",
+                    {
+                      "data-we-prompt-card-tool-actions": "true",
+                      style: { display: "flex", flexWrap: componentComposer ? "nowrap" : "wrap", alignItems: "center", gap: 2, ...componentComposer ? { flexShrink: 0 } : {} },
+                      children: [
+                        isAnnotationSession && showAnnotationMarkdownEditorButton ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                          "div",
+                          {
+                            "data-we-annotation-mode-tabs": "true",
+                            role: "tablist",
+                            "aria-label": `${annotationModeLabel}\u6807\u6CE8\u7F16\u8F91\u5DF2\u9009`,
+                            style: {
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 1,
+                              padding: 1,
+                              borderRadius: 7,
+                              background: EDITOR_CHROME.surface,
+                              border: `1px solid ${EDITOR_CHROME.border}`
+                            },
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                "button",
                                 {
-                                  "data-we-external-comments-author-label": "true",
-                                  "data-we-external-comments-author-kind": isExternalAuthorNetworkIdentifier(group.authorName) ? "network" : "display",
+                                  type: "button",
+                                  role: "tab",
+                                  "aria-selected": annotationEditorOpen,
                                   style: {
-                                    marginBottom: 2,
-                                    paddingRight: onDeleteExternalComment ? 20 : 0,
-                                    color: EDITOR_CHROME.textMuted,
+                                    border: 0,
+                                    borderRadius: 6,
+                                    background: annotationEditorOpen ? EDITOR_CHROME.surfaceInteractive : "transparent",
+                                    color: annotationEditorOpen ? EDITOR_CHROME.textPrimary : EDITOR_CHROME.textMuted,
+                                    padding: "3px 6px",
                                     fontSize: 10,
-                                    fontWeight: 600,
-                                    lineHeight: "14px",
-                                    letterSpacing: 0,
-                                    ...isExternalAuthorNetworkIdentifier(group.authorName) ? { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" } : {},
-                                    overflowWrap: "anywhere"
+                                    fontWeight: 500,
+                                    lineHeight: "16px",
+                                    cursor: annotationLoading ? "default" : "pointer"
                                   },
-                                  children: [
-                                    "\u8BC4\u5BA1\u8005 \xB7 ",
-                                    group.authorName
-                                  ]
+                                  disabled: annotationLoading,
+                                  onClick: () => {
+                                    setAnnotationInputMode("edit");
+                                    onBubbleStyleEditorOpenChange(false);
+                                  },
+                                  children: "\u7F16\u8F91"
                                 }
                               ),
-                              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                "div",
+                              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                "button",
                                 {
+                                  type: "button",
+                                  role: "tab",
+                                  "aria-selected": !annotationEditorOpen,
                                   style: {
-                                    color: EDITOR_CHROME.textPrimary,
-                                    fontSize: 11,
-                                    lineHeight: 1.55,
-                                    overflowWrap: "anywhere",
-                                    whiteSpace: "pre-wrap"
+                                    border: 0,
+                                    borderRadius: 6,
+                                    background: !annotationEditorOpen ? EDITOR_CHROME.surfaceInteractive : "transparent",
+                                    color: !annotationEditorOpen ? EDITOR_CHROME.textPrimary : EDITOR_CHROME.textMuted,
+                                    padding: "3px 6px",
+                                    fontSize: 10,
+                                    fontWeight: 500,
+                                    lineHeight: "16px",
+                                    cursor: annotationLoading ? "default" : "pointer"
                                   },
-                                  children: comment.content
+                                  disabled: annotationLoading,
+                                  onClick: () => {
+                                    setAnnotationInputMode("generate");
+                                    onBubbleStyleEditorOpenChange(false);
+                                  },
+                                  children: "\u751F\u6210"
                                 }
                               )
-                            ] }),
-                            onDeleteExternalComment ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                              IconActionButton,
-                              {
-                                title: "\u5220\u9664\u8FD9\u6761\u5916\u90E8\u6279\u6CE8",
-                                icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.DeleteOutlined, {}),
-                                tone: "dark",
-                                onClick: () => {
-                                  void onDeleteExternalComment(comment.id);
-                                },
-                                style: {
-                                  width: 16,
-                                  minWidth: 16,
-                                  height: 16,
-                                  fontSize: 12,
-                                  position: "absolute",
-                                  top: 7,
-                                  right: 0,
-                                  background: "transparent",
-                                  opacity: hoveredExternalCommentId === comment.id ? 1 : 0,
-                                  pointerEvents: hoveredExternalCommentId === comment.id ? "auto" : "none",
-                                  transition: "opacity 160ms ease"
-                                }
-                              }
-                            ) : null
-                          ]
-                        },
-                        comment.id
-                      ))
-                    ]
-                  }
-                ) : null,
-                elementToolError ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                  "div",
-                  {
-                    role: "alert",
-                    style: {
-                      padding: "6px 10px",
-                      borderRadius: 8,
-                      background: "rgba(255, 77, 79, 0.12)",
-                      color: EDITOR_CHROME.textDanger,
-                      fontSize: 11,
-                      lineHeight: 1.45,
-                      overflowWrap: "anywhere"
-                    },
-                    children: elementToolError.slice(0, 240)
-                  }
-                ) : null,
-                savedNoteMeta?.commenterName ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                  "div",
-                  {
-                    "data-we-prompt-card-commenter": "true",
-                    style: {
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      marginBottom: 6,
-                      padding: "5px 8px",
-                      borderLeft: `3px solid ${savedNoteMeta.commenterColor || EDITOR_CHROME.accent}`,
-                      borderRadius: 4,
-                      background: EDITOR_CHROME.surfaceMuted,
-                      color: EDITOR_CHROME.textSecondary,
-                      fontSize: 11,
-                      lineHeight: 1.35
-                    },
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { style: { color: EDITOR_CHROME.textMuted }, children: "\u6279\u6CE8\u8005" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { style: { color: savedNoteMeta.commenterColor || EDITOR_CHROME.textPrimary, fontWeight: 600 }, children: savedNoteMeta.commenterName })
-                    ]
-                  }
-                ) : null,
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                  "div",
-                  {
-                    ref: noteComposerRef,
-                    onFocusCapture: (event) => {
-                      if (inlineTextEditing) return;
-                      if (!shouldRestorePromptPrimaryFocusFromTarget(event.target)) return;
-                      window.requestAnimationFrame(() => {
-                        ensurePromptPrimaryFocus(3);
-                      });
-                    },
-                    onPointerDownCapture: (event) => {
-                      if (inlineTextEditing) return;
-                      if (!shouldRestorePromptPrimaryFocusFromTarget(event.target)) return;
-                      window.requestAnimationFrame(() => {
-                        ensurePromptPrimaryFocus(3);
-                      });
-                    },
-                    style: {
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                      pointerEvents: inlineTextEditing ? "none" : "auto"
-                    },
-                    children: [
-                      showPromptTextInput ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { ref: textComposerRef, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        import_antd5.Input,
-                        {
-                          value: draftText,
-                          placeholder: TEXT_INPUT_PLACEHOLDER,
-                          size: "small",
-                          style: {
-                            borderRadius: 12,
-                            minHeight: 32,
-                            background: EDITOR_CHROME.surfaceMuted,
-                            borderColor: EDITOR_CHROME.borderStrong,
-                            boxShadow: "none",
-                            color: EDITOR_CHROME.textPrimary
-                          },
-                          onChange: (event) => {
-                            onTextDraftChange(event.target.value);
-                          },
-                          onPressEnter: (event) => {
-                            if (isMobileDevice()) {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              return;
-                            }
-                            event.preventDefault();
-                            event.stopPropagation();
-                            void onConfirmText();
-                          },
-                          onKeyDown: (event) => {
-                            if (event.key !== "Escape") return;
-                            event.preventDefault();
-                            event.stopPropagation();
-                            if (dismissTerminalTaskAndSelection()) return;
-                            onCancelText();
-                          },
-                          onBlur: () => {
-                            if (!textDirty) return;
-                            void onConfirmText();
+                            ]
                           }
-                        }
-                      ) }) : null,
-                      showNoteComposer ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                          import_antd5.Dropdown,
+                        ) : showAnnotationMarkdownEditorButton ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          IconActionButton,
                           {
-                            open: skillMenuOpen,
-                            trigger: [],
-                            placement: "bottomLeft",
-                            autoAdjustOverflow: { adjustX: 1, adjustY: 1 },
-                            destroyOnHidden: true,
-                            getPopupContainer: resolveRuntimePopupContainer,
-                            styles: { root: { zIndex: POPUP_LAYER_Z_INDEX + 40 } },
-                            popupRender: () => /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                              "div",
-                              {
-                                "data-we-selection-lock-root": "true",
-                                "data-we-prompt-card-skill-menu": "true",
-                                style: {
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "stretch",
-                                  gap: 8,
-                                  padding: 10,
-                                  width: "min(420px, calc(100vw - 24px))",
-                                  maxWidth: "calc(100vw - 24px)",
-                                  maxHeight: "min(420px, calc(100vh - 120px))",
-                                  overflowX: "hidden",
-                                  overflowY: "auto",
-                                  borderRadius: 10,
-                                  background: EDITOR_CHROME.surfaceElevated,
-                                  border: `1px solid ${EDITOR_CHROME.borderStrong}`,
-                                  boxShadow: EDITOR_CHROME.shadowCompact
-                                },
-                                onPointerDownCapture: () => onSelectionInteractionLockChange(true),
-                                onPointerEnter: () => {
-                                  onHoverSelectionSuppressedChange(true);
-                                },
-                                onPointerLeave: () => {
-                                  onHoverSelectionSuppressedChange(false);
-                                },
-                                children: [
-                                  /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                                    "div",
-                                    {
-                                      "data-we-prompt-card-skill-menu-header": "true",
-                                      style: {
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 2
-                                      },
-                                      children: [
-                                        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                          "span",
-                                          {
-                                            style: {
-                                              color: EDITOR_CHROME.textPrimary,
-                                              fontSize: 12,
-                                              fontWeight: 600,
-                                              lineHeight: 1.35
-                                            },
-                                            children: "\u9009\u62E9\u5904\u7406\u65B9\u5F0F"
-                                          }
-                                        ),
-                                        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                          "span",
-                                          {
-                                            style: {
-                                              color: EDITOR_CHROME.textMuted,
-                                              fontSize: 11,
-                                              lineHeight: 1.35
-                                            },
-                                            children: "\u70B9\u51FB\u6807\u7B7E\u5E94\u7528\uFF0C\u60AC\u505C\u67E5\u770B\u8BE6\u7EC6\u8BF4\u660E"
-                                          }
-                                        )
-                                      ]
-                                    }
-                                  ),
-                                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                    "div",
-                                    {
-                                      "data-we-prompt-card-skill-options": "true",
-                                      style: {
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        alignItems: "center",
-                                        gap: 6
-                                      },
-                                      children: filteredSkills.map((skill) => {
-                                        const selected = selectedSkills.some(
-                                          (selectedSkill) => selectedSkill.id === skill.id
-                                        );
-                                        return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                          import_antd5.Tooltip,
-                                          {
-                                            title: skill.description,
-                                            placement: "topLeft",
-                                            mouseEnterDelay: 0.15,
-                                            getPopupContainer: resolveRuntimePopupContainer,
-                                            children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                              "button",
-                                              {
-                                                type: "button",
-                                                "data-we-prompt-card-skill-tooltip": "true",
-                                                disabled: selected,
-                                                style: {
-                                                  display: "inline-flex",
-                                                  alignItems: "center",
-                                                  justifyContent: "center",
-                                                  minHeight: 30,
-                                                  border: `1px solid ${selected ? EDITOR_CHROME.borderStrong : EDITOR_CHROME.border}`,
-                                                  borderRadius: 999,
-                                                  background: selected ? EDITOR_CHROME.surfaceInteractive : "transparent",
-                                                  color: selected ? EDITOR_CHROME.textMuted : EDITOR_CHROME.textPrimary,
-                                                  padding: "6px 10px",
-                                                  fontSize: 12,
-                                                  lineHeight: 1.2,
-                                                  whiteSpace: "nowrap",
-                                                  cursor: selected ? "default" : "pointer"
-                                                },
-                                                onMouseDown: (event) => {
-                                                  event.preventDefault();
-                                                },
-                                                onClick: () => {
-                                                  if (!selected) {
-                                                    handleSkillSelect(skill);
-                                                  }
-                                                },
-                                                children: skill.label
-                                              }
-                                            )
-                                          },
-                                          skill.id
-                                        );
-                                      })
-                                    }
-                                  )
-                                ]
+                            title: documentSourceMarkdownEditor ? annotationEditorOpen ? "\u5173\u95ED Markdown \u6E90\u7801\u7F16\u8F91" : "Markdown \u6E90\u7801\u7F16\u8F91" : annotationEditorOpen ? "\u5173\u95ED\u6807\u6CE8\u7F16\u8F91" : "\u6807\u6CE8\u7F16\u8F91",
+                            icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.FileTextOutlined, {}),
+                            tone: annotationEditorOpen ? "accent" : "dark",
+                            disabled: annotationLoading,
+                            onClick: () => {
+                              const nextAnnotationEditorOpen = !annotationEditorOpen;
+                              setAnnotationEditorOpen(nextAnnotationEditorOpen);
+                              if (nextAnnotationEditorOpen && bubbleStyleEditorOpen) {
+                                onBubbleStyleEditorOpenChange(false);
                               }
-                            ),
-                            children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+                            }
+                          }
+                        ) : null,
+                        showAnnotationDocumentEditButton ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          IconActionButton,
+                          {
+                            title: "\u6587\u6863\u7F16\u8F91",
+                            icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.FileTextOutlined, {}),
+                            tone: "dark",
+                            onClick: () => {
+                              window.open(annotationDocumentEditUrl, "_blank", "noopener,noreferrer");
+                            }
+                          }
+                        ) : null,
+                        elementTools.map((tool) => {
+                          const running = runningElementToolId === tool.id;
+                          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { "data-we-element-tool": tool.id, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                            IconActionButton,
+                            {
+                              title: running ? `${tool.label}\uFF08\u6B63\u5728\u6253\u5F00\uFF09` : tool.label,
+                              icon: tool.icon === "document" ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.FileTextOutlined, {}) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.ExportOutlined, {}),
+                              tone: "dark",
+                              loading: running,
+                              disabled: Boolean(tool.disabled || runningElementToolId),
+                              onClick: () => {
+                                void handleElementToolAction(tool);
+                              }
+                            }
+                          ) }, tool.id);
+                        }),
+                        !isAnnotationSession && !externalAnnotationMode && externalCommentGroups.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { "data-we-external-comments-tool-toggle": "true", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          IconActionButton,
+                          {
+                            title: externalCommentsToolOpen ? "\u5173\u95ED\u5916\u90E8\u6279\u6CE8" : "\u6253\u5F00\u5916\u90E8\u6279\u6CE8",
+                            icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.MessageOutlined, {}),
+                            tone: "dark",
+                            onClick: () => setExternalCommentsToolOpen((open) => !open)
+                          }
+                        ) }) : null,
+                        propertyPanelEnabled && styleDesignEnabled && !hasElementTools && !isAnnotationSession && !textCommentMode && !isCurrentAnnotationPanelTarget ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          IconActionButton,
+                          {
+                            title: styleEditorToggleTitle,
+                            icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.FormatPainterOutlined, {}),
+                            tone: bubbleStyleEditorOpen ? "accent" : "dark",
+                            onClick: () => {
+                              const nextBubbleStyleEditorOpen = !bubbleStyleEditorOpen;
+                              onBubbleStyleEditorOpenChange(nextBubbleStyleEditorOpen);
+                              if (nextBubbleStyleEditorOpen) {
+                                setGenerateNewPrototype(false);
+                                setAnnotationEditorOpen(false);
+                              }
+                            }
+                          }
+                        ) : null,
+                        onDocumentComponent && currentTarget && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          "button",
+                          {
+                            type: "button",
+                            "data-we-document-component": "true",
+                            title: selectedElementCount !== 1 ? "\u8BF7\u9009\u62E9\u4E00\u4E2A\u7EC4\u4EF6\u6216\u5BB9\u5668" : "\u622A\u56FE\u5E76\u5C06\u8BF4\u660E\u5F15\u5165 PRD \u6587\u6863",
+                            disabled: selectedElementCount !== 1 || savingComment,
+                            style: { border: `1px solid ${EDITOR_CHROME.borderStrong}`, borderRadius: 6, background: "transparent", color: EDITOR_CHROME.textSecondary, padding: "4px 8px", fontFamily: "inherit", fontSize: 12, whiteSpace: "nowrap", cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" },
+                            onClick: () => {
+                              void executePromptCardDocumentAction({
+                                currentTarget,
+                                note: draftNote,
+                                onConfirmNote: onConfirmNoteWithSelectedSkills,
+                                onDocumentComponent
+                              }).catch(() => {
+                              });
+                            },
+                            children: "\u5F15\u5165\u8BF4\u660E"
+                          }
+                        ) : null,
+                        axureSelectionExportAction.visible && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          IconActionButton,
+                          {
+                            title: axureSelectionExportAction.title,
+                            icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.ExportOutlined, {}),
+                            tone: "dark",
+                            disabled: axureSelectionExportAction.disabled,
+                            onClick: () => {
+                              triggerDesignToolExportAction({ tool: "axure", currentTarget: promptTarget, onExportSelectionToDesignTool });
+                            }
+                          }
+                        ) : null,
+                        designAdjustmentTool !== "axure" && designToolExportAction.visible && !isAnnotationSession && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          IconActionButton,
+                          {
+                            title: designToolExportAction.title,
+                            icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.ExportOutlined, {}),
+                            tone: "dark",
+                            disabled: designToolExportAction.disabled,
+                            onClick: () => {
+                              triggerDesignToolExportAction({
+                                tool: designAdjustmentTool,
+                                currentTarget: promptTarget,
+                                onExportSelectionToDesignTool
+                              });
+                            }
+                          }
+                        ) : null
+                      ]
+                    }
+                  ),
+                  !componentComposer ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { flex: 1 } }) : null,
+                  showPromptCardExecutionActions && !componentComposer ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                    "div",
+                    {
+                      "data-we-prompt-card-execution-actions": "true",
+                      style: { display: "flex", alignItems: "center", gap: 2 },
+                      children: [
+                        appendContextAction,
+                        !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype) ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          IconActionButton,
+                          {
+                            title: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
+                            label: generateNewPrototype ? "\u751F\u6210\u7EC4\u4EF6\u72B6\u6001" : onDocumentComponent ? "AI \u751F\u6210\u539F\u578B" : void 0,
+                            icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.CaretRightFilled, {}),
+                            tone: "accent",
+                            loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
+                            disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
+                            onClick: () => {
+                              void handleConfirmSendCurrentElementPrompt();
+                            }
+                          }
+                        ) : null,
+                        clearEditsAction
+                      ]
+                    }
+                  ) : null,
+                  /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                    "div",
+                    {
+                      style: {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        paddingLeft: 8,
+                        marginLeft: 2,
+                        borderLeft: `1px solid ${EDITOR_CHROME.border}`,
+                        flexShrink: 0
+                      },
+                      children: [
+                        !isMobileDevice() && onPinnedToTopRightChange ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          IconActionButton,
+                          {
+                            title: pinnedToTopRight ? "\u53D6\u6D88\u56FA\u5B9A\uFF0C\u8DDF\u968F\u5143\u7D20" : "\u56FA\u5B9A\u5230\u53F3\u4E0A\u89D2",
+                            icon: pinnedToTopRight ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.PushpinFilled, {}) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.PushpinOutlined, {}),
+                            pressed: pinnedToTopRight,
+                            tone: pinnedToTopRight ? "accent" : "dark",
+                            onClick: () => onPinnedToTopRightChange(!pinnedToTopRight)
+                          }
+                        ) : null,
+                        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          IconActionButton,
+                          {
+                            title: promptCardCloseActionTitle,
+                            icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(CloseToolIcon, {}),
+                            tone: "dark",
+                            onClick: handlePromptCardClose
+                          }
+                        )
+                      ]
+                    }
+                  )
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+              "div",
+              {
+                "data-we-prompt-card-content-scroll": "true",
+                style: {
+                  display: "flex",
+                  flex: "1 1 auto",
+                  flexDirection: "column",
+                  minHeight: 0,
+                  overflowX: "hidden",
+                  overflowY: "auto",
+                  ...componentComposer ? { padding: "12px 12px 10px" } : {}
+                },
+                children: [
+                  !isAnnotationSession && !externalAnnotationMode && externalCommentsToolOpen && externalCommentGroups.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                    "section",
+                    {
+                      "data-we-external-comments-tool": "true",
+                      "aria-label": "\u5916\u90E8\u6279\u6CE8",
+                      style: externalCommentsToolStyle,
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          "div",
+                          {
+                            style: {
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 5,
+                              paddingBottom: 6,
+                              color: EDITOR_CHROME.textSecondary,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              lineHeight: "16px"
+                            },
+                            children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
                               "div",
                               {
+                                "data-we-component-composer": componentComposer ? "true" : void 0,
                                 style: {
-                                  position: "relative",
                                   display: "flex",
-                                  flexDirection: "column",
-                                  gap: selectedSkills.length > 0 ? 6 : 0,
-                                  minHeight: selectedSkills.length > 0 ? 64 : 44,
-                                  justifyContent: "center",
-                                  borderRadius: 12,
-                                  background: EDITOR_CHROME.surfaceMuted,
-                                  border: `1px solid ${EDITOR_CHROME.borderStrong}`
+                                  alignItems: "center",
+                                  gap: 5
                                 },
                                 children: [
-                                  selectedSkills.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                    "div",
-                                    {
-                                      style: {
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        gap: 6,
-                                        padding: "8px 8px 0"
-                                      },
-                                      children: selectedSkills.map((skill) => /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                                        "button",
-                                        {
-                                          type: "button",
-                                          "data-we-prompt-card-skill-tag": "true",
-                                          title: `\u79FB\u9664\u6280\u80FD\uFF1A${skill.label}`,
-                                          style: {
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: 5,
-                                            maxWidth: "100%",
-                                            border: `1px solid ${EDITOR_CHROME.border}`,
-                                            borderRadius: 999,
-                                            background: EDITOR_CHROME.surfaceInteractive,
-                                            color: EDITOR_CHROME.textSecondary,
-                                            padding: "3px 7px",
-                                            fontSize: 11,
-                                            lineHeight: 1.2,
-                                            cursor: "pointer"
-                                          },
-                                          onClick: () => handleSkillRemove(skill.id),
-                                          children: [
-                                            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                              "span",
-                                              {
-                                                style: {
-                                                  minWidth: 0,
-                                                  overflow: "hidden",
-                                                  textOverflow: "ellipsis",
-                                                  whiteSpace: "nowrap"
-                                                },
-                                                children: skill.label
-                                              }
-                                            ),
-                                            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.CloseOutlined, { style: { fontSize: 9, color: EDITOR_CHROME.textMuted } })
-                                          ]
-                                        },
-                                        skill.id
-                                      ))
-                                    }
-                                  ) : null,
-                                  !componentComposer && onGenerateComponentStates && !isAnnotationSession && !externalAnnotationMode && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { "data-we-component-states-option": "true", style: { padding: "7px 10px 2px", fontSize: 12, color: EDITOR_CHROME.textSecondary }, children: [
-                                    /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: 6, cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" }, children: [
-                                      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("input", { type: "checkbox", "aria-label": "\u751F\u6210\u5230\u65B0\u539F\u578B", checked: generateNewPrototype, disabled: selectedElementCount !== 1 || sendingCurrentElementPrompt, style: { accentColor: EDITOR_CHROME.accent }, onChange: (event) => setGenerateNewPrototype(event.target.checked) }),
-                                      "\u751F\u6210\u5230\u65B0\u539F\u578B"
-                                    ] }),
-                                    generateNewPrototype ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { paddingTop: 5, fontSize: 11, lineHeight: 1.6 }, children: "\u586B\u5199\u72B6\u6001\u8981\u6C42\uFF0C\u751F\u6210\u540E\u53EF\u9010\u4E2A\u67E5\u770B\u3001\u6BD4\u8F83\u548C\u6279\u6CE8\u3002" }) : null
-                                  ] }) : null,
-                                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                    import_antd5.Input.TextArea,
-                                    {
-                                      className: "we-runtime-prompt-card__textarea",
-                                      value: draftNote,
-                                      disabled: !canEditNote || savingComment,
-                                      readOnly: inlineTextEditing,
-                                      tabIndex: inlineTextEditing ? -1 : 0,
-                                      allowClear: true,
-                                      autoSize: { minRows: componentComposer ? 3 : 1, maxRows: componentComposer ? 6 : 4 },
-                                      placeholder: generateNewPrototype ? "\u4F8B\u5982\uFF1A\u672A\u767B\u5F55\u3001\u5DF2\u767B\u5F55\u3001\u8BED\u8A00\u83DC\u5355\u5C55\u5F00\uFF1B\u8BF4\u660E\u5404\u72B6\u6001\u7684\u53D8\u5316" : notePlaceholder,
-                                      variant: "borderless",
-                                      styles: {
-                                        textarea: {
-                                          color: EDITOR_CHROME.textPrimary,
-                                          background: "transparent",
-                                          minHeight: componentComposer ? 76 : 32,
-                                          padding: componentComposer ? "10px 12px" : "6px 10px",
-                                          fontSize: componentComposer ? 13 : 12.5,
-                                          lineHeight: 1.55,
-                                          caretColor: EDITOR_CHROME.textPrimary
-                                        }
-                                      },
-                                      style: {
-                                        borderRadius: 12,
-                                        background: "transparent",
-                                        borderColor: "transparent",
-                                        boxShadow: "none"
-                                      },
-                                      onChange: (event) => {
-                                        onDraftChange(event.target.value);
-                                      },
-                                      onFocus: (event) => {
-                                        if (!inlineTextEditing) return;
-                                        event.currentTarget.blur();
-                                      },
-                                      onPasteCapture: onNotePasteCapture,
-                                      onKeyDown: handlePromptKeyDown,
-                                      onBlur: (event) => {
-                                        if (generateNewPrototype) return;
-                                        const nextTarget = event.relatedTarget;
-                                        if (componentComposer && nextTarget instanceof Node && rootRef.current?.contains(nextTarget)) return;
-                                        if (nextTarget instanceof Node && noteComposerRef.current?.contains(nextTarget)) {
-                                          return;
-                                        }
-                                        if (!noteDirty && !selectedSkillsDirty) return;
-                                        void onConfirmNoteWithSelectedSkills();
-                                      }
-                                    }
-                                  )
+                                  /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.MessageOutlined, {}),
+                                  /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { children: "\u5916\u90E8\u6279\u6CE8" }),
+                                  /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: externalComments.length })
                                 ]
                               }
                             )
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                          PromptImageStrip,
+                        externalCommentEntries.map(({ group, comment }, entryIndex) => /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                          "div",
                           {
-                            images,
-                            readOnly: Boolean(savedNoteMeta?.readOnly),
-                            onRemoveImage: (imageId) => {
-                              void onRemoveImage(imageId);
-                            }
-                          }
-                        )
-                      ] }) : null,
-                      showAnnotationMarkdownEditor ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { "data-we-prompt-primary-focus-exempt": "true", style: annotationEditorShellStyle, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                            "span",
-                            {
-                              style: {
-                                minWidth: 0,
-                                flex: 1,
-                                fontSize: 11,
-                                fontWeight: 600,
-                                lineHeight: 1.4,
-                                color: EDITOR_CHROME.textSecondary
-                              },
-                              children: documentSourceMarkdownEditor ? "Markdown \u6E90\u7801" : "\u9700\u6C42\u6807\u6CE8"
-                            }
-                          ),
-                          annotationDeleteAction
-                        ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { "data-we-annotation-markdown-editor": "true", style: annotationEditorInputStyle, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                          import_antd5.Input.TextArea,
-                          {
-                            className: "we-runtime-prompt-card__textarea",
-                            value: annotationDraftMarkdown,
-                            disabled: annotationLoading || annotationManualEditDisabled,
-                            autoSize: { minRows: 4, maxRows: 10 },
-                            placeholder: documentSourceMarkdownEditor ? DOCUMENT_SOURCE_MARKDOWN_PLACEHOLDER : annotationManualEditDisabled ? annotationManualEditMessage : ANNOTATION_MARKDOWN_PLACEHOLDER,
-                            variant: "borderless",
-                            styles: {
-                              textarea: {
-                                color: EDITOR_CHROME.textPrimary,
-                                background: "transparent",
-                                minHeight: 96,
-                                padding: "10px 12px",
-                                fontSize: 12,
-                                lineHeight: 1.55,
-                                caretColor: EDITOR_CHROME.textPrimary
-                              }
-                            },
+                            "data-we-external-comments-entry": comment.id,
+                            "data-we-external-comments-author": group.authorId,
+                            onMouseEnter: () => setHoveredExternalCommentId(comment.id),
+                            onMouseLeave: () => setHoveredExternalCommentId(null),
                             style: {
-                              background: "transparent",
-                              borderColor: "transparent",
-                              boxShadow: "none"
+                              display: "flex",
+                              position: "relative",
+                              alignItems: "flex-start",
+                              padding: "8px 0",
+                              borderTop: `1px solid ${EDITOR_CHROME.border}`,
+                              ...entryIndex === externalCommentEntries.length - 1 ? { paddingBottom: 7 } : {}
+                            },
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                                /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                                  "div",
+                                  {
+                                    "data-we-external-comments-author-label": "true",
+                                    "data-we-external-comments-author-kind": isExternalAuthorNetworkIdentifier(group.authorName) ? "network" : "display",
+                                    style: {
+                                      marginBottom: 2,
+                                      paddingRight: onDeleteExternalComment ? 20 : 0,
+                                      color: EDITOR_CHROME.textMuted,
+                                      fontSize: 10,
+                                      fontWeight: 600,
+                                      lineHeight: "14px",
+                                      letterSpacing: 0,
+                                      ...isExternalAuthorNetworkIdentifier(group.authorName) ? { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" } : {},
+                                      overflowWrap: "anywhere"
+                                    },
+                                    children: [
+                                      "\u8BC4\u5BA1\u8005 \xB7 ",
+                                      group.authorName
+                                    ]
+                                  }
+                                ),
+                                /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                  "div",
+                                  {
+                                    style: {
+                                      color: EDITOR_CHROME.textPrimary,
+                                      fontSize: 11,
+                                      lineHeight: 1.55,
+                                      overflowWrap: "anywhere",
+                                      whiteSpace: "pre-wrap"
+                                    },
+                                    children: comment.content
+                                  }
+                                )
+                              ] }),
+                              onDeleteExternalComment ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                IconActionButton,
+                                {
+                                  title: "\u5220\u9664\u8FD9\u6761\u5916\u90E8\u6279\u6CE8",
+                                  icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.DeleteOutlined, {}),
+                                  tone: "dark",
+                                  onClick: () => {
+                                    void onDeleteExternalComment(comment.id);
+                                  },
+                                  style: {
+                                    width: 16,
+                                    minWidth: 16,
+                                    height: 16,
+                                    fontSize: 12,
+                                    position: "absolute",
+                                    top: 7,
+                                    right: 0,
+                                    background: "transparent",
+                                    opacity: hoveredExternalCommentId === comment.id ? 1 : 0,
+                                    pointerEvents: hoveredExternalCommentId === comment.id ? "auto" : "none",
+                                    transition: "opacity 160ms ease"
+                                  }
+                                }
+                              ) : null
+                            ]
+                          },
+                          comment.id
+                        ))
+                      ]
+                    }
+                  ) : null,
+                  elementToolError ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                    "div",
+                    {
+                      role: "alert",
+                      style: {
+                        padding: "6px 10px",
+                        borderRadius: 8,
+                        background: "rgba(255, 77, 79, 0.12)",
+                        color: EDITOR_CHROME.textDanger,
+                        fontSize: 11,
+                        lineHeight: 1.45,
+                        overflowWrap: "anywhere"
+                      },
+                      children: elementToolError.slice(0, 240)
+                    }
+                  ) : null,
+                  savedNoteMeta?.commenterName ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                    "div",
+                    {
+                      "data-we-prompt-card-commenter": "true",
+                      style: {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginBottom: 6,
+                        padding: "5px 8px",
+                        borderLeft: `3px solid ${savedNoteMeta.commenterColor || EDITOR_CHROME.accent}`,
+                        borderRadius: 4,
+                        background: EDITOR_CHROME.surfaceMuted,
+                        color: EDITOR_CHROME.textSecondary,
+                        fontSize: 11,
+                        lineHeight: 1.35
+                      },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { style: { color: EDITOR_CHROME.textMuted }, children: "\u6279\u6CE8\u8005" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { style: { color: savedNoteMeta.commenterColor || EDITOR_CHROME.textPrimary, fontWeight: 600 }, children: savedNoteMeta.commenterName })
+                      ]
+                    }
+                  ) : null,
+                  /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                    "div",
+                    {
+                      ref: noteComposerRef,
+                      onFocusCapture: (event) => {
+                        if (inlineTextEditing) return;
+                        if (!shouldRestorePromptPrimaryFocusFromTarget(event.target)) return;
+                        window.requestAnimationFrame(() => {
+                          ensurePromptPrimaryFocus(3);
+                        });
+                      },
+                      onPointerDownCapture: (event) => {
+                        if (inlineTextEditing) return;
+                        if (!shouldRestorePromptPrimaryFocusFromTarget(event.target)) return;
+                        window.requestAnimationFrame(() => {
+                          ensurePromptPrimaryFocus(3);
+                        });
+                      },
+                      style: {
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        pointerEvents: inlineTextEditing ? "none" : "auto"
+                      },
+                      children: [
+                        showPromptTextInput ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { ref: textComposerRef, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          import_antd5.Input,
+                          {
+                            value: draftText,
+                            placeholder: TEXT_INPUT_PLACEHOLDER,
+                            size: "small",
+                            style: {
+                              borderRadius: 12,
+                              minHeight: 32,
+                              background: EDITOR_CHROME.surfaceMuted,
+                              borderColor: EDITOR_CHROME.borderStrong,
+                              boxShadow: "none",
+                              color: EDITOR_CHROME.textPrimary
                             },
                             onChange: (event) => {
-                              onAnnotationDraftChange(event.target.value);
+                              onTextDraftChange(event.target.value);
                             },
-                            onKeyDown: (event) => {
-                              if (event.nativeEvent.isComposing) return;
-                              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                            onPressEnter: (event) => {
+                              if (isMobileDevice()) {
                                 event.preventDefault();
                                 event.stopPropagation();
-                                void saveAndCloseAnnotationMarkdownComposer();
                                 return;
                               }
-                              if (event.key === "Escape") {
-                                event.stopPropagation();
-                              }
+                              event.preventDefault();
+                              event.stopPropagation();
+                              void onConfirmText();
+                            },
+                            onKeyDown: (event) => {
+                              if (event.key !== "Escape") return;
+                              event.preventDefault();
+                              event.stopPropagation();
+                              if (dismissTerminalTaskAndSelection()) return;
+                              onCancelText();
+                            },
+                            onBlur: () => {
+                              if (!textDirty) return;
+                              void onConfirmText();
                             }
                           }
-                        ) })
-                      ] }) : null,
-                      showPromptDesignEditor && transactionManager ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        PromptCardDesignEditor,
-                        {
-                          target: currentTarget,
-                          transactionManager,
-                          tokensService,
-                          refreshKey,
-                          disabled: currentTaskRunning,
-                          onRefreshRequest: () => {
-                            setRefreshKey((value) => value + 1);
-                          },
-                          onDeleteElement: options.onDeleteCurrentElement
-                        }
-                      ) : null,
-                      !isAnnotationSession && !bubbleStyleEditorOpen && styleSummaryLines.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                        "div",
-                        {
-                          style: {
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 4,
-                            padding: "8px 10px",
-                            borderRadius: 12,
-                            background: "rgba(255, 255, 255, 0.04)",
-                            border: `1px solid ${EDITOR_CHROME.border}`
-                          },
-                          children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        ) }) : null,
+                        showNoteComposer ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                            import_antd5.Dropdown,
+                            {
+                              open: skillMenuOpen,
+                              trigger: [],
+                              placement: "bottomLeft",
+                              autoAdjustOverflow: { adjustX: 1, adjustY: 1 },
+                              destroyOnHidden: true,
+                              getPopupContainer: resolveRuntimePopupContainer,
+                              styles: { root: { zIndex: POPUP_LAYER_Z_INDEX + 40 } },
+                              popupRender: () => /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                                "div",
+                                {
+                                  "data-we-selection-lock-root": "true",
+                                  "data-we-prompt-card-skill-menu": "true",
+                                  style: {
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "stretch",
+                                    gap: 8,
+                                    padding: 10,
+                                    width: "min(420px, calc(100vw - 24px))",
+                                    maxWidth: "calc(100vw - 24px)",
+                                    maxHeight: "min(420px, calc(100vh - 120px))",
+                                    overflowX: "hidden",
+                                    overflowY: "auto",
+                                    borderRadius: 10,
+                                    background: EDITOR_CHROME.surfaceElevated,
+                                    border: `1px solid ${EDITOR_CHROME.borderStrong}`,
+                                    boxShadow: EDITOR_CHROME.shadowCompact
+                                  },
+                                  onPointerDownCapture: () => onSelectionInteractionLockChange(true),
+                                  onPointerEnter: () => {
+                                    onHoverSelectionSuppressedChange(true);
+                                  },
+                                  onPointerLeave: () => {
+                                    onHoverSelectionSuppressedChange(false);
+                                  },
+                                  children: [
+                                    /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                                      "div",
+                                      {
+                                        "data-we-prompt-card-skill-menu-header": "true",
+                                        style: {
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: 2
+                                        },
+                                        children: [
+                                          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                            "span",
+                                            {
+                                              style: {
+                                                color: EDITOR_CHROME.textPrimary,
+                                                fontSize: 12,
+                                                fontWeight: 600,
+                                                lineHeight: 1.35
+                                              },
+                                              children: "\u9009\u62E9\u5904\u7406\u65B9\u5F0F"
+                                            }
+                                          ),
+                                          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                            "span",
+                                            {
+                                              style: {
+                                                color: EDITOR_CHROME.textMuted,
+                                                fontSize: 11,
+                                                lineHeight: 1.35
+                                              },
+                                              children: "\u70B9\u51FB\u6807\u7B7E\u5E94\u7528\uFF0C\u60AC\u505C\u67E5\u770B\u8BE6\u7EC6\u8BF4\u660E"
+                                            }
+                                          )
+                                        ]
+                                      }
+                                    ),
+                                    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                      "div",
+                                      {
+                                        "data-we-prompt-card-skill-options": "true",
+                                        style: {
+                                          display: "flex",
+                                          flexWrap: "wrap",
+                                          alignItems: "center",
+                                          gap: 6
+                                        },
+                                        children: filteredSkills.map((skill) => {
+                                          const selected = selectedSkills.some(
+                                            (selectedSkill) => selectedSkill.id === skill.id
+                                          );
+                                          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                            import_antd5.Tooltip,
+                                            {
+                                              title: skill.description,
+                                              placement: "topLeft",
+                                              mouseEnterDelay: 0.15,
+                                              getPopupContainer: resolveRuntimePopupContainer,
+                                              children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                                "button",
+                                                {
+                                                  type: "button",
+                                                  "data-we-prompt-card-skill-tooltip": "true",
+                                                  disabled: selected,
+                                                  style: {
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    minHeight: 30,
+                                                    border: `1px solid ${selected ? EDITOR_CHROME.borderStrong : EDITOR_CHROME.border}`,
+                                                    borderRadius: 999,
+                                                    background: selected ? EDITOR_CHROME.surfaceInteractive : "transparent",
+                                                    color: selected ? EDITOR_CHROME.textMuted : EDITOR_CHROME.textPrimary,
+                                                    padding: "6px 10px",
+                                                    fontSize: 12,
+                                                    lineHeight: 1.2,
+                                                    whiteSpace: "nowrap",
+                                                    cursor: selected ? "default" : "pointer"
+                                                  },
+                                                  onMouseDown: (event) => {
+                                                    event.preventDefault();
+                                                  },
+                                                  onClick: () => {
+                                                    if (!selected) {
+                                                      handleSkillSelect(skill);
+                                                    }
+                                                  },
+                                                  children: skill.label
+                                                }
+                                              )
+                                            },
+                                            skill.id
+                                          );
+                                        })
+                                      }
+                                    )
+                                  ]
+                                }
+                              ),
+                              children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                                "div",
+                                {
+                                  style: {
+                                    position: "relative",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: selectedSkills.length > 0 ? 6 : 0,
+                                    minHeight: selectedSkills.length > 0 ? 64 : 44,
+                                    justifyContent: "center",
+                                    borderRadius: 12,
+                                    background: EDITOR_CHROME.surfaceMuted,
+                                    border: `1px solid ${EDITOR_CHROME.borderStrong}`
+                                  },
+                                  children: [
+                                    selectedSkills.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                      "div",
+                                      {
+                                        style: {
+                                          display: "flex",
+                                          flexWrap: "wrap",
+                                          gap: 6,
+                                          padding: "8px 8px 0"
+                                        },
+                                        children: selectedSkills.map((skill) => /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                                          "button",
+                                          {
+                                            type: "button",
+                                            "data-we-prompt-card-skill-tag": "true",
+                                            title: `\u79FB\u9664\u6280\u80FD\uFF1A${skill.label}`,
+                                            style: {
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 5,
+                                              maxWidth: "100%",
+                                              border: `1px solid ${EDITOR_CHROME.border}`,
+                                              borderRadius: 999,
+                                              background: EDITOR_CHROME.surfaceInteractive,
+                                              color: EDITOR_CHROME.textSecondary,
+                                              padding: "3px 7px",
+                                              fontSize: 11,
+                                              lineHeight: 1.2,
+                                              cursor: "pointer"
+                                            },
+                                            onClick: () => handleSkillRemove(skill.id),
+                                            children: [
+                                              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                                "span",
+                                                {
+                                                  style: {
+                                                    minWidth: 0,
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                    whiteSpace: "nowrap"
+                                                  },
+                                                  children: skill.label
+                                                }
+                                              ),
+                                              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.CloseOutlined, { style: { fontSize: 9, color: EDITOR_CHROME.textMuted } })
+                                            ]
+                                          },
+                                          skill.id
+                                        ))
+                                      }
+                                    ) : null,
+                                    !componentComposer && onGenerateComponentStates && !isAnnotationSession && !externalAnnotationMode && !textCommentMode ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { "data-we-component-states-option": "true", style: { padding: "7px 10px 2px", fontSize: 12, color: EDITOR_CHROME.textSecondary }, children: [
+                                      /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: 6, cursor: selectedElementCount === 1 ? "pointer" : "not-allowed" }, children: [
+                                        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("input", { type: "checkbox", "aria-label": "\u751F\u6210\u5230\u65B0\u539F\u578B", checked: generateNewPrototype, disabled: selectedElementCount !== 1 || sendingCurrentElementPrompt, style: { accentColor: EDITOR_CHROME.accent }, onChange: (event) => setGenerateNewPrototype(event.target.checked) }),
+                                        "\u751F\u6210\u5230\u65B0\u539F\u578B"
+                                      ] }),
+                                      generateNewPrototype ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { paddingTop: 5, fontSize: 11, lineHeight: 1.6 }, children: "\u586B\u5199\u72B6\u6001\u8981\u6C42\uFF0C\u751F\u6210\u540E\u53EF\u9010\u4E2A\u67E5\u770B\u3001\u6BD4\u8F83\u548C\u6279\u6CE8\u3002" }) : null
+                                    ] }) : null,
+                                    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                      import_antd5.Input.TextArea,
+                                      {
+                                        className: "we-runtime-prompt-card__textarea",
+                                        value: draftNote,
+                                        disabled: !canEditNote || savingComment,
+                                        readOnly: inlineTextEditing,
+                                        tabIndex: inlineTextEditing ? -1 : 0,
+                                        allowClear: true,
+                                        autoSize: { minRows: componentComposer ? 3 : 1, maxRows: componentComposer ? 6 : 4 },
+                                        placeholder: generateNewPrototype ? "\u4F8B\u5982\uFF1A\u672A\u767B\u5F55\u3001\u5DF2\u767B\u5F55\u3001\u8BED\u8A00\u83DC\u5355\u5C55\u5F00\uFF1B\u8BF4\u660E\u5404\u72B6\u6001\u7684\u53D8\u5316" : notePlaceholder,
+                                        variant: "borderless",
+                                        styles: {
+                                          textarea: {
+                                            color: EDITOR_CHROME.textPrimary,
+                                            background: "transparent",
+                                            minHeight: componentComposer ? 76 : 32,
+                                            padding: componentComposer ? "10px 12px" : "6px 10px",
+                                            fontSize: componentComposer ? 13 : 12.5,
+                                            lineHeight: 1.55,
+                                            caretColor: EDITOR_CHROME.textPrimary
+                                          }
+                                        },
+                                        style: {
+                                          borderRadius: 12,
+                                          background: "transparent",
+                                          borderColor: "transparent",
+                                          boxShadow: "none"
+                                        },
+                                        onChange: (event) => {
+                                          onDraftChange(event.target.value);
+                                        },
+                                        onFocus: (event) => {
+                                          if (!inlineTextEditing) return;
+                                          event.currentTarget.blur();
+                                        },
+                                        onPasteCapture: onNotePasteCapture,
+                                        onKeyDown: handlePromptKeyDown,
+                                        onBlur: (event) => {
+                                          if (generateNewPrototype) return;
+                                          const nextTarget = event.relatedTarget;
+                                          if (componentComposer && nextTarget instanceof Node && rootRef.current?.contains(nextTarget)) return;
+                                          if (nextTarget instanceof Node && noteComposerRef.current?.contains(nextTarget)) {
+                                            return;
+                                          }
+                                          if (!noteDirty && !selectedSkillsDirty) return;
+                                          void onConfirmNoteWithSelectedSkills();
+                                        }
+                                      }
+                                    )
+                                  ]
+                                }
+                              )
+                            }
+                          ),
+                          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                            PromptImageStrip,
+                            {
+                              images,
+                              readOnly: Boolean(savedNoteMeta?.readOnly),
+                              onRemoveImage: (imageId) => {
+                                void onRemoveImage(imageId);
+                              }
+                            }
+                          )
+                        ] }) : null,
+                        showAnnotationMarkdownEditor ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { "data-we-prompt-primary-focus-exempt": "true", style: annotationEditorShellStyle, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
                               "span",
                               {
                                 style: {
+                                  minWidth: 0,
+                                  flex: 1,
                                   fontSize: 11,
                                   fontWeight: 600,
                                   lineHeight: 1.4,
                                   color: EDITOR_CHROME.textSecondary
                                 },
-                                children: "\u6837\u5F0F\u7F16\u8F91"
+                                children: documentSourceMarkdownEditor ? "Markdown \u6E90\u7801" : "\u9700\u6C42\u6807\u6CE8"
                               }
                             ),
-                            styleSummaryLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                              "span",
-                              {
-                                style: {
-                                  fontSize: 11,
-                                  lineHeight: 1.45,
-                                  color: EDITOR_CHROME.textMuted,
-                                  wordBreak: "break-word"
-                                },
-                                children: line
+                            annotationDeleteAction
+                          ] }),
+                          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { "data-we-annotation-markdown-editor": "true", style: annotationEditorInputStyle, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                            import_antd5.Input.TextArea,
+                            {
+                              className: "we-runtime-prompt-card__textarea",
+                              value: annotationDraftMarkdown,
+                              disabled: annotationLoading || annotationManualEditDisabled,
+                              autoSize: { minRows: 4, maxRows: 10 },
+                              placeholder: documentSourceMarkdownEditor ? DOCUMENT_SOURCE_MARKDOWN_PLACEHOLDER : annotationManualEditDisabled ? annotationManualEditMessage : ANNOTATION_MARKDOWN_PLACEHOLDER,
+                              variant: "borderless",
+                              styles: {
+                                textarea: {
+                                  color: EDITOR_CHROME.textPrimary,
+                                  background: "transparent",
+                                  minHeight: 96,
+                                  padding: "10px 12px",
+                                  fontSize: 12,
+                                  lineHeight: 1.55,
+                                  caretColor: EDITOR_CHROME.textPrimary
+                                }
                               },
-                              line
-                            ))
-                          ]
-                        }
-                      ) : null,
-                      currentAgentTask ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                        "div",
-                        {
-                          style: {
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: 6,
-                            padding: "2px 4px 0",
-                            marginTop: -2
-                          },
-                          children: [
-                            currentAgentTask.status === "completed" ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.CheckCircleFilled, { style: { color: "#22c55e", fontSize: 13, marginTop: 3 } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.ExclamationCircleFilled, { style: { color: "#ef4444", fontSize: 13, marginTop: 3 } }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginTop: 2 }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(AgentSparkleIcon, {}) }),
-                            /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                              "div",
-                              {
-                                style: {
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  flex: 1,
-                                  minWidth: 0,
-                                  overflow: "hidden"
-                                },
-                                children: [
-                                  /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                                    "div",
-                                    {
-                                      style: {
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 4,
-                                        minWidth: 0
-                                      },
-                                      children: [
-                                        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                          "span",
-                                          {
-                                            style: {
-                                              fontSize: 12,
-                                              fontWeight: 500,
-                                              color: currentAgentTask.status === "error" ? "#ef4444" : EDITOR_CHROME.textPrimary
-                                            },
-                                            children: currentAgentTask.status === "pending" ? "AI \u51C6\u5907\u4E2D" : currentAgentTask.status === "created" ? "AI \u6B63\u5728\u4FEE\u6539" : currentAgentTask.status === "completed" ? "AI \u4FEE\u6539\u5B8C\u6210" : "AI \u4FEE\u6539\u5931\u8D25"
-                                          }
-                                        ),
-                                        currentAgentTask.status === "error" && currentTaskErrorMessage ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                                          IconActionButton,
-                                          {
-                                            title: "\u590D\u5236\u9519\u8BEF\u4FE1\u606F",
-                                            icon: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_icons6.CopyOutlined, {}),
-                                            tone: "danger",
-                                            style: {
-                                              width: 20,
-                                              minWidth: 20,
-                                              height: 20,
-                                              fontSize: 12,
-                                              marginLeft: 1
-                                            },
-                                            onClick: () => {
-                                              void copyPromptCardTextToClipboard(currentTaskErrorMessage).catch(
-                                                () => void 0
-                                              );
-                                            }
-                                          }
-                                        ) : null
-                                      ]
-                                    }
-                                  ),
-                                  currentTaskDescription ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                                    "span",
-                                    {
-                                      style: {
-                                        fontSize: 11,
-                                        lineHeight: 1.5,
-                                        color: EDITOR_CHROME.textMuted,
-                                        marginTop: 1,
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis"
-                                      },
-                                      children: [
-                                        currentTaskDescription,
-                                        currentAgentTask.sessionId ? ` \xB7 Session ${currentAgentTask.sessionId}` : ""
-                                      ]
-                                    }
-                                  ) : null
-                                ]
+                              style: {
+                                background: "transparent",
+                                borderColor: "transparent",
+                                boxShadow: "none"
+                              },
+                              onChange: (event) => {
+                                onAnnotationDraftChange(event.target.value);
+                              },
+                              onKeyDown: (event) => {
+                                if (event.nativeEvent.isComposing) return;
+                                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  void saveAndCloseAnnotationMarkdownComposer();
+                                  return;
+                                }
+                                if (event.key === "Escape") {
+                                  event.stopPropagation();
+                                }
                               }
-                            )
-                          ]
-                        }
-                      ) : null
-                    ]
-                  }
-                )
-              ]
-            }
-          ),
-          componentComposer && showPromptCardExecutionActions ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-            ComponentPromptFooter,
-            {
-              newPrototypeAvailable: Boolean(onGenerateComponentStates) && showNoteComposer,
-              newPrototype: generateNewPrototype,
-              onNewPrototypeChange: setGenerateNewPrototype,
-              selectedElementCount,
-              actionVisible: !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype),
-              disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
-              loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
-              actionTitle: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
-              onSend: () => {
-                void handleConfirmSendCurrentElementPrompt();
-              },
-              onSave: () => {
-                void handleSaveComment();
-              },
-              saveDisabled: !canEditNote || !draftNote.trim() || sendingCurrentElementPrompt,
-              saving: savingComment,
-              shortcut: /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? "") ? "\u2318 Enter" : "Ctrl Enter",
-              leadingActions: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
-                appendContextAction,
-                clearEditsAction
-              ] })
-            }
-          ) : null
+                            }
+                          ) })
+                        ] }) : null,
+                        showPromptDesignEditor && transactionManager ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                          PromptCardDesignEditor,
+                          {
+                            target: currentTarget,
+                            transactionManager,
+                            tokensService,
+                            refreshKey,
+                            disabled: currentTaskRunning,
+                            onRefreshRequest: () => {
+                              setRefreshKey((value) => value + 1);
+                            },
+                            onDeleteElement: options.onDeleteCurrentElement
+                          }
+                        ) : null,
+                        !isAnnotationSession && !bubbleStyleEditorOpen && styleSummaryLines.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                          "div",
+                          {
+                            style: {
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 4,
+                              padding: "8px 10px",
+                              borderRadius: 12,
+                              background: "rgba(255, 255, 255, 0.04)",
+                              border: `1px solid ${EDITOR_CHROME.border}`
+                            },
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                "span",
+                                {
+                                  style: {
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    lineHeight: 1.4,
+                                    color: EDITOR_CHROME.textSecondary
+                                  },
+                                  children: "\u6837\u5F0F\u7F16\u8F91"
+                                }
+                              ),
+                              styleSummaryLines.map((line) => /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                "span",
+                                {
+                                  style: {
+                                    fontSize: 11,
+                                    lineHeight: 1.45,
+                                    color: EDITOR_CHROME.textMuted,
+                                    wordBreak: "break-word"
+                                  },
+                                  children: line
+                                },
+                                line
+                              ))
+                            ]
+                          }
+                        ) : null,
+                        currentAgentTask ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                          "div",
+                          {
+                            style: {
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: 6,
+                              padding: "2px 4px 0",
+                              marginTop: -2
+                            },
+                            children: [
+                              currentAgentTask.status === "completed" ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.CheckCircleFilled, { style: { color: "#22c55e", fontSize: 13, marginTop: 3 } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.ExclamationCircleFilled, { style: { color: "#ef4444", fontSize: 13, marginTop: 3 } }) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginTop: 2 }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(AgentSparkleIcon, {}) }),
+                              /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                                "div",
+                                {
+                                  style: {
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    flex: 1,
+                                    minWidth: 0,
+                                    overflow: "hidden"
+                                  },
+                                  children: [
+                                    /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                                      "div",
+                                      {
+                                        style: {
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 4,
+                                          minWidth: 0
+                                        },
+                                        children: [
+                                          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                            "span",
+                                            {
+                                              style: {
+                                                fontSize: 12,
+                                                fontWeight: 500,
+                                                color: currentAgentTask.status === "error" ? "#ef4444" : EDITOR_CHROME.textPrimary
+                                              },
+                                              children: currentAgentTask.status === "pending" ? "AI \u51C6\u5907\u4E2D" : currentAgentTask.status === "created" ? "AI \u6B63\u5728\u4FEE\u6539" : currentAgentTask.status === "completed" ? "AI \u4FEE\u6539\u5B8C\u6210" : "AI \u4FEE\u6539\u5931\u8D25"
+                                            }
+                                          ),
+                                          currentAgentTask.status === "error" && currentTaskErrorMessage ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+                                            IconActionButton,
+                                            {
+                                              title: "\u590D\u5236\u9519\u8BEF\u4FE1\u606F",
+                                              icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons7.CopyOutlined, {}),
+                                              tone: "danger",
+                                              style: {
+                                                width: 20,
+                                                minWidth: 20,
+                                                height: 20,
+                                                fontSize: 12,
+                                                marginLeft: 1
+                                              },
+                                              onClick: () => {
+                                                void copyPromptCardTextToClipboard(currentTaskErrorMessage).catch(
+                                                  () => void 0
+                                                );
+                                              }
+                                            }
+                                          ) : null
+                                        ]
+                                      }
+                                    ),
+                                    currentTaskDescription ? /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+                                      "span",
+                                      {
+                                        style: {
+                                          fontSize: 11,
+                                          lineHeight: 1.5,
+                                          color: EDITOR_CHROME.textMuted,
+                                          marginTop: 1,
+                                          whiteSpace: "nowrap",
+                                          overflow: "hidden",
+                                          textOverflow: "ellipsis"
+                                        },
+                                        children: [
+                                          currentTaskDescription,
+                                          currentAgentTask.sessionId ? ` \xB7 Session ${currentAgentTask.sessionId}` : ""
+                                        ]
+                                      }
+                                    ) : null
+                                  ]
+                                }
+                              )
+                            ]
+                          }
+                        ) : null
+                      ]
+                    }
+                  )
+                ]
+              }
+            ),
+            componentComposer && showPromptCardExecutionActions ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+              ComponentPromptFooter,
+              {
+                newPrototypeAvailable: Boolean(onGenerateComponentStates) && showNoteComposer,
+                newPrototype: generateNewPrototype,
+                onNewPrototypeChange: setGenerateNewPrototype,
+                selectedElementCount,
+                actionVisible: !hideCurrentElementExecutionAction && (currentElementPromptAction.visible || generateNewPrototype),
+                disabled: generateNewPrototype ? sendingCurrentElementPrompt || selectedElementCount !== 1 || !draftNote.trim() : currentElementPromptAction.disabled,
+                loading: generateNewPrototype ? sendingCurrentElementPrompt : currentElementPromptAction.loading,
+                actionTitle: generateNewPrototype ? "\u751F\u6210\u6240\u9009\u7EC4\u4EF6\u7684\u72B6\u6001\u8BF4\u660E\u539F\u578B" : promptCardSendActionTitle,
+                onSend: () => {
+                  void handleConfirmSendCurrentElementPrompt();
+                },
+                onSave: () => {
+                  void handleSaveComment();
+                },
+                saveDisabled: !canEditNote || !draftNote.trim() || sendingCurrentElementPrompt,
+                saving: savingComment,
+                shortcut: /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? "") ? "\u2318 Enter" : "Ctrl Enter",
+                leadingActions: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
+                  appendContextAction,
+                  clearEditsAction
+                ] })
+              }
+            ) : null
+          ] })
         ]
       }
     );
-    const overlayNode = /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+    const overlayNode = /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
       MobileSelectionOverlay,
       {
         currentTarget,
@@ -18358,14 +19331,14 @@ var PromptCardView = import_react10.default.forwardRef(
     );
     if (portalContainer) {
       return (0, import_react_dom.createPortal)(
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
           overlayNode,
           promptCardNode
         ] }),
         portalContainer
       );
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
       overlayNode,
       promptCardNode
     ] });
@@ -18373,8 +19346,8 @@ var PromptCardView = import_react10.default.forwardRef(
 );
 
 // src/ui/runtime/property-panel-view.tsx
-var import_react14 = __toESM(require("react"), 1);
-var import_icons9 = require("@ant-design/icons");
+var import_react16 = __toESM(require("react"), 1);
+var import_icons10 = require("@ant-design/icons");
 
 // src/utils/page-animation-toggle.ts
 var STYLE_TAG_ID = "__commentary_no_animations__";
@@ -18479,6 +19452,7 @@ function setPageAnimationsDisabled(disabled) {
 var import_antd8 = require("antd");
 
 // src/utils/page-zoom-toggle.ts
+var PAGE_LAYOUT_CHANGE_EVENT = "commentary:page-layout-change";
 var state = {
   enabled: false,
   reservedRightWidth: 0,
@@ -18487,6 +19461,59 @@ var state = {
   editorHostMountSnapshot: null,
   resizeHandler: null
 };
+var reservations = /* @__PURE__ */ new Map();
+var manualScale = null;
+var panX = 0;
+var panY = 0;
+var appliedScale = 1;
+var appliedX = 0;
+var contentLeft = 0;
+var originX = 0;
+var originY = 0;
+var contentWidth = 0;
+var baseTransform = "";
+var nativeSuspension = null;
+function suspendPageZoomForNativePanel() {
+  if (!state.enabled) return;
+  nativeSuspension = {
+    body: document.body,
+    href: window.location?.href ?? "",
+    bodyStyles: new Map(state.bodySnapshots),
+    htmlStyles: new Map(state.htmlSnapshots)
+  };
+}
+function getPageZoomView() {
+  return { scale: appliedScale, mode: manualScale === null ? "fit" : "manual", panX, panY, reservedRightWidth: state.reservedRightWidth };
+}
+var fitOffset = (scale) => -Math.max(0, contentLeft * scale - 16);
+function setPageZoomView(scale, anchor) {
+  if (!state.enabled) return;
+  if (scale === "fit") {
+    manualScale = null;
+    panX = 0;
+    panY = 0;
+  } else {
+    const next = Number.isFinite(scale) ? Math.min(3, Math.max(0.1, scale)) : appliedScale;
+    if (anchor) {
+      const ratio = next / appliedScale;
+      const x = anchor.x + (window.scrollX || 0) - originX;
+      const y = anchor.y + (window.scrollY || 0) - originY;
+      panX = x - (x - appliedX) * ratio - fitOffset(next);
+      panY = y - (y - panY) * ratio;
+    } else {
+      panX = 0;
+      panY = 0;
+    }
+    manualScale = next;
+  }
+  applyPageZoom(scale === "fit");
+}
+function panPageZoom(x, y) {
+  if (!state.enabled || !Number.isFinite(x) || !Number.isFinite(y)) return;
+  panX += x;
+  panY += y;
+  applyPageZoom(false);
+}
 function readInlineStyle(style, property) {
   return {
     value: style.getPropertyValue(property),
@@ -18576,28 +19603,42 @@ function measureVisibleContentLeft(viewportWidth) {
   }
   return Number.isFinite(minLeft) ? Math.max(0, minLeft) : 0;
 }
-function applyPageZoom() {
+function applyPageZoom(remeasure = true) {
   if (typeof window === "undefined" || typeof document === "undefined") return;
   if (!document.body || !document.documentElement) return;
   hoistEditorHostOutsideBodyTransform();
   const body = document.body;
   const html = document.documentElement;
-  const reservedRightWidth = Math.max(0, Math.round(state.reservedRightWidth));
   const viewportWidth = Math.max(0, window.innerWidth || html.clientWidth || 0);
-  const contentWidth = Math.max(body.scrollWidth || 0, html.clientWidth || 0, viewportWidth);
+  if (remeasure) {
+    restoreInlineStyle(body.style, "transform", state.bodySnapshots.get("transform"));
+    restoreInlineStyle(body.style, "transform-origin", state.bodySnapshots.get("transform-origin"));
+    const originalStyle = typeof window.getComputedStyle === "function" ? window.getComputedStyle(body) : null;
+    const originalTransform = state.bodySnapshots.get("transform")?.value || originalStyle?.transform || "";
+    const [baseX = "0px", baseY = "0px"] = (originalStyle?.transformOrigin || "0px 0px").split(" ");
+    baseTransform = originalTransform && originalTransform !== "none" ? `translate(${baseX}, ${baseY}) ${originalTransform} translate(calc(-1 * ${baseX}), calc(-1 * ${baseY}))` : "";
+    body.style.setProperty("transform", "none", "important");
+    const origin = body.getBoundingClientRect?.();
+    originX = (origin?.left ?? 0) + (window.scrollX || 0);
+    originY = (origin?.top ?? 0) + (window.scrollY || 0);
+    restoreInlineStyle(body.style, "transform", state.bodySnapshots.get("transform"));
+    contentWidth = Math.max(body.scrollWidth || 0, html.clientWidth || 0, viewportWidth);
+    contentLeft = measureVisibleContentLeft(viewportWidth);
+  }
+  const reservedRightWidth = Math.max(0, Math.round(state.reservedRightWidth));
   const availableWidth = Math.max(0, viewportWidth - reservedRightWidth);
-  const scale = contentWidth > 0 ? Math.min(1, availableWidth / contentWidth) : 1;
-  const normalizedScale = Number.isFinite(scale) ? Math.max(0, scale) : 1;
-  const contentLeft = measureVisibleContentLeft(viewportWidth);
-  const desiredLeft = 16;
-  const translateX = Math.max(0, contentLeft * normalizedScale - desiredLeft);
+  const scale = manualScale ?? (contentWidth > 0 ? Math.min(1, availableWidth / contentWidth) : 1);
+  const normalizedScale = Number.isFinite(scale) ? Math.max(0.01, scale) : 1;
+  appliedScale = normalizedScale;
+  appliedX = fitOffset(normalizedScale) + panX;
   body.style.setProperty("transform-origin", "top left", "important");
   body.style.setProperty(
     "transform",
-    `translateX(-${translateX}px) scale(${normalizedScale})`,
+    `translate(${appliedX}px, ${panY}px) scale(${normalizedScale}) ${baseTransform}`.trim(),
     "important"
   );
   html.style.setProperty("overflow-x", "hidden", "important");
+  window.dispatchEvent(new Event(PAGE_LAYOUT_CHANGE_EVENT));
 }
 function attachResizeHandler() {
   if (typeof window === "undefined" || state.resizeHandler) return;
@@ -18615,7 +19656,19 @@ function detachResizeHandler() {
 function setPageZoomEnabled(enabled, options = {}) {
   if (typeof document === "undefined" || typeof window === "undefined") return;
   if (!document.body || !document.documentElement) return;
-  if (!enabled) {
+  if (enabled && !state.enabled && nativeSuspension) {
+    const snapshot = nativeSuspension;
+    nativeSuspension = null;
+    if (snapshot.body === document.body && snapshot.href === (window.location?.href ?? "")) {
+      for (const [key, value] of snapshot.bodyStyles) restoreInlineStyle(document.body.style, key, value);
+      for (const [key, value] of snapshot.htmlStyles) restoreInlineStyle(document.documentElement.style, key, value);
+    }
+  }
+  const owner = options.owner ?? "property-panel";
+  if (enabled) reservations.set(owner, Math.max(0, options.reservedRightWidth ?? 0));
+  else reservations.delete(owner);
+  if (!reservations.size) {
+    if (!state.enabled) return;
     const bodyStyle = document.body.style;
     const htmlStyle = document.documentElement.style;
     restoreInlineStyle(bodyStyle, "transform", state.bodySnapshots.get("transform"));
@@ -18627,11 +19680,17 @@ function setPageZoomEnabled(enabled, options = {}) {
     state.reservedRightWidth = 0;
     state.bodySnapshots.clear();
     state.htmlSnapshots.clear();
+    manualScale = null;
+    panX = 0;
+    panY = 0;
+    appliedScale = 1;
+    appliedX = 0;
+    window.dispatchEvent(new Event(PAGE_LAYOUT_CHANGE_EVENT));
     return;
   }
   captureSnapshots();
   state.enabled = true;
-  state.reservedRightWidth = Math.max(0, options.reservedRightWidth ?? 0);
+  state.reservedRightWidth = Math.max(...reservations.values());
   applyPageZoom();
   attachResizeHandler();
 }
@@ -19129,25 +20188,25 @@ function dockFloatingPanelRight(options) {
 }
 
 // src/ui/property-panel/react-page-tweak-panel.tsx
-var import_react12 = __toESM(require("react"), 1);
-var import_icons8 = require("@ant-design/icons");
+var import_react14 = __toESM(require("react"), 1);
+var import_icons9 = require("@ant-design/icons");
 var import_antd7 = require("antd");
 
 // src/ui/property-panel/react-tweak-panel.tsx
-var import_react11 = __toESM(require("react"), 1);
-var import_icons7 = require("@ant-design/icons");
+var import_react13 = __toESM(require("react"), 1);
+var import_icons8 = require("@ant-design/icons");
 var import_antd6 = require("antd");
-var import_jsx_runtime10 = require("react/jsx-runtime");
+var import_jsx_runtime12 = require("react/jsx-runtime");
 function InfoTooltipIcon(props) {
   const { title } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     import_antd6.Tooltip,
     {
       title,
       placement: "left",
       arrow: { pointAtCenter: true },
       getPopupContainer: resolveRuntimePopupContainer,
-      children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(import_icons7.InfoCircleOutlined, { className: "we-runtime-config-panel__info-icon" })
+      children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(import_icons8.InfoCircleOutlined, { className: "we-runtime-config-panel__info-icon" })
     }
   );
 }
@@ -19183,23 +20242,23 @@ function asBooleanValue(value) {
 function AttrLabel(props) {
   const { config, canCollapse = false, collapsed = false, onClick } = props;
   if (!config.displayName) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
     "div",
     {
       className: "we-runtime-config-panel__attr-label",
       style: { cursor: onClick ? "pointer" : "default" },
       onClick,
       children: [
-        canCollapse ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-          import_icons7.CaretRightOutlined,
+        canCollapse ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          import_icons8.CaretRightOutlined,
           {
             rotate: collapsed ? 0 : 90,
             className: "we-runtime-config-panel__collapse-icon"
           }
         ) : null,
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "we-runtime-config-panel__label-main", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "we-runtime-config-panel__label-inline", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "we-runtime-config-panel__label-text", children: config.displayName }),
-          config.info ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(InfoTooltipIcon, { title: config.info }) : null
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "we-runtime-config-panel__label-main", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { className: "we-runtime-config-panel__label-inline", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "we-runtime-config-panel__label-text", children: config.displayName }),
+          config.info ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(InfoTooltipIcon, { title: config.info }) : null
         ] }) })
       ]
     }
@@ -19207,14 +20266,14 @@ function AttrLabel(props) {
 }
 function BaseComponent(props) {
   const { config, multiline = false, controlClassName, children } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
     "div",
     {
       className: "we-runtime-config-panel__attr-component",
       "data-multiline": multiline ? "true" : "false",
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(AttrLabel, { config }),
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(AttrLabel, { config }),
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
           "div",
           {
             className: ["we-runtime-config-panel__control", controlClassName].filter(Boolean).join(" "),
@@ -19229,7 +20288,7 @@ function TextComponent(props) {
   const { config, attributes } = props;
   const value = asStringValue(readValue(attributes, config));
   if (config.hint) {
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "we-runtime-config-panel__hint", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "we-runtime-config-panel__hint", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
       import_antd6.Typography.Text,
       {
         className: "we-runtime-config-panel__hint-text",
@@ -19238,9 +20297,9 @@ function TextComponent(props) {
       }
     ) });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "we-runtime-config-panel__text-row", children: [
-    config.displayName ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(AttrLabel, { config }) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "we-runtime-config-panel__text-row", children: [
+    config.displayName ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(AttrLabel, { config }) : null,
+    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
       import_antd6.Typography.Text,
       {
         className: "we-runtime-config-panel__text",
@@ -19252,7 +20311,7 @@ function TextComponent(props) {
 }
 function InputComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(BaseComponent, { config, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(BaseComponent, { config, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     import_antd6.Input,
     {
       variant: "filled",
@@ -19269,13 +20328,13 @@ function InputComponent(props) {
 }
 function CustomTextAreaComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     BaseComponent,
     {
       config,
       multiline: true,
       controlClassName: "we-runtime-config-panel__control--full",
-      children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         import_antd6.Input.TextArea,
         {
           variant: "filled",
@@ -19297,7 +20356,7 @@ function CustomTextAreaComponent(props) {
 }
 function InputNumberComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(BaseComponent, { config, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(BaseComponent, { config, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     import_antd6.InputNumber,
     {
       variant: "filled",
@@ -19319,7 +20378,7 @@ function InputNumberComponent(props) {
 }
 function SelectComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(BaseComponent, { config, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(BaseComponent, { config, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     import_antd6.Select,
     {
       allowClear: true,
@@ -19342,13 +20401,13 @@ function SelectComponent(props) {
 }
 function SegmentedComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     BaseComponent,
     {
       config,
       multiline: true,
       controlClassName: "we-runtime-config-panel__control--full",
-      children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         import_antd6.Segmented,
         {
           block: true,
@@ -19357,9 +20416,9 @@ function SegmentedComponent(props) {
           value: readValue(attributes, config),
           options: (config.options ?? []).map((option) => ({
             value: option.value,
-            label: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "we-runtime-config-panel__segmented-option", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "we-runtime-config-panel__segmented-option-label", children: option.label }),
-              option.description ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "we-runtime-config-panel__segmented-option-description", children: option.description }) : null
+            label: /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { className: "we-runtime-config-panel__segmented-option", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "we-runtime-config-panel__segmented-option-label", children: option.label }),
+              option.description ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "we-runtime-config-panel__segmented-option-description", children: option.description }) : null
             ] })
           })),
           disabled: config.disabled,
@@ -19375,13 +20434,13 @@ function SegmentedComponent(props) {
 function CardSelectComponent(props) {
   const { config, attributes, onChange } = props;
   const currentValue = readValue(attributes, config);
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     BaseComponent,
     {
       config,
       multiline: true,
       controlClassName: "we-runtime-config-panel__control--full",
-      children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         "div",
         {
           className: "we-runtime-config-panel__card-list",
@@ -19389,7 +20448,7 @@ function CardSelectComponent(props) {
           "aria-label": config.displayName ?? "\u5361\u7247\u9009\u62E9",
           children: (config.options ?? []).map((option) => {
             const selected = currentValue === option.value;
-            return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+            return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
               "button",
               {
                 type: "button",
@@ -19406,8 +20465,8 @@ function CardSelectComponent(props) {
                   void onChange({ [config.attributeId]: option.value });
                 },
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "we-runtime-config-panel__card-option-title", children: option.label }),
-                  option.description ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "we-runtime-config-panel__card-option-description", children: option.description }) : null
+                  /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "we-runtime-config-panel__card-option-title", children: option.label }),
+                  option.description ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "we-runtime-config-panel__card-option-description", children: option.description }) : null
                 ]
               },
               String(option.value)
@@ -19420,7 +20479,7 @@ function CardSelectComponent(props) {
 }
 function SwitchComponent(props) {
   const { config, attributes, onChange } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     import_antd6.Switch,
     {
       size: "small",
@@ -19436,7 +20495,7 @@ function SwitchComponent(props) {
 function ColorPickerComponent(props) {
   const { config, attributes, onChange } = props;
   const value = asStringValue(readValue(attributes, config)) || void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(BaseComponent, { config, controlClassName: "we-runtime-config-panel__control--auto", children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     import_antd6.ColorPicker,
     {
       size: "small",
@@ -19453,8 +20512,8 @@ function ColorPickerComponent(props) {
 }
 function GroupComponent(props) {
   const { config, attributes, onChange } = props;
-  const [collapsed, setCollapsed] = import_react11.default.useState(config.defaultExpanded === false);
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+  const [collapsed, setCollapsed] = import_react13.default.useState(config.defaultExpanded === false);
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
     "div",
     {
       className: [
@@ -19462,7 +20521,7 @@ function GroupComponent(props) {
         config.displayType === "inline" ? "we-runtime-config-panel__group--inline" : ""
       ].filter(Boolean).join(" "),
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
           AttrLabel,
           {
             config,
@@ -19471,14 +20530,14 @@ function GroupComponent(props) {
             onClick: () => setCollapsed((previous) => !previous)
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
           "div",
           {
             className: [
               "we-runtime-config-panel__group-content",
               collapsed ? "we-runtime-config-panel__group-content--collapsed" : ""
             ].filter(Boolean).join(" "),
-            children: (config.children ?? []).map((child, index) => /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            children: (config.children ?? []).map((child, index) => /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
               AttributeTree,
               {
                 attributes,
@@ -19511,7 +20570,7 @@ function AttributeTree(props) {
     return null;
   }
   const Component = configComponents[titleCase(config.type)];
-  return Component ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Component, { ...props }) : null;
+  return Component ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(Component, { ...props }) : null;
 }
 function convertFieldToConfig(field, values, disabled) {
   const common = {
@@ -19595,7 +20654,7 @@ function buildConfigNodes(schema, values, disabled) {
 function ReactTweakPanel(props) {
   const { schema, values, disabled = false, onChange } = props;
   if (!schema?.fields?.length) {
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
       import_antd6.Empty,
       {
         image: import_antd6.Empty.PRESENTED_IMAGE_SIMPLE,
@@ -19606,7 +20665,7 @@ function ReactTweakPanel(props) {
   }
   const attributes = values ?? {};
   const configNodes = buildConfigNodes(schema, values, disabled);
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "we-runtime-prop-panel__body we-runtime-config-panel", children: configNodes.map((config, index) => /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { className: "we-runtime-prop-panel__body we-runtime-config-panel", children: configNodes.map((config, index) => /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     AttributeTree,
     {
       attributes,
@@ -19620,7 +20679,7 @@ function ReactTweakPanel(props) {
 }
 
 // src/ui/property-panel/react-page-tweak-panel.tsx
-var import_jsx_runtime11 = require("react/jsx-runtime");
+var import_jsx_runtime13 = require("react/jsx-runtime");
 function resolveNextActivePageTweakKeys(params) {
   const { previousKeys, allKeys, initialized } = params;
   const validKeySet = new Set(allKeys);
@@ -19648,14 +20707,14 @@ function stopHeaderActionEvent(event) {
 }
 function HeaderActionButton(props) {
   const { title, icon, disabled = false, onClick } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
     import_antd7.Tooltip,
     {
       title,
       placement: "left",
       arrow: { pointAtCenter: true },
       getPopupContainer: resolveRuntimePopupContainer,
-      children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
         import_antd7.Button,
         {
           type: "text",
@@ -19678,29 +20737,29 @@ function CollapseHeaderLabel(props) {
     onClear,
     onLocate
   } = props;
-  return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { className: "we-runtime-page-tweak-panel__header-row", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "we-runtime-page-tweak-panel__header-label", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "we-runtime-page-tweak-panel__header-label-text", children: title }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { className: "we-runtime-page-tweak-panel__header-row", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-page-tweak-panel__header-label", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-page-tweak-panel__header-label-text", children: title }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
       "span",
       {
         className: "we-runtime-page-tweak-panel__header-actions",
         onClick: stopHeaderActionEvent,
         onPointerDown: stopHeaderActionEvent,
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             HeaderActionButton,
             {
               title: "\u6E05\u7A7A\u5F53\u524D\u5206\u7EC4\u7F16\u8F91",
-              icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons8.DeleteOutlined, {}),
+              icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.DeleteOutlined, {}),
               disabled: disabled || !onClear,
               onClick: onClear
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             HeaderActionButton,
             {
               title: "\u5B9A\u4F4D\u5F53\u524D\u5143\u7D20",
-              icon: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(import_icons8.LinkOutlined, {}),
+              icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.LinkOutlined, {}),
               disabled: disabled || !onLocate,
               onClick: onLocate
             }
@@ -19718,15 +20777,15 @@ function ReactPageTweakPanel(props) {
     onClearEntry,
     onLocateEntry
   } = props;
-  const allKeys = import_react12.default.useMemo(
+  const allKeys = import_react14.default.useMemo(
     () => entries.map((entry, index) => `${index}:${entry.schema.title ?? describeElement(entry.element)}`),
     [entries]
   );
-  const [activeKeys, setActiveKeys] = import_react12.default.useState(
+  const [activeKeys, setActiveKeys] = import_react14.default.useState(
     () => allKeys
   );
-  const activeKeysInitializedRef = import_react12.default.useRef(allKeys.length > 0);
-  import_react12.default.useEffect(() => {
+  const activeKeysInitializedRef = import_react14.default.useRef(allKeys.length > 0);
+  import_react14.default.useEffect(() => {
     setActiveKeys((previous) => {
       const resolved = resolveNextActivePageTweakKeys({
         previousKeys: previous,
@@ -19738,7 +20797,7 @@ function ReactPageTweakPanel(props) {
     });
   }, [allKeys]);
   if (entries.length <= 0) {
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
       import_antd7.Empty,
       {
         image: import_antd7.Empty.PRESENTED_IMAGE_SIMPLE,
@@ -19747,7 +20806,7 @@ function ReactPageTweakPanel(props) {
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "we-runtime-prop-panel__body", style: { gap: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-prop-panel__body", style: { gap: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
     import_antd7.Collapse,
     {
       className: "we-runtime-prop-panel__collapse",
@@ -19764,7 +20823,7 @@ function ReactPageTweakPanel(props) {
         const bodySchema = entry.schema.title ? { ...entry.schema, title: void 0, description: void 0 } : entry.schema;
         return {
           key,
-          label: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+          label: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             CollapseHeaderLabel,
             {
               title: headerLabel,
@@ -19777,7 +20836,7 @@ function ReactPageTweakPanel(props) {
               } : void 0
             }
           ),
-          children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+          children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ReactTweakPanel,
             {
               schema: bodySchema,
@@ -19795,8 +20854,8 @@ function ReactPageTweakPanel(props) {
 }
 
 // src/ui/runtime/shortcut-capture-card.tsx
-var import_react13 = __toESM(require("react"), 1);
-var import_jsx_runtime12 = require("react/jsx-runtime");
+var import_react15 = __toESM(require("react"), 1);
+var import_jsx_runtime14 = require("react/jsx-runtime");
 var shortcutCaptureHintStyle = {
   fontSize: 11,
   color: EDITOR_CHROME.textMuted,
@@ -19818,10 +20877,10 @@ var shortcutCaptureCardStyle = {
   cursor: "pointer",
   font: "inherit"
 };
-var ShortcutCaptureCard = import_react13.default.forwardRef(
+var ShortcutCaptureCard = import_react15.default.forwardRef(
   function ShortcutCaptureCard2(props, ref) {
     const { label, value, capturing, onActivate, onCapture, onCancelCapture, onClear } = props;
-    return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
       "button",
       {
         ref,
@@ -19845,10 +20904,10 @@ var ShortcutCaptureCard = import_react13.default.forwardRef(
           onCapture(normalized);
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { style: { fontSize: 12, fontWeight: 600, color: EDITOR_CHROME.textSecondary }, children: label }),
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { style: { fontSize: 18, fontWeight: 600, color: EDITOR_CHROME.textPrimary }, children: capturing ? "\u6309\u4E0B\u4FEE\u9970\u952E\u2026" : formatModifierShortcutLabel(value) }),
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { style: shortcutCaptureHintStyle, children: capturing ? "\u4EC5\u652F\u6301 Shift / Alt / Ctrl / Command\uFF0C\u6309 Esc \u53D6\u6D88\u3002" : "\u70B9\u51FB\u540E\u5F55\u5165\u4E00\u4E2A\u4FEE\u9970\u952E\u3002" }),
-          value ? /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { style: { fontSize: 12, fontWeight: 600, color: EDITOR_CHROME.textSecondary }, children: label }),
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { style: { fontSize: 18, fontWeight: 600, color: EDITOR_CHROME.textPrimary }, children: capturing ? "\u6309\u4E0B\u4FEE\u9970\u952E\u2026" : formatModifierShortcutLabel(value) }),
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { style: shortcutCaptureHintStyle, children: capturing ? "\u4EC5\u652F\u6301 Shift / Alt / Ctrl / Command\uFF0C\u6309 Esc \u53D6\u6D88\u3002" : "\u70B9\u51FB\u540E\u5F55\u5165\u4E00\u4E2A\u4FEE\u9970\u952E\u3002" }),
+          value ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
             "span",
             {
               style: { ...shortcutCaptureHintStyle, color: EDITOR_CHROME.accent },
@@ -19960,7 +21019,7 @@ function buildAiWorkspaceBreadcrumbs(workspacePath) {
 }
 
 // src/ui/runtime/property-panel-view.tsx
-var import_jsx_runtime13 = require("react/jsx-runtime");
+var import_jsx_runtime15 = require("react/jsx-runtime");
 var AGENT_WAKE_FAILURE_MESSAGE = "AI \u5524\u9192\u5931\u8D25\uFF0C\u8BF7\u5728\u7EC8\u7AEF\u6267\u884C npx @axhub/acp@latest\uFF0C\u518D\u91CD\u8BD5";
 var AGENT_WAKE_TIMEOUT_MS = 12e3;
 var AGENT_INTERRUPT_TIMEOUT_MS = 12e3;
@@ -19980,11 +21039,11 @@ function CommenterNameSettingsInput({
   value,
   onChange
 }) {
-  const [draft, setDraft] = import_react14.default.useState(value);
-  import_react14.default.useEffect(() => {
+  const [draft, setDraft] = import_react16.default.useState(value);
+  import_react16.default.useEffect(() => {
     setDraft(value);
   }, [value]);
-  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
     import_antd8.Input,
     {
       "aria-label": "\u6279\u6CE8\u8005\u540D\u79F0",
@@ -20151,7 +21210,7 @@ var readLocalDirectoryBrowserResult = (value) => {
     directories
   };
 };
-var PropertyPanelView = import_react14.default.forwardRef(
+var PropertyPanelView = import_react16.default.forwardRef(
   function PropertyPanelView2(props, ref) {
     const {
       options,
@@ -20203,99 +21262,99 @@ var PropertyPanelView = import_react14.default.forwardRef(
     const externalAnnotationMode = Boolean(options.externalAnnotationMode);
     const hostSurfaceVisibilityControl = options.hostSurfaceVisibilityControl;
     const selectionModeAvailable = interactionProfile !== "text-comment";
-    const rootRef = import_react14.default.useRef(null);
-    const pagePanelRef = import_react14.default.useRef(null);
-    const pagePanelBodyRef = import_react14.default.useRef(null);
-    const pagePanelHeaderRef = import_react14.default.useRef(null);
-    const toolbarHeaderRef = import_react14.default.useRef(null);
-    const minimizedButtonRef = import_react14.default.useRef(null);
-    const textComposerRef = import_react14.default.useRef(null);
-    const noteComposerRef = import_react14.default.useRef(null);
-    const inlineTextEditingRef = import_react14.default.useRef(inlineTextEditing);
-    const shortcutCardRefs = import_react14.default.useRef([]);
-    const styleObserverRef = import_react14.default.useRef(null);
-    const styleObserverRafIdRef = import_react14.default.useRef(null);
-    const currentTargetRef = import_react14.default.useRef(currentTarget);
-    const toolbarPositionRef = import_react14.default.useRef(null);
-    const pagePanelPositionRef = import_react14.default.useRef(
+    const rootRef = import_react16.default.useRef(null);
+    const pagePanelRef = import_react16.default.useRef(null);
+    const pagePanelBodyRef = import_react16.default.useRef(null);
+    const pagePanelHeaderRef = import_react16.default.useRef(null);
+    const toolbarHeaderRef = import_react16.default.useRef(null);
+    const minimizedButtonRef = import_react16.default.useRef(null);
+    const textComposerRef = import_react16.default.useRef(null);
+    const noteComposerRef = import_react16.default.useRef(null);
+    const inlineTextEditingRef = import_react16.default.useRef(inlineTextEditing);
+    const shortcutCardRefs = import_react16.default.useRef([]);
+    const styleObserverRef = import_react16.default.useRef(null);
+    const styleObserverRafIdRef = import_react16.default.useRef(null);
+    const currentTargetRef = import_react16.default.useRef(currentTarget);
+    const toolbarPositionRef = import_react16.default.useRef(null);
+    const pagePanelPositionRef = import_react16.default.useRef(
       options.initialPosition ?? null
     );
-    const onDismissSelectionRef = import_react14.default.useRef(onDismissSelection);
-    const onTargetChangeRef = import_react14.default.useRef(onTargetChange);
-    const hostToolbarListenersRef = import_react14.default.useRef(
+    const onDismissSelectionRef = import_react16.default.useRef(onDismissSelection);
+    const onTargetChangeRef = import_react16.default.useRef(onTargetChange);
+    const hostToolbarListenersRef = import_react16.default.useRef(
       /* @__PURE__ */ new Set()
     );
-    const [undoCount, setUndoCount] = import_react14.default.useState(0);
-    const [redoCount, setRedoCount] = import_react14.default.useState(0);
-    const [modifiedCount, setModifiedCount] = import_react14.default.useState(
+    const [undoCount, setUndoCount] = import_react16.default.useState(0);
+    const [redoCount, setRedoCount] = import_react16.default.useState(0);
+    const [modifiedCount, setModifiedCount] = import_react16.default.useState(
       Math.max(0, options.getModifiedElementCount?.() ?? 0)
     );
-    const [actionBusy, setActionBusy] = import_react14.default.useState(false);
-    const [hostSurfaceVisible, setHostSurfaceVisible] = import_react14.default.useState(
+    const [actionBusy, setActionBusy] = import_react16.default.useState(false);
+    const [hostSurfaceVisible, setHostSurfaceVisible] = import_react16.default.useState(
       () => hostSurfaceVisibilityControl?.initialVisible !== false
     );
-    const [markdownSourceEditorOpen, setMarkdownSourceEditorOpen] = import_react14.default.useState(
+    const [markdownSourceEditorOpen, setMarkdownSourceEditorOpen] = import_react16.default.useState(
       () => options.getMarkdownSourceEditorOpen?.() === true
     );
-    const [agentPromptSending, setAgentPromptSending] = import_react14.default.useState(false);
-    const [agentPromptInterrupting, setAgentPromptInterrupting] = import_react14.default.useState(false);
-    const [agentWakeChecking, setAgentWakeChecking] = import_react14.default.useState(false);
-    const [sessionActivityCardOpen, setSessionActivityCardOpen] = import_react14.default.useState(false);
-    const [sessionActivities, setSessionActivities] = import_react14.default.useState([]);
-    const [toolbarPosition, setToolbarPosition] = import_react14.default.useState(null);
-    const [pagePanelPosition, setPagePanelPosition] = import_react14.default.useState(
+    const [agentPromptSending, setAgentPromptSending] = import_react16.default.useState(false);
+    const [agentPromptInterrupting, setAgentPromptInterrupting] = import_react16.default.useState(false);
+    const [agentWakeChecking, setAgentWakeChecking] = import_react16.default.useState(false);
+    const [sessionActivityCardOpen, setSessionActivityCardOpen] = import_react16.default.useState(false);
+    const [sessionActivities, setSessionActivities] = import_react16.default.useState([]);
+    const [toolbarPosition, setToolbarPosition] = import_react16.default.useState(null);
+    const [pagePanelPosition, setPagePanelPosition] = import_react16.default.useState(
       options.initialPosition ?? null
     );
-    const [toolbarDragging, setToolbarDragging] = import_react14.default.useState(false);
-    const [viewportSize, setViewportSize] = import_react14.default.useState(() => ({
+    const [toolbarDragging, setToolbarDragging] = import_react16.default.useState(false);
+    const [viewportSize, setViewportSize] = import_react16.default.useState(() => ({
       width: window.innerWidth,
       height: window.innerHeight
     }));
-    const [compactAnchorRect, setCompactAnchorRect] = import_react14.default.useState(null);
-    const [shortcutDialogOpen, setShortcutDialogOpen] = import_react14.default.useState(false);
-    const [shortcutDraft, setShortcutDraft] = import_react14.default.useState(
+    const [compactAnchorRect, setCompactAnchorRect] = import_react16.default.useState(null);
+    const [shortcutDialogOpen, setShortcutDialogOpen] = import_react16.default.useState(false);
+    const [shortcutDraft, setShortcutDraft] = import_react16.default.useState(
       options.getCommentShortcutSettings?.() ?? {
         ...DEFAULT_COMMENT_SHORTCUT_SETTINGS
       }
     );
-    const [capturingShortcutIndex, setCapturingShortcutIndex] = import_react14.default.useState(null);
-    const [panelRefreshKey, setPanelRefreshKey] = import_react14.default.useState(0);
-    const [tweakRevision, setTweakRevision] = import_react14.default.useState(0);
-    const [agentPromptSendingElementKey, setAgentPromptSendingElementKey] = import_react14.default.useState(null);
-    const [settingsPopoverOpen, setSettingsPopoverOpen] = import_react14.default.useState(false);
-    const [skillInstallPromptCopied, setSkillInstallPromptCopied] = import_react14.default.useState(false);
-    const skillInstallFeedbackTimerRef = import_react14.default.useRef(null);
-    const [keyboardShortcutsDialogOpen, setKeyboardShortcutsDialogOpen] = import_react14.default.useState(false);
-    const [annotationToolbarTick, setAnnotationToolbarTick] = import_react14.default.useState(0);
-    const uiSettings = import_react14.default.useMemo(
+    const [capturingShortcutIndex, setCapturingShortcutIndex] = import_react16.default.useState(null);
+    const [panelRefreshKey, setPanelRefreshKey] = import_react16.default.useState(0);
+    const [tweakRevision, setTweakRevision] = import_react16.default.useState(0);
+    const [agentPromptSendingElementKey, setAgentPromptSendingElementKey] = import_react16.default.useState(null);
+    const [settingsPopoverOpen, setSettingsPopoverOpen] = import_react16.default.useState(false);
+    const [skillInstallPromptCopied, setSkillInstallPromptCopied] = import_react16.default.useState(false);
+    const skillInstallFeedbackTimerRef = import_react16.default.useRef(null);
+    const [keyboardShortcutsDialogOpen, setKeyboardShortcutsDialogOpen] = import_react16.default.useState(false);
+    const [annotationToolbarTick, setAnnotationToolbarTick] = import_react16.default.useState(0);
+    const uiSettings = import_react16.default.useMemo(
       () => options.getUiSettings?.() ?? propUiSettings,
       [options, panelRefreshKey, propUiSettings]
     );
-    const [aiExecutionWorkspacePath, setAiExecutionWorkspacePath] = import_react14.default.useState(
+    const [aiExecutionWorkspacePath, setAiExecutionWorkspacePath] = import_react16.default.useState(
       () => normalizeAiExecutionWorkspacePath(options.aiExecutionWorkspacePath)
     );
-    const [directoryPickerOpen, setDirectoryPickerOpen] = import_react14.default.useState(false);
-    const [directoryPickerBusy, setDirectoryPickerBusy] = import_react14.default.useState(false);
-    const [directoryPickerError, setDirectoryPickerError] = import_react14.default.useState("");
-    const [directoryPickerState, setDirectoryPickerState] = import_react14.default.useState(null);
-    const [directoryPickerPathInput, setDirectoryPickerPathInput] = import_react14.default.useState("");
-    const [directoryPickerRecentWorkspaces, setDirectoryPickerRecentWorkspaces] = import_react14.default.useState([]);
-    const [directoryPickerRecentOpen, setDirectoryPickerRecentOpen] = import_react14.default.useState(false);
-    const [directoryPickerRecentQuery, setDirectoryPickerRecentQuery] = import_react14.default.useState("");
-    const [directoryPickerRecentActiveIndex, setDirectoryPickerRecentActiveIndex] = import_react14.default.useState(0);
-    const [directoryPickerRecentError, setDirectoryPickerRecentError] = import_react14.default.useState("");
-    const directoryPickerPathFieldRef = import_react14.default.useRef(null);
-    const directoryPickerBreadcrumbRef = import_react14.default.useRef(null);
-    const agentProviderAvailabilityMap = import_react14.default.useMemo(
+    const [directoryPickerOpen, setDirectoryPickerOpen] = import_react16.default.useState(false);
+    const [directoryPickerBusy, setDirectoryPickerBusy] = import_react16.default.useState(false);
+    const [directoryPickerError, setDirectoryPickerError] = import_react16.default.useState("");
+    const [directoryPickerState, setDirectoryPickerState] = import_react16.default.useState(null);
+    const [directoryPickerPathInput, setDirectoryPickerPathInput] = import_react16.default.useState("");
+    const [directoryPickerRecentWorkspaces, setDirectoryPickerRecentWorkspaces] = import_react16.default.useState([]);
+    const [directoryPickerRecentOpen, setDirectoryPickerRecentOpen] = import_react16.default.useState(false);
+    const [directoryPickerRecentQuery, setDirectoryPickerRecentQuery] = import_react16.default.useState("");
+    const [directoryPickerRecentActiveIndex, setDirectoryPickerRecentActiveIndex] = import_react16.default.useState(0);
+    const [directoryPickerRecentError, setDirectoryPickerRecentError] = import_react16.default.useState("");
+    const directoryPickerPathFieldRef = import_react16.default.useRef(null);
+    const directoryPickerBreadcrumbRef = import_react16.default.useRef(null);
+    const agentProviderAvailabilityMap = import_react16.default.useMemo(
       () => new Map(agentProviderAvailabilities.map((item) => [item.provider, item])),
       [agentProviderAvailabilities]
     );
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       setAiExecutionWorkspacePath(
         normalizeAiExecutionWorkspacePath(options.aiExecutionWorkspacePath)
       );
     }, [options.aiExecutionWorkspacePath]);
-    import_react14.default.useEffect(
+    import_react16.default.useEffect(
       () => () => {
         if (skillInstallFeedbackTimerRef.current !== null) {
           window.clearTimeout(skillInstallFeedbackTimerRef.current);
@@ -20303,26 +21362,26 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       []
     );
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       inlineTextEditingRef.current = inlineTextEditing;
     }, [inlineTextEditing]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       setHostSurfaceVisible(hostSurfaceVisibilityControl?.initialVisible !== false);
     }, [hostSurfaceVisibilityControl?.initialVisible]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       onDismissSelectionRef.current = onDismissSelection;
     }, [onDismissSelection]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       onTargetChangeRef.current = onTargetChange;
     }, [onTargetChange]);
     currentTargetRef.current = currentTarget;
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (!options.subscribeTweak) return;
       return options.subscribeTweak(() => {
         setTweakRevision((value) => value + 1);
       });
     }, [options]);
-    const pageTweakEntries = import_react14.default.useMemo(
+    const pageTweakEntries = import_react16.default.useMemo(
       () => options.getPageTweakEntries?.() ?? [],
       [options, tweakRevision]
     );
@@ -20350,7 +21409,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
     const visibleExecutionTerminalTaskCount = (options.getVisibleElementAgentTaskStates?.() ?? []).filter((task) => task.status === "completed" || task.status === "error").length;
     const visibleTerminalTaskCount = hideExecutionControls ? 0 : visibleExecutionTerminalTaskCount;
     const currentAgentConversation = options.getCurrentAgentConversationState?.() ?? null;
-    const sessionActivityTarget = import_react14.default.useMemo(
+    const sessionActivityTarget = import_react16.default.useMemo(
       () => resolveSessionActivityTarget({
         requestId: currentAgentTask?.requestId ?? null,
         sessionId: currentAgentTask?.sessionId ?? null,
@@ -20373,14 +21432,14 @@ var PropertyPanelView = import_react14.default.forwardRef(
     const currentTaskIsSending = Boolean(
       agentPromptSending && currentAgentTask && agentPromptSendingElementKey && currentAgentTask.elementKey === agentPromptSendingElementKey
     );
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (!agentPromptSending) return;
       if (currentTaskRunning && currentTaskSessionReady) {
         setAgentPromptSending(false);
         setAgentPromptSendingElementKey(null);
       }
     }, [currentTaskRunning, currentTaskSessionReady, agentPromptSending]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (!sessionActivityCardOpen) {
         setSessionActivities([]);
         return;
@@ -20394,11 +21453,11 @@ var PropertyPanelView = import_react14.default.forwardRef(
         setSessionActivities((previous) => appendRecentSessionActivities(previous, item));
       });
     }, [options, sessionActivityCardOpen, sessionActivityTarget]);
-    const visibleSessionActivities = import_react14.default.useMemo(
+    const visibleSessionActivities = import_react16.default.useMemo(
       () => limitVisibleSessionActivities(sessionActivities),
       [sessionActivities]
     );
-    const disconnectStyleObserver = import_react14.default.useCallback(() => {
+    const disconnectStyleObserver = import_react16.default.useCallback(() => {
       if (styleObserverRafIdRef.current !== null) {
         window.cancelAnimationFrame(styleObserverRafIdRef.current);
         styleObserverRafIdRef.current = null;
@@ -20409,17 +21468,17 @@ var PropertyPanelView = import_react14.default.forwardRef(
       }
       styleObserverRef.current = null;
     }, [options.skillInstallSource]);
-    const requestPanelRefresh = import_react14.default.useCallback(() => {
+    const requestPanelRefresh = import_react16.default.useCallback(() => {
       setPanelRefreshKey((value) => value + 1);
     }, [options.skillInstallSource]);
-    const scheduleLiveStyleRefresh = import_react14.default.useCallback(() => {
+    const scheduleLiveStyleRefresh = import_react16.default.useCallback(() => {
       if (styleObserverRafIdRef.current !== null) return;
       styleObserverRafIdRef.current = window.requestAnimationFrame(() => {
         styleObserverRafIdRef.current = null;
         requestPanelRefresh();
       });
     }, [requestPanelRefresh]);
-    const connectStyleObserver = import_react14.default.useCallback(
+    const connectStyleObserver = import_react16.default.useCallback(
       (element) => {
         disconnectStyleObserver();
         if (!element || !element.isConnected || typeof MutationObserver === "undefined") return;
@@ -20442,7 +21501,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [disconnectStyleObserver, scheduleLiveStyleRefresh]
     );
-    const clampToViewport = import_react14.default.useCallback(
+    const clampToViewport = import_react16.default.useCallback(
       (position, sizeOverride) => {
         const root = rootRef.current;
         const rect = root?.getBoundingClientRect();
@@ -20457,7 +21516,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [toolMinimized, viewportSize]
     );
-    const applyToolbarPosition = import_react14.default.useCallback(
+    const applyToolbarPosition = import_react16.default.useCallback(
       (nextPosition) => {
         toolbarPositionRef.current = nextPosition ? clampToViewport(nextPosition, {
           width: COMPACT_TOOL_SIZE,
@@ -20467,7 +21526,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [clampToViewport]
     );
-    const clampPagePanelToViewport = import_react14.default.useCallback(
+    const clampPagePanelToViewport = import_react16.default.useCallback(
       (position, sizeOverride) => {
         const pagePanel = pagePanelRef.current;
         const rect = pagePanel ? pagePanel.getBoundingClientRect() : null;
@@ -20481,7 +21540,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [viewportSize]
     );
-    const applyPanelPosition = import_react14.default.useCallback(
+    const applyPanelPosition = import_react16.default.useCallback(
       (nextPosition) => {
         pagePanelPositionRef.current = nextPosition ? clampPagePanelToViewport(nextPosition) : null;
         setPagePanelPosition(pagePanelPositionRef.current);
@@ -20489,7 +21548,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [clampPagePanelToViewport, options]
     );
-    const dockPagePanelRight = import_react14.default.useCallback(() => {
+    const dockPagePanelRight = import_react16.default.useCallback(() => {
       const pagePanel = pagePanelRef.current;
       const rect = pagePanel ? pagePanel.getBoundingClientRect() : null;
       const size = rect ? { width: rect.width, height: rect.height } : { width: PAGE_CONFIG_PANEL_WIDTH, height: 160 };
@@ -20504,10 +21563,10 @@ var PropertyPanelView = import_react14.default.forwardRef(
         })
       );
     }, [applyPanelPosition, viewportSize]);
-    const syncPanelMetaState = import_react14.default.useCallback(() => {
+    const syncPanelMetaState = import_react16.default.useCallback(() => {
       setModifiedCount(Math.max(0, options.getModifiedElementCount?.() ?? 0));
     }, [options]);
-    const runAction = import_react14.default.useCallback(
+    const runAction = import_react16.default.useCallback(
       async (action) => {
         if (!action) return;
         setActionBusy(true);
@@ -20520,7 +21579,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [syncPanelMetaState]
     );
-    const handleHtmlFileSaveAction = import_react14.default.useCallback(async () => {
+    const handleHtmlFileSaveAction = import_react16.default.useCallback(async () => {
       if (actionBusy || !options.htmlFileSaveEnabled || !options.onHostToolbarAction) return;
       try {
         let result = false;
@@ -20540,7 +21599,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         );
       }
     }, [actionBusy, options.htmlFileSaveEnabled, options.onHostToolbarAction, runAction]);
-    const handleToggleHostSurfaceVisibility = import_react14.default.useCallback(async () => {
+    const handleToggleHostSurfaceVisibility = import_react16.default.useCallback(async () => {
       if (actionBusy || !hostSurfaceVisibilityControl || !options.onHostToolbarAction) return;
       const requestedVisible = !hostSurfaceVisible;
       try {
@@ -20571,7 +21630,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       runAction
     ]);
     const agentAwake = effectiveVisualState === "awake";
-    const wakeAgentForAction = import_react14.default.useCallback(async () => {
+    const wakeAgentForAction = import_react16.default.useCallback(async () => {
       if (agentWakeChecking) {
         return false;
       }
@@ -20600,7 +21659,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         setAgentWakeChecking(false);
       }
     }, [agentAwake, agentWakeChecking, onAgentVisualStateChange, options]);
-    const handleConfirmSendPromptToAgent = import_react14.default.useCallback(async () => {
+    const handleConfirmSendPromptToAgent = import_react16.default.useCallback(async () => {
       if (!options.onSendPromptToAgent) return;
       const ready = await wakeAgentForAction();
       if (!ready) return;
@@ -20623,7 +21682,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       syncPanelMetaState,
       wakeAgentForAction
     ]);
-    const handleInterruptSendPromptToAgent = import_react14.default.useCallback(
+    const handleInterruptSendPromptToAgent = import_react16.default.useCallback(
       async (target) => {
         if (!options.onAbortAgentPrompt) return;
         setAgentPromptInterrupting(true);
@@ -20642,15 +21701,15 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [currentTarget, options]
     );
-    const restoreTool = import_react14.default.useCallback(() => {
+    const restoreTool = import_react16.default.useCallback(() => {
       setCompactAnchorRect(null);
       onToolMinimizedChange(false);
     }, [onToolMinimizedChange]);
-    const minimizeTool = import_react14.default.useCallback(() => {
+    const minimizeTool = import_react16.default.useCallback(() => {
       setCompactAnchorRect(null);
       onToolMinimizedChange(true);
     }, [onToolMinimizedChange]);
-    const handleTogglePropertyPanel = import_react14.default.useCallback(
+    const handleTogglePropertyPanel = import_react16.default.useCallback(
       (nextOpen = !propertyPanelOpen) => {
         if (nextOpen && toolMinimized) {
           restoreTool();
@@ -20659,12 +21718,12 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [onPropertyPanelOpenChange, propertyPanelOpen, restoreTool, toolMinimized]
     );
-    const closeShortcutDialog = import_react14.default.useCallback(() => {
+    const closeShortcutDialog = import_react16.default.useCallback(() => {
       setShortcutDialogOpen(false);
       setCapturingShortcutIndex(null);
       options.onCommentShortcutDialogOpenChange?.(false);
     }, [options]);
-    const shortcutValidationError = import_react14.default.useMemo(() => {
+    const shortcutValidationError = import_react16.default.useMemo(() => {
       const [first, second] = shortcutDraft.shortcuts;
       if (first && second && first === second) {
         return "\u4E24\u4E2A\u5FEB\u6377\u952E\u4E0D\u80FD\u914D\u7F6E\u4E3A\u540C\u4E00\u4E2A\u4FEE\u9970\u952E\u3002";
@@ -20673,15 +21732,15 @@ var PropertyPanelView = import_react14.default.forwardRef(
     }, [shortcutDraft.shortcuts]);
     const showExpandedPanel = !toolMinimized && propertyPanelOpen;
     const pageZoomActive = showExpandedPanel && uiSettings.pageZoomEnabled;
-    const previousPageZoomEnabledRef = import_react14.default.useRef(uiSettings.pageZoomEnabled);
-    const previousPageZoomActiveRef = import_react14.default.useRef(pageZoomActive);
-    const handleShortcutDraftChange = import_react14.default.useCallback(
+    const previousPageZoomEnabledRef = import_react16.default.useRef(uiSettings.pageZoomEnabled);
+    const previousPageZoomActiveRef = import_react16.default.useRef(pageZoomActive);
+    const handleShortcutDraftChange = import_react16.default.useCallback(
       (updater) => {
         setShortcutDraft((prev) => sanitizeCommentShortcutSettings(updater(prev)));
       },
       []
     );
-    const handleShortcutSave = import_react14.default.useCallback(() => {
+    const handleShortcutSave = import_react16.default.useCallback(() => {
       if (shortcutValidationError) return;
       const nextSettings = sanitizeCommentShortcutSettings(shortcutDraft);
       const currentSettings = sanitizeCommentShortcutSettings(
@@ -20692,7 +21751,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       }
       closeShortcutDialog();
     }, [closeShortcutDialog, options, shortcutDraft, shortcutValidationError]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       const root = rootRef.current;
       if (!root) return;
       setToolbarDragging(false);
@@ -20736,7 +21795,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         cleanups.forEach((cleanup) => cleanup());
       };
     }, [applyToolbarPosition, showExpandedPanel, toolMinimized]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       const pagePanel = pagePanelRef.current;
       const pagePanelHeader = pagePanelHeaderRef.current;
       if (!pagePanel || !pagePanelHeader || !showExpandedPanel || toolMinimized) return;
@@ -20752,7 +21811,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         }
       });
     }, [applyPanelPosition, showExpandedPanel, toolMinimized]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       const updateViewport = () => {
         setViewportSize({ width: window.innerWidth, height: window.innerHeight });
       };
@@ -20761,7 +21820,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         window.removeEventListener("resize", updateViewport);
       };
     }, []);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       const onWindowWheel = (event) => {
         const body = pagePanelBodyRef.current;
         if (!body || !showExpandedPanel) return;
@@ -20784,32 +21843,32 @@ var PropertyPanelView = import_react14.default.forwardRef(
         window.removeEventListener("wheel", onWindowWheel, { capture: true });
       };
     }, [showExpandedPanel]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       connectStyleObserver(currentTarget);
       return () => {
         disconnectStyleObserver();
       };
     }, [connectStyleObserver, currentTarget, disconnectStyleObserver]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       requestPanelRefresh();
     }, [currentTarget, requestPanelRefresh]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       return () => {
         options.onCommentShortcutDialogOpenChange?.(false);
       };
     }, [options]);
     const blockingLayerOpen = settingsPopoverOpen || shortcutDialogOpen || keyboardShortcutsDialogOpen || directoryPickerOpen;
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       onBlockingLayerOpenChange?.(blockingLayerOpen);
       return () => {
         onBlockingLayerOpenChange?.(false);
       };
     }, [blockingLayerOpen, onBlockingLayerOpenChange]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (!directoryPickerOpen) return void 0;
       return lockPageScrollForRuntimeModal();
     }, [directoryPickerOpen]);
-    const focusPanelTextInput = import_react14.default.useCallback(() => {
+    const focusPanelTextInput = import_react16.default.useCallback(() => {
       if (inlineTextEditingRef.current) return false;
       const input = textComposerRef.current?.querySelector("input");
       if (!(input instanceof HTMLInputElement) || input.disabled) return false;
@@ -20821,7 +21880,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       }
       return true;
     }, []);
-    const focusPanelNoteTextarea = import_react14.default.useCallback(() => {
+    const focusPanelNoteTextarea = import_react16.default.useCallback(() => {
       if (inlineTextEditingRef.current) return false;
       const textarea = noteComposerRef.current?.querySelector("textarea");
       if (!(textarea instanceof HTMLTextAreaElement) || textarea.disabled) return false;
@@ -20833,7 +21892,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       }
       return true;
     }, []);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (inlineTextEditing || toolMinimized || !showExpandedPanel) return;
       const rafId = window.requestAnimationFrame(() => {
         focusPanelTextInput();
@@ -20842,7 +21901,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         window.cancelAnimationFrame(rafId);
       };
     }, [focusPanelTextInput, inlineTextEditing, showExpandedPanel, toolMinimized]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (!inlineTextEditing) return;
       const textarea = noteComposerRef.current?.querySelector("textarea");
       if (textarea instanceof HTMLTextAreaElement) {
@@ -20853,7 +21912,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         input.blur();
       }
     }, [inlineTextEditing]);
-    const saveAndCloseNoteComposer = import_react14.default.useCallback(async () => {
+    const saveAndCloseNoteComposer = import_react16.default.useCallback(async () => {
       await onConfirmNote();
       const textarea = noteComposerRef.current?.querySelector("textarea");
       if (textarea instanceof HTMLTextAreaElement) {
@@ -20861,52 +21920,52 @@ var PropertyPanelView = import_react14.default.forwardRef(
       }
       onDismissSelection?.();
     }, [onConfirmNote, onDismissSelection]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (toolMinimized) {
         onHoverSelectionSuppressedChange(false);
       }
     }, [onHoverSelectionSuppressedChange, toolMinimized]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (toolMinimized) {
         onSelectionInteractionLockChange(false);
       }
     }, [onSelectionInteractionLockChange, toolMinimized]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (!toolMinimized) return;
       setSessionActivityCardOpen(false);
       setSettingsPopoverOpen(false);
       setDirectoryPickerOpen(false);
     }, [toolMinimized]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       return () => {
         onHoverSelectionSuppressedChange(false);
         onSelectionInteractionLockChange(false);
       };
     }, [onHoverSelectionSuppressedChange, onSelectionInteractionLockChange]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       syncPanelMetaState();
     }, [syncPanelMetaState]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       setPageAnimationsDisabled(uiSettings.disablePageAnimations);
       return () => {
         setPageAnimationsDisabled(false);
       };
     }, [uiSettings.disablePageAnimations]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (previousPageZoomEnabledRef.current !== uiSettings.pageZoomEnabled) {
         onDismissSelection?.();
         onTargetChange(null);
       }
       previousPageZoomEnabledRef.current = uiSettings.pageZoomEnabled;
     }, [onDismissSelection, onTargetChange, uiSettings.pageZoomEnabled]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (previousPageZoomActiveRef.current !== pageZoomActive) {
         onDismissSelection?.();
         onTargetChange(null);
       }
       previousPageZoomActiveRef.current = pageZoomActive;
     }, [onDismissSelection, onTargetChange, pageZoomActive]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       setPageZoomEnabled(pageZoomActive, {
         reservedRightWidth: PAGE_CONFIG_PANEL_WIDTH + PROPERTY_PANEL_RIGHT + 24
       });
@@ -20914,7 +21973,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         setPageZoomEnabled(false);
       };
     }, [pageZoomActive]);
-    import_react14.default.useEffect(
+    import_react16.default.useEffect(
       () => () => {
         if (!previousPageZoomActiveRef.current) return;
         onDismissSelectionRef.current?.();
@@ -20922,13 +21981,13 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       []
     );
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (!toolMinimized) return;
       if (shortcutDialogOpen) {
         closeShortcutDialog();
       }
     }, [closeShortcutDialog, shortcutDialogOpen, toolMinimized]);
-    import_react14.default.useLayoutEffect(() => {
+    import_react16.default.useLayoutEffect(() => {
       if (toolMinimized) return;
       const updateAnchor = () => {
         const rect = rootRef.current?.getBoundingClientRect();
@@ -20963,7 +22022,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       uiMode,
       undoCount
     ]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (capturingShortcutIndex === null) return;
       const button = shortcutCardRefs.current[capturingShortcutIndex];
       if (!button) return;
@@ -21003,15 +22062,15 @@ var PropertyPanelView = import_react14.default.forwardRef(
       currentAgentTask,
       options.externalEditingStatusDescription
     );
-    const handleOpenCurrentTaskSession = import_react14.default.useCallback(() => {
+    const handleOpenCurrentTaskSession = import_react16.default.useCallback(() => {
       if (!currentTaskSessionHref) return;
       window.open(currentTaskSessionHref, "_blank", "noopener,noreferrer");
     }, [currentTaskSessionHref]);
-    const handleDismissCurrentTaskState = import_react14.default.useCallback(() => {
+    const handleDismissCurrentTaskState = import_react16.default.useCallback(() => {
       if (!currentTarget || !options.dismissElementAgentTaskState) return;
       options.dismissElementAgentTaskState(currentTarget);
     }, [currentTarget, options]);
-    const agentTaskStatusCard = currentAgentTask ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+    const agentTaskStatusCard = currentAgentTask ? /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
       "div",
       {
         style: {
@@ -21025,9 +22084,9 @@ var PropertyPanelView = import_react14.default.forwardRef(
           boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.03)"
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
-            currentAgentTask.status === "completed" ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.CheckCircleFilled, { style: { color: "#22c55e" } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.ExclamationCircleFilled, { style: { color: "#ef4444" } }) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(AgentSparkleIcon, {}),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+            currentAgentTask.status === "completed" ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.CheckCircleFilled, { style: { color: "#22c55e" } }) : currentAgentTask.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.ExclamationCircleFilled, { style: { color: "#ef4444" } }) : /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(AgentSparkleIcon, {}),
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               "span",
               {
                 style: {
@@ -21039,7 +22098,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
             "span",
             {
               style: {
@@ -21056,13 +22115,13 @@ var PropertyPanelView = import_react14.default.forwardRef(
               ]
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_antd8.Space, { size: 8, wrap: true, children: [
-            !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(import_antd8.Space, { size: 8, wrap: true, children: [
+            !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               import_antd8.Button,
               {
                 size: "small",
                 danger: true,
-                icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.StopOutlined, {}),
+                icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.StopOutlined, {}),
                 disabled: !agentPromptCanInterrupt || agentPromptInterrupting,
                 loading: agentPromptInterrupting,
                 onClick: () => {
@@ -21071,11 +22130,11 @@ var PropertyPanelView = import_react14.default.forwardRef(
                 children: "\u4E2D\u65AD"
               }
             ) : null,
-            !hideExecutionControls && currentAgentTask.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            !hideExecutionControls && currentAgentTask.status === "error" ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               import_antd8.Button,
               {
                 size: "small",
-                icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.ReloadOutlined, {}),
+                icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.ReloadOutlined, {}),
                 disabled: agentPromptToolbarAction.sendDisabled || actionBusy,
                 onClick: () => {
                   void handleConfirmSendPromptToAgent();
@@ -21083,13 +22142,13 @@ var PropertyPanelView = import_react14.default.forwardRef(
                 children: "\u91CD\u8BD5"
               }
             ) : null,
-            currentTaskSessionHref ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_antd8.Button, { size: "small", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.LinkOutlined, {}), onClick: handleOpenCurrentTaskSession, children: "\u6253\u5F00\u4F1A\u8BDD" }) : null,
-            currentTaskTerminal ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_antd8.Button, { size: "small", icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(CloseToolIcon, {}), onClick: handleDismissCurrentTaskState, children: "\u5173\u95ED\u63D0\u793A" }) : null
+            currentTaskSessionHref ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_antd8.Button, { size: "small", icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.LinkOutlined, {}), onClick: handleOpenCurrentTaskSession, children: "\u6253\u5F00\u4F1A\u8BDD" }) : null,
+            currentTaskTerminal ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_antd8.Button, { size: "small", icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(CloseToolIcon, {}), onClick: handleDismissCurrentTaskState, children: "\u5173\u95ED\u63D0\u793A" }) : null
           ] })
         ]
       }
     ) : null;
-    const compactPosition = import_react14.default.useMemo(
+    const compactPosition = import_react16.default.useMemo(
       () => computeCompactPanelPosition({
         actionRect: compactAnchorRect,
         floatingPosition: toolbarPosition,
@@ -21108,7 +22167,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       }),
       [compactAnchorRect, toolbarPosition, toolMinimized, viewportSize]
     );
-    const clampedExpandedToolbarPosition = import_react14.default.useMemo(
+    const clampedExpandedToolbarPosition = import_react16.default.useMemo(
       () => toolbarPosition ? clampToViewport(toolbarPosition, {
         width: COMPACT_TOOLBAR_WIDTH,
         height: COMPACT_TOOLBAR_HEIGHT
@@ -21191,11 +22250,11 @@ var PropertyPanelView = import_react14.default.forwardRef(
     const hasClearableEdits = modifiedCount + visibleTerminalTaskCount > 0 || hasPrototypeClearableEdits;
     const clearAllEditsDisabled = actionBusy || !hasClearableEdits || !options.onClearEdits;
     const copyPromptDisabled = clearAllEditsDisabled || copyBlocked || copyPromptUnavailable;
-    const copyToolbarButton = showCopyPromptAction ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const copyToolbarButton = showCopyPromptAction ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarIconButton,
       {
         title: copyReason ?? "\u590D\u5236 Prompt",
-        icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.CopyOutlined, {}),
+        icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.CopyOutlined, {}),
         awake: agentShellAwake,
         disabled: copyPromptDisabled,
         onClick: () => {
@@ -21207,7 +22266,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
     const inlineSendVisible = !hideExecutionControls && agentPromptToolbarAction.sendVisible;
     const inlineInterruptVisible = !hideExecutionControls && agentPromptToolbarAction.interruptVisible;
     const hostSendVisible = agentPromptToolbarAction.sendVisible;
-    const sessionActivityCardContent = /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+    const sessionActivityCardContent = /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
       "div",
       {
         style: {
@@ -21218,7 +22277,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
           padding: 4
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
             "div",
             {
               style: {
@@ -21228,7 +22287,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                 gap: 12
               },
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                   "span",
                   {
                     style: {
@@ -21239,12 +22298,12 @@ var PropertyPanelView = import_react14.default.forwardRef(
                     children: "\u6700\u8FD1\u52A8\u6001"
                   }
                 ),
-                !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                !hideExecutionControls && currentTaskRunning ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                   import_antd8.Button,
                   {
                     size: "small",
                     danger: true,
-                    icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.StopOutlined, {}),
+                    icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.StopOutlined, {}),
                     disabled: !agentPromptCanInterrupt || agentPromptInterrupting,
                     loading: agentPromptInterrupting,
                     onClick: () => {
@@ -21256,12 +22315,12 @@ var PropertyPanelView = import_react14.default.forwardRef(
               ]
             }
           ),
-          visibleSessionActivities.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          visibleSessionActivities.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             import_antd8.Timeline,
             {
               items: visibleSessionActivities.map((item) => ({
                 key: item.id,
-                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                   "div",
                   {
                     style: {
@@ -21271,7 +22330,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                       paddingBottom: 4
                     },
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                         "span",
                         {
                           style: {
@@ -21288,7 +22347,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                           children: item.text
                         }
                       ),
-                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                         "span",
                         {
                           style: {
@@ -21304,7 +22363,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                 )
               }))
             }
-          ) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          ) : /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "div",
             {
               style: {
@@ -21320,15 +22379,15 @@ var PropertyPanelView = import_react14.default.forwardRef(
     );
     const agentPrimaryMenuLabel = agentPromptToolbarAction.sendTitle.includes("\u8FFD\u52A0") ? "\u8FFD\u52A0" : "\u5FEB\u901F\u6267\u884C";
     const clearEditsTitle = externalAnnotationMode ? "\u6E05\u7A7A\u6211\u7684\u5916\u90E8\u6279\u6CE8" : hasPrototypeClearableEdits ? "\u6E05\u7A7A\u6279\u6CE8" : "\u6E05\u7A7A\u5168\u90E8\u7F16\u8F91";
-    const clearAllEditsToolbarButton = options.hideClearEditsAction ? null : clearAllEditsDisabled ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const clearAllEditsToolbarButton = options.hideClearEditsAction ? null : clearAllEditsDisabled ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarIconButton,
       {
         title: clearEditsTitle,
-        icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.DeleteOutlined, {}),
+        icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.DeleteOutlined, {}),
         awake: agentShellAwake,
         disabled: true
       }
-    ) : externalAnnotationMode ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    ) : externalAnnotationMode ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       import_antd8.Popconfirm,
       {
         title: "\u6E05\u7A7A\u6211\u7684\u5916\u90E8\u6279\u6CE8",
@@ -21345,22 +22404,22 @@ var PropertyPanelView = import_react14.default.forwardRef(
             target: "all"
           })
         ),
-        children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
           AgentToolbarIconButton,
           {
             title: clearEditsTitle,
-            icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.DeleteOutlined, {}),
+            icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.DeleteOutlined, {}),
             awake: agentShellAwake
           }
         ) })
       }
-    ) : hasPrototypeClearableEdits ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    ) : hasPrototypeClearableEdits ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       import_antd8.Popconfirm,
       {
         title: "\u6E05\u7A7A\u5F53\u524D\u539F\u578B\u6279\u6CE8",
-        description: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
+        description: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(import_jsx_runtime15.Fragment, { children: [
           "\u8BF7\u9009\u62E9\u6E05\u7A7A\u8303\u56F4\uFF1A\u5DF2\u5B8C\u6210\u6279\u6CE8\uFF0C\u6216\u5168\u90E8\u6279\u6CE8\u3002",
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("br", {}),
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("br", {}),
           "\u5DF2\u4FDD\u5B58\u7684\u4EE3\u7801\u4FEE\u6539\u4E0D\u53D7\u5F71\u54CD\u3002"
         ] }),
         arrow: { pointAtCenter: true },
@@ -21384,16 +22443,16 @@ var PropertyPanelView = import_react14.default.forwardRef(
             })
           );
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
           AgentToolbarIconButton,
           {
             title: clearEditsTitle,
-            icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.DeleteOutlined, {}),
+            icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.DeleteOutlined, {}),
             awake: agentShellAwake
           }
         ) })
       }
-    ) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    ) : /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       import_antd8.Popconfirm,
       {
         title: "\u6E05\u7A7A\u5168\u90E8\u7F16\u8F91",
@@ -21404,22 +22463,22 @@ var PropertyPanelView = import_react14.default.forwardRef(
         cancelText: "\u53D6\u6D88",
         okButtonProps: { danger: true },
         onConfirm: () => runAction(() => options.onClearEdits?.({ skipConfirm: true })),
-        children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
           AgentToolbarIconButton,
           {
             title: clearEditsTitle,
-            icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.DeleteOutlined, {}),
+            icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.DeleteOutlined, {}),
             awake: agentShellAwake
           }
         ) })
       }
     );
-    const htmlFileSaveToolbarButton = options.htmlFileSaveEnabled && options.onHostToolbarAction ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const htmlFileSaveToolbarButton = options.htmlFileSaveEnabled && options.onHostToolbarAction ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarIconButton,
       {
         title: "\u4FDD\u5B58\u6587\u672C\u548C\u6837\u5F0F",
         ariaLabel: "\u4FDD\u5B58\u6587\u672C\u548C\u6837\u5F0F",
-        icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.SaveOutlined, {}),
+        icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.SaveOutlined, {}),
         awake: agentShellAwake,
         disabled: actionBusy,
         onClick: () => {
@@ -21427,7 +22486,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         }
       }
     ) : null;
-    const agentExecutionToolbarButton = hideExecutionControls ? null : inlineInterruptVisible ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const agentExecutionToolbarButton = hideExecutionControls ? null : inlineInterruptVisible ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       import_antd8.Popconfirm,
       {
         title: "\u7EC8\u6B62\u5168\u90E8\u4FEE\u6539",
@@ -21440,12 +22499,12 @@ var PropertyPanelView = import_react14.default.forwardRef(
         onConfirm: () => {
           void handleInterruptSendPromptToAgent(null);
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
           AgentToolbarIconButton,
           {
             title: agentPromptToolbarAction.interruptTitle,
             ariaLabel: "\u7EC8\u6B62\u5168\u90E8\u4FEE\u6539",
-            icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.PoweroffOutlined, {}),
+            icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.PoweroffOutlined, {}),
             awake: agentShellAwake,
             active: !agentPromptToolbarAction.interruptDisabled,
             disabled: agentPromptToolbarAction.interruptDisabled,
@@ -21453,12 +22512,12 @@ var PropertyPanelView = import_react14.default.forwardRef(
           }
         ) })
       }
-    ) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    ) : /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarIconButton,
       {
         title: agentPromptToolbarAction.sendDisabled ? agentPromptToolbarAction.sendTitle : agentPrimaryMenuLabel,
         ariaLabel: agentPrimaryMenuLabel,
-        icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.CaretRightFilled, {}),
+        icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.CaretRightFilled, {}),
         awake: agentShellAwake,
         active: inlineSendVisible && !agentPromptToolbarAction.sendDisabled,
         disabled: !inlineSendVisible || agentPromptToolbarAction.sendDisabled || actionBusy,
@@ -21468,12 +22527,12 @@ var PropertyPanelView = import_react14.default.forwardRef(
         }
       }
     );
-    const hostSurfaceVisibilityToolbarButton = hostSurfaceVisibilityControl && options.onHostToolbarAction ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const hostSurfaceVisibilityToolbarButton = hostSurfaceVisibilityControl && options.onHostToolbarAction ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarIconButton,
       {
         title: hostSurfaceVisible ? hostSurfaceVisibilityControl.hideTitle || "\u9690\u85CF\u7A97\u53E3" : hostSurfaceVisibilityControl.showTitle || "\u663E\u793A\u7A97\u53E3",
         ariaLabel: hostSurfaceVisible ? hostSurfaceVisibilityControl.hideTitle || "\u9690\u85CF\u7A97\u53E3" : hostSurfaceVisibilityControl.showTitle || "\u663E\u793A\u7A97\u53E3",
-        icon: hostSurfaceVisible ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.EyeOutlined, {}) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.EyeInvisibleOutlined, {}),
+        icon: hostSurfaceVisible ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.EyeOutlined, {}) : /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.EyeInvisibleOutlined, {}),
         awake: agentShellAwake,
         active: hostSurfaceVisible,
         disabled: actionBusy,
@@ -21482,7 +22541,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         }
       }
     ) : null;
-    const handleCopySkillInstallPrompt = import_react14.default.useCallback(async () => {
+    const handleCopySkillInstallPrompt = import_react16.default.useCallback(async () => {
       const text = buildSkillInstallPrompt(options.skillInstallSource);
       try {
         await copyRuntimeTextToClipboard(text);
@@ -21500,7 +22559,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         notifyRuntimeMessage("error", "\u590D\u5236\u5931\u8D25");
       }
     }, [options.skillInstallSource]);
-    const handleCopyGlobalPanelPrompt = import_react14.default.useCallback(async () => {
+    const handleCopyGlobalPanelPrompt = import_react16.default.useCallback(async () => {
       const pageUrl = typeof window !== "undefined" && typeof window.location?.href === "string" ? window.location.href : "";
       const text = buildGlobalPanelPrompt(options.skillInstallSource, pageUrl);
       try {
@@ -21514,7 +22573,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         notifyRuntimeMessage("error", "\u590D\u5236\u5931\u8D25");
       }
     }, []);
-    const handleRefreshAiExecutionWorkspace = import_react14.default.useCallback(async () => {
+    const handleRefreshAiExecutionWorkspace = import_react16.default.useCallback(async () => {
       if (!options.onHostToolbarAction) return;
       try {
         const result = await options.onHostToolbarAction({
@@ -21530,7 +22589,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         notifyRuntimeMessage("warning", error instanceof Error ? error.message : String(error));
       }
     }, [options]);
-    const browseAiExecutionDirectories = import_react14.default.useCallback(
+    const browseAiExecutionDirectories = import_react16.default.useCallback(
       async (path) => {
         if (!options.onHostToolbarAction) return;
         setDirectoryPickerBusy(true);
@@ -21558,7 +22617,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [options]
     );
-    const loadAiExecutionRecentWorkspaces = import_react14.default.useCallback(async () => {
+    const loadAiExecutionRecentWorkspaces = import_react16.default.useCallback(async () => {
       if (!options.onHostToolbarAction) return;
       setDirectoryPickerRecentError("");
       try {
@@ -21570,7 +22629,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         setDirectoryPickerRecentError(error instanceof Error ? error.message : String(error));
       }
     }, [options]);
-    const handleOpenDirectoryPicker = import_react14.default.useCallback(async () => {
+    const handleOpenDirectoryPicker = import_react16.default.useCallback(async () => {
       setDirectoryPickerOpen(true);
       setSettingsPopoverOpen(false);
       setDirectoryPickerRecentOpen(false);
@@ -21584,23 +22643,23 @@ var PropertyPanelView = import_react14.default.forwardRef(
         await browseAiExecutionDirectories(void 0);
       }
     }, [aiExecutionWorkspacePath, browseAiExecutionDirectories, loadAiExecutionRecentWorkspaces]);
-    const filteredDirectoryPickerRecentWorkspaces = import_react14.default.useMemo(
+    const filteredDirectoryPickerRecentWorkspaces = import_react16.default.useMemo(
       () => filterAiExecutionRecentWorkspaces(
         directoryPickerRecentWorkspaces,
         directoryPickerRecentQuery
       ),
       [directoryPickerRecentQuery, directoryPickerRecentWorkspaces]
     );
-    const directoryPickerBreadcrumbs = import_react14.default.useMemo(
+    const directoryPickerBreadcrumbs = import_react16.default.useMemo(
       () => buildAiWorkspaceBreadcrumbs(directoryPickerState?.path || ""),
       [directoryPickerState?.path]
     );
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (!directoryPickerState?.path) return;
       const navigation = directoryPickerBreadcrumbRef.current;
       if (navigation) navigation.scrollLeft = navigation.scrollWidth;
     }, [directoryPickerState?.path]);
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       if (!directoryPickerRecentOpen) return;
       directoryPickerPathFieldRef.current?.querySelector(`#we-runtime-directory-picker-recent-${directoryPickerRecentActiveIndex}`)?.scrollIntoView({ block: "nearest" });
     }, [
@@ -21608,14 +22667,14 @@ var PropertyPanelView = import_react14.default.forwardRef(
       directoryPickerRecentOpen,
       filteredDirectoryPickerRecentWorkspaces.length
     ]);
-    const handleDirectoryPickerPathSubmit = import_react14.default.useCallback(() => {
+    const handleDirectoryPickerPathSubmit = import_react16.default.useCallback(() => {
       const path = normalizeAiExecutionWorkspacePath(directoryPickerPathInput);
       if (path && !directoryPickerBusy) {
         setDirectoryPickerRecentOpen(false);
         void browseAiExecutionDirectories(path);
       }
     }, [browseAiExecutionDirectories, directoryPickerBusy, directoryPickerPathInput]);
-    const handleDirectoryPickerPathClick = import_react14.default.useCallback(() => {
+    const handleDirectoryPickerPathClick = import_react16.default.useCallback(() => {
       if (directoryPickerBusy) return;
       if (!directoryPickerRecentOpen) {
         setDirectoryPickerRecentQuery("");
@@ -21625,14 +22684,14 @@ var PropertyPanelView = import_react14.default.forwardRef(
         setDirectoryPickerRecentOpen(true);
       }
     }, [directoryPickerBusy, directoryPickerRecentOpen, directoryPickerRecentWorkspaces.length]);
-    const handleDirectoryPickerPathBlur = import_react14.default.useCallback(() => {
+    const handleDirectoryPickerPathBlur = import_react16.default.useCallback(() => {
       window.requestAnimationFrame(() => {
         if (!directoryPickerPathFieldRef.current?.contains(document.activeElement)) {
           setDirectoryPickerRecentOpen(false);
         }
       });
     }, []);
-    const handleDirectoryPickerRecentBrowse = import_react14.default.useCallback(
+    const handleDirectoryPickerRecentBrowse = import_react16.default.useCallback(
       (workspacePath) => {
         if (directoryPickerBusy) return;
         setDirectoryPickerPathInput(workspacePath);
@@ -21642,7 +22701,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [browseAiExecutionDirectories, directoryPickerBusy]
     );
-    const handleDirectoryPickerRecentRemove = import_react14.default.useCallback(
+    const handleDirectoryPickerRecentRemove = import_react16.default.useCallback(
       (workspacePath) => {
         const next = removeAiExecutionRecentWorkspace(
           directoryPickerRecentWorkspaces,
@@ -21663,7 +22722,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       },
       [directoryPickerRecentWorkspaces, options]
     );
-    const handleDirectoryPickerPathKeyDown = import_react14.default.useCallback(
+    const handleDirectoryPickerPathKeyDown = import_react16.default.useCallback(
       (event) => {
         if (event.key === "Escape" && directoryPickerRecentOpen) {
           event.preventDefault();
@@ -21705,7 +22764,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         handleDirectoryPickerRecentBrowse
       ]
     );
-    const handleConfirmDirectoryPicker = import_react14.default.useCallback(async () => {
+    const handleConfirmDirectoryPicker = import_react16.default.useCallback(async () => {
       const selectedPath = normalizeAiExecutionWorkspacePath(directoryPickerState?.path);
       if (!selectedPath) return;
       setDirectoryPickerBusy(true);
@@ -21746,7 +22805,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       }
     }, [directoryPickerRecentWorkspaces, directoryPickerState?.path, options]);
     const aiExecutionWorkspaceDisplayName = getPathDisplayName(aiExecutionWorkspacePath);
-    const toggleSelectionMode = import_react14.default.useCallback(() => {
+    const toggleSelectionMode = import_react16.default.useCallback(() => {
       const nextSelectionModeActive = !selectionModeActive;
       if (!nextSelectionModeActive) {
         onDismissSelection?.();
@@ -21770,17 +22829,17 @@ var PropertyPanelView = import_react14.default.forwardRef(
     const commentarySkillInstallSettingsItem = {
       key: "commentary-skill-install",
       compactControl: true,
-      label: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { className: "we-runtime-settings-card__skill-label", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { children: "\u6279\u6CE8\u6280\u80FD" }),
-        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-settings-card__recommended-badge", children: "\u63A8\u8350" })
+      label: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { className: "we-runtime-settings-card__skill-label", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { children: "\u6279\u6CE8\u6280\u80FD" }),
+        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-settings-card__recommended-badge", children: "\u63A8\u8350" })
       ] }),
-      control: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+      control: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
         import_antd8.Tooltip,
         {
           title: skillInstallPromptCopied ? "\u5B89\u88C5\u63D0\u793A\u8BCD\u5DF2\u590D\u5236" : "\u590D\u5236\u5B89\u88C5\u63D0\u793A\u8BCD",
           placement: "bottomRight",
           getPopupContainer: resolveRuntimePopupContainer,
-          children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "button",
             {
               type: "button",
@@ -21800,14 +22859,14 @@ var PropertyPanelView = import_react14.default.forwardRef(
       key: "ai-workspace",
       label: "AI \u5DE5\u4F5C\u76EE\u5F55",
       action: handleOpenDirectoryPicker,
-      control: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+      control: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
         "span",
         {
           className: "we-runtime-settings-card__value we-runtime-settings-card__workspace-value",
           title: aiExecutionWorkspacePath || void 0,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-settings-card__workspace-value-text", children: aiExecutionWorkspaceDisplayName || "\u672A\u914D\u7F6E" }),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.RightOutlined, { style: { fontSize: 10 } })
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-settings-card__workspace-value-text", children: aiExecutionWorkspaceDisplayName || "\u672A\u914D\u7F6E" }),
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.RightOutlined, { style: { fontSize: 10 } })
           ]
         }
       )
@@ -21815,7 +22874,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
     const propertyPanelSettingsItem = !externalAnnotationMode && showPropertyPanelSettingsItem ? {
       key: "property-panel",
       label: "\u8BBE\u8BA1\u51B3\u7B56",
-      control: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+      control: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
         import_antd8.Switch,
         {
           checked: propertyPanelOpen,
@@ -21830,7 +22889,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         {
           key: "commenter-name",
           label: "\u6279\u6CE8\u8005",
-          control: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          control: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             CommenterNameSettingsInput,
             {
               value: options.commenterName ?? "",
@@ -21848,7 +22907,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         {
           key: "capture-target-screenshot",
           label: "\u9644\u5E26\u76EE\u6807\u622A\u56FE",
-          control: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          control: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             import_antd8.Switch,
             {
               checked: uiSettings.captureTargetScreenshot,
@@ -21866,7 +22925,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         {
           key: "disable-page-animations",
           label: "\u5173\u95ED\u9875\u9762\u52A8\u753B",
-          control: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          control: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             import_antd8.Switch,
             {
               checked: uiSettings.disablePageAnimations,
@@ -21883,7 +22942,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
           {
             key: "document-comment-mode",
             label: "\u6587\u6863\u6279\u6CE8\u6A21\u5F0F",
-            control: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            control: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               import_antd8.Switch,
               {
                 checked: uiSettings.documentCommentMode,
@@ -21905,7 +22964,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
           setKeyboardShortcutsDialogOpen(true);
           setSettingsPopoverOpen(false);
         },
-        control: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+        control: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
           "span",
           {
             style: {
@@ -21916,35 +22975,35 @@ var PropertyPanelView = import_react14.default.forwardRef(
               gap: 6
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { children: "\u67E5\u770B" }),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.RightOutlined, { style: { fontSize: 10 } })
+              /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { children: "\u67E5\u770B" }),
+              /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.RightOutlined, { style: { fontSize: 10 } })
             ]
           }
         )
       }
     ];
-    const settingsCardContent = /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+    const settingsCardContent = /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
       "div",
       {
         className: "we-runtime-settings-card",
         onPointerDownCapture: (event) => event.stopPropagation(),
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "we-runtime-settings-card__header", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-settings-card__title", children: "Axhub \u6279\u6CE8" }),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "we-runtime-settings-card__header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-settings-card__title", children: "Axhub \u6279\u6CE8" }),
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               import_antd8.Tooltip,
               {
                 title: uiSettings.darkMode ? "\u5173\u95ED\u6DF1\u8272\u6A21\u5F0F" : "\u5F00\u542F\u6DF1\u8272\u6A21\u5F0F",
                 placement: "bottomRight",
                 getPopupContainer: resolveRuntimePopupContainer,
-                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                   import_antd8.Button,
                   {
                     type: "text",
                     size: "small",
                     className: "we-runtime-settings-dark-mode-button",
                     "aria-label": uiSettings.darkMode ? "\u5173\u95ED\u6DF1\u8272\u6A21\u5F0F" : "\u5F00\u542F\u6DF1\u8272\u6A21\u5F0F",
-                    icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.MoonOutlined, { style: { fontSize: 18 } }),
+                    icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.MoonOutlined, { style: { fontSize: 18 } }),
                     onClick: (event) => {
                       event.stopPropagation();
                       onUiSettingsChange({
@@ -21966,7 +23025,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-settings-card__list", children: settingsItems.map((item) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "we-runtime-settings-card__list", children: settingsItems.map((item) => /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "div",
             {
               className: [
@@ -21980,9 +23039,9 @@ var PropertyPanelView = import_react14.default.forwardRef(
                   void item.action();
                 }
               },
-              children: item.fullWidth ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-settings-card__full-control", children: item.control }) : /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-settings-card__label", children: item.label }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-settings-card__row-control", children: item.control })
+              children: item.fullWidth ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "we-runtime-settings-card__full-control", children: item.control }) : /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(import_jsx_runtime15.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-settings-card__label", children: item.label }),
+                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "we-runtime-settings-card__row-control", children: item.control })
               ] })
             },
             item.key
@@ -21990,7 +23049,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         ]
       }
     );
-    const settingsToolbarButton = /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const settingsToolbarButton = /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       import_antd8.Popover,
       {
         trigger: "click",
@@ -22006,11 +23065,11 @@ var PropertyPanelView = import_react14.default.forwardRef(
         },
         content: settingsCardContent,
         getPopupContainer: resolveRuntimePopupContainer,
-        children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { style: { display: "inline-flex" }, children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
           AgentToolbarIconButton,
           {
             title: "\u8BBE\u7F6E",
-            icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.SettingOutlined, {}),
+            icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.SettingOutlined, {}),
             awake: agentShellAwake,
             disabled: actionBusy
           }
@@ -22018,11 +23077,11 @@ var PropertyPanelView = import_react14.default.forwardRef(
       }
     );
     const selectionModeToolbarTitle = `${selectionModeActive ? "\u5173\u95ED\u9009\u62E9\u5143\u7D20" : "\u5F00\u542F\u9009\u62E9\u5143\u7D20"}\uFF08${SELECTION_MODE_TOGGLE_SHORTCUT_LABEL}\uFF09`;
-    const selectionModeToolbarButton = selectionModeAvailable ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const selectionModeToolbarButton = selectionModeAvailable ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarIconButton,
       {
         title: selectionModeToolbarTitle,
-        icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.SelectOutlined, {}),
+        icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.SelectOutlined, {}),
         ariaLabel: selectionModeActive ? "\u5173\u95ED\u9009\u62E9\u5143\u7D20" : "\u5F00\u542F\u9009\u62E9\u5143\u7D20",
         awake: agentShellAwake,
         active: selectionModeActive,
@@ -22030,11 +23089,11 @@ var PropertyPanelView = import_react14.default.forwardRef(
         onClick: toggleSelectionMode
       }
     ) : null;
-    const markdownSourceEditorToolbarButton = options.markdownSourceEditorAvailable ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const markdownSourceEditorToolbarButton = options.markdownSourceEditorAvailable ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarIconButton,
       {
         title: markdownSourceEditorOpen ? "\u9690\u85CF Markdown \u539F\u6587" : "\u663E\u793A Markdown \u539F\u6587",
-        icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.FileTextOutlined, {}),
+        icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.FileTextOutlined, {}),
         ariaLabel: markdownSourceEditorOpen ? "\u9690\u85CF Markdown \u539F\u6587" : "\u663E\u793A Markdown \u539F\u6587",
         awake: agentShellAwake,
         active: markdownSourceEditorOpen,
@@ -22063,11 +23122,11 @@ var PropertyPanelView = import_react14.default.forwardRef(
         }
       }
     ) : null;
-    const closeToolbarButton = /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const closeToolbarButton = /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarIconButton,
       {
         title: options.onRequestFullExit ? "\u9000\u51FA\u6279\u6CE8" : "\u5173\u95ED\u5DE5\u5177\u680F",
-        icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(CloseToolIcon, {}),
+        icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(CloseToolIcon, {}),
         ariaLabel: options.onRequestFullExit ? "\u9000\u51FA\u6279\u6CE8" : "\u5173\u95ED\u5DE5\u5177\u680F",
         awake: agentShellAwake,
         disabled: actionBusy,
@@ -22080,7 +23139,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         }
       }
     );
-    const propertyPanelEmptyState = /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+    const propertyPanelEmptyState = /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
       "div",
       {
         className: "we-runtime-prop-panel__empty-state",
@@ -22091,7 +23150,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
           gap: 8
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             import_antd8.Typography.Text,
             {
               style: {
@@ -22102,12 +23161,12 @@ var PropertyPanelView = import_react14.default.forwardRef(
               children: "\u6682\u65F6\u6CA1\u6709\u9700\u8981\u5904\u7406\u7684\u8BBE\u8BA1\u51B3\u7B56\u3002\u53EF\u4EE5\u5148\u751F\u6210\u591A\u4E2A\u8BBE\u8BA1\u65B9\u6848\uFF0C\u518D\u8FDB\u884C\u5BF9\u6BD4\u548C\u51B3\u7B56\u3002"
             }
           ),
-          showCopyPromptAction ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          showCopyPromptAction ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             import_antd8.Button,
             {
               type: "default",
               size: "small",
-              icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.CopyOutlined, {}),
+              icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.CopyOutlined, {}),
               onClick: () => {
                 void handleCopyGlobalPanelPrompt();
               },
@@ -22118,11 +23177,11 @@ var PropertyPanelView = import_react14.default.forwardRef(
         ]
       }
     );
-    const propertyPanelToggleButton = showPropertyPanelToolbarButton ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const propertyPanelToggleButton = showPropertyPanelToolbarButton ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarIconButton,
       {
         title: propertyPanelOpen ? "\u5173\u95ED\u8BBE\u8BA1\u51B3\u7B56" : "\u6253\u5F00\u8BBE\u8BA1\u51B3\u7B56",
-        icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.SlidersOutlined, {}),
+        icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.SlidersOutlined, {}),
         ariaLabel: "\u8BBE\u8BA1\u51B3\u7B56",
         awake: agentShellAwake,
         active: propertyPanelOpen,
@@ -22130,7 +23189,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         onClick: () => handleTogglePropertyPanel()
       }
     ) : null;
-    const handleTogglePageZoom = import_react14.default.useCallback(() => {
+    const handleTogglePageZoom = import_react16.default.useCallback(() => {
       onDismissSelection?.();
       onTargetChange(null);
       const nextPageZoomEnabled = !uiSettings.pageZoomEnabled;
@@ -22140,7 +23199,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
       onUiSettingsChange({ ...uiSettings, pageZoomEnabled: nextPageZoomEnabled });
     }, [dockPagePanelRight, onDismissSelection, onTargetChange, onUiSettingsChange, uiSettings]);
     const annotationSaveStatus = options.getAnnotationSaveStatus?.() ?? "saved";
-    const hostToolbarState = import_react14.default.useMemo(() => {
+    const hostToolbarState = import_react16.default.useMemo(() => {
       const agentOptions = [
         { value: null, label: "\u9ED8\u8BA4" },
         ...AGENT_MENU_OPTIONS.map((item) => {
@@ -22245,7 +23304,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
     ]);
     const onHostToolbarStateChange = props.onHostToolbarStateChange;
     const optionHostToolbarStateChange = options.onHostToolbarStateChange;
-    import_react14.default.useEffect(() => {
+    import_react16.default.useEffect(() => {
       onHostToolbarStateChange?.(hostToolbarState);
       optionHostToolbarStateChange?.(hostToolbarState);
       for (const listener of hostToolbarListenersRef.current) {
@@ -22255,7 +23314,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         }
       }
     }, [hostToolbarState, onHostToolbarStateChange, optionHostToolbarStateChange]);
-    const runHostToolbarAction = import_react14.default.useCallback(
+    const runHostToolbarAction = import_react16.default.useCallback(
       async (action) => {
         switch (action.type) {
           case "wake-agent":
@@ -22416,7 +23475,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         wakeAgentForAction
       ]
     );
-    import_react14.default.useImperativeHandle(
+    import_react16.default.useImperativeHandle(
       ref,
       () => ({
         setTarget(element) {
@@ -22484,22 +23543,22 @@ var PropertyPanelView = import_react14.default.forwardRef(
         toolMinimized
       ]
     );
-    const pageConfigPanelHeader = showExpandedPanel ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+    const pageConfigPanelHeader = showExpandedPanel ? /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
       "div",
       {
         ref: pagePanelHeaderRef,
         className: "we-runtime-page-config-panel__header we-runtime-prop-panel__drag-handle",
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "we-runtime-prop-panel__header-title-group", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-prop-panel__header-title", children: "\u8BBE\u8BA1\u51B3\u7B56" }),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "we-runtime-prop-panel__header-title-group", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-prop-panel__header-title", children: "\u8BBE\u8BA1\u51B3\u7B56" }),
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               import_antd8.Tooltip,
               {
                 title: PROPERTY_PANEL_HELP_TOOLTIP,
                 placement: "bottomRight",
                 arrow: { pointAtCenter: true },
                 getPopupContainer: resolveRuntimePopupContainer,
-                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                   import_antd8.Button,
                   {
                     type: "text",
@@ -22507,18 +23566,18 @@ var PropertyPanelView = import_react14.default.forwardRef(
                     className: "we-runtime-prop-panel__header-action we-runtime-prop-panel__header-help",
                     "aria-label": "\u8BBE\u8BA1\u51B3\u7B56\u8BF4\u660E",
                     title: "\u8BBE\u8BA1\u51B3\u7B56\u8BF4\u660E",
-                    icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.QuestionCircleOutlined, {})
+                    icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.QuestionCircleOutlined, {})
                   }
                 )
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "div",
             {
               className: "we-runtime-prop-panel__header-actions",
               onPointerDownCapture: (event) => event.stopPropagation(),
-              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+              children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                 import_antd8.Button,
                 {
                   type: "text",
@@ -22526,7 +23585,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                   className: "we-runtime-prop-panel__header-action",
                   "aria-label": "\u590D\u5236\u63D0\u793A\u8BCD",
                   title: "\u590D\u5236\u63D0\u793A\u8BCD",
-                  icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.CopyOutlined, {}),
+                  icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.CopyOutlined, {}),
                   onClick: () => {
                     void handleCopyGlobalPanelPrompt();
                   }
@@ -22537,7 +23596,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         ]
       }
     ) : null;
-    const expandedToolbar = /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+    const expandedToolbar = /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
       AgentToolbarShell,
       {
         awake: agentShellAwake,
@@ -22549,7 +23608,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
           maxWidth: "calc(100% - 8px)",
           margin: 0
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
           "div",
           {
             style: {
@@ -22560,9 +23619,9 @@ var PropertyPanelView = import_react14.default.forwardRef(
               width: "auto",
               minWidth: 0
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_antd8.Space, { size: 4, style: { minWidth: 0, flex: "0 0 auto" }, children: [
+            children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(import_antd8.Space, { size: 4, style: { minWidth: 0, flex: "0 0 auto" }, children: [
               selectionModeToolbarButton,
-              compactToolbar ? toolbarExtraContent : /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
+              compactToolbar ? toolbarExtraContent : /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(import_jsx_runtime15.Fragment, { children: [
                 markdownSourceEditorToolbarButton,
                 hostSurfaceVisibilityToolbarButton ?? agentExecutionToolbarButton,
                 copyToolbarButton,
@@ -22577,7 +23636,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         )
       }
     );
-    const minimizedToolbar = /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+    const minimizedToolbar = /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
       "button",
       {
         className: "we-runtime-prop-panel__minimized-trigger we-runtime-prop-panel__drag-handle",
@@ -22606,7 +23665,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
           transition: "opacity 220ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 220ms ease"
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "span",
             {
               "aria-hidden": "true",
@@ -22619,7 +23678,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "span",
             {
               "aria-hidden": "true",
@@ -22632,7 +23691,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "span",
             {
               style: {
@@ -22646,10 +23705,10 @@ var PropertyPanelView = import_react14.default.forwardRef(
                 color: EDITOR_CHROME.textSecondary,
                 transition: "background-color 220ms ease, color 220ms ease, transform 220ms ease"
               },
-              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(AgentSparkleIcon, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(AgentSparkleIcon, {})
             }
           ),
-          modifiedCount > 0 ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          modifiedCount > 0 ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "span",
             {
               style: {
@@ -22687,7 +23746,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
         bottom: "auto"
       } : { right: PROPERTY_PANEL_RIGHT, top: PROPERTY_PANEL_TOP }
     };
-    const pageConfigPanel = showExpandedPanel ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+    const pageConfigPanel = showExpandedPanel ? /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
       "div",
       {
         ref: pagePanelRef,
@@ -22706,19 +23765,19 @@ var PropertyPanelView = import_react14.default.forwardRef(
         onPointerLeave: () => onHoverSelectionSuppressedChange(false),
         children: [
           pageConfigPanelHeader,
-          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "div",
             {
               ref: pagePanelBodyRef,
               className: "we-runtime-page-config-panel__body",
               style: pageConfigPanelBodyStyle,
               "aria-hidden": false,
-              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+              children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                 "div",
                 {
                   onPointerDownCapture: (event) => event.stopPropagation(),
                   style: { display: "flex", flexDirection: "column", gap: 10 },
-                  children: hasPageTweakEntries ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                  children: hasPageTweakEntries ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                     ReactPageTweakPanel,
                     {
                       entries: pageTweakEntries,
@@ -22746,8 +23805,8 @@ var PropertyPanelView = import_react14.default.forwardRef(
         ]
       }
     ) : null;
-    return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(import_jsx_runtime15.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
         "div",
         {
           ref: rootRef,
@@ -22772,9 +23831,9 @@ var PropertyPanelView = import_react14.default.forwardRef(
           },
           onPointerLeave: () => onHoverSelectionSuppressedChange(false),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("style", { nonce: resolveCspNonce(), children: PROPERTY_PANEL_LOCAL_STYLES }),
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("style", { nonce: resolveCspNonce(), children: PROPERTY_PANEL_LOCAL_STYLES }),
             isHostToolbarMode ? null : toolMinimized ? minimizedToolbar : expandedToolbar,
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               import_antd8.Modal,
               {
                 title: "\u8BED\u97F3\u5FEB\u6377\u952E",
@@ -22784,8 +23843,8 @@ var PropertyPanelView = import_react14.default.forwardRef(
                 maskClosable: true,
                 onCancel: closeShortcutDialog,
                 footer: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_antd8.Button, { onClick: closeShortcutDialog, children: "\u53D6\u6D88" }, "cancel"),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_antd8.Button, { onClick: closeShortcutDialog, children: "\u53D6\u6D88" }, "cancel"),
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                     import_antd8.Button,
                     {
                       type: "primary",
@@ -22796,8 +23855,8 @@ var PropertyPanelView = import_react14.default.forwardRef(
                     "save"
                   )
                 ],
-                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 16 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 16 }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                     "div",
                     {
                       style: {
@@ -22808,8 +23867,8 @@ var PropertyPanelView = import_react14.default.forwardRef(
                         padding: "12px 0"
                       },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                             "div",
                             {
                               style: {
@@ -22820,9 +23879,9 @@ var PropertyPanelView = import_react14.default.forwardRef(
                               children: "\u542F\u7528\u8BED\u97F3\u5FEB\u6377\u952E"
                             }
                           ),
-                          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { style: shortcutCaptureHintStyle, children: "\u5F00\u542F\u540E\u624D\u4F1A\u54CD\u5E94\u957F\u6309\u4FEE\u9970\u952E\u548C\u9F20\u6807\u4E2D\u952E\u3002" })
+                          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { style: shortcutCaptureHintStyle, children: "\u5F00\u542F\u540E\u624D\u4F1A\u54CD\u5E94\u957F\u6309\u4FEE\u9970\u952E\u548C\u9F20\u6807\u4E2D\u952E\u3002" })
                         ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                           import_antd8.Switch,
                           {
                             checked: shortcutDraft.enabled,
@@ -22837,7 +23896,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                       ]
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                     "div",
                     {
                       style: {
@@ -22850,8 +23909,8 @@ var PropertyPanelView = import_react14.default.forwardRef(
                         borderBottom: `1px solid ${EDITOR_CHROME.border}`
                       },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                             "div",
                             {
                               style: {
@@ -22862,9 +23921,9 @@ var PropertyPanelView = import_react14.default.forwardRef(
                               children: "\u542F\u7528\u9F20\u6807\u4E2D\u952E\u76D1\u542C"
                             }
                           ),
-                          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { style: shortcutCaptureHintStyle, children: "\u9F20\u6807\u4E2D\u952E\u5355\u51FB\u4F1A\u76F4\u63A5\u8FDB\u5165\u6279\u6CE8\u6C14\u6CE1\u5361\u7247\u3002" })
+                          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { style: shortcutCaptureHintStyle, children: "\u9F20\u6807\u4E2D\u952E\u5355\u51FB\u4F1A\u76F4\u63A5\u8FDB\u5165\u6279\u6CE8\u6C14\u6CE1\u5361\u7247\u3002" })
                         ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                           import_antd8.Switch,
                           {
                             checked: shortcutDraft.middleClickEnabled,
@@ -22879,7 +23938,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                       ]
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                     "div",
                     {
                       style: {
@@ -22887,7 +23946,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                         gridTemplateColumns: "1fr 1fr",
                         gap: 12
                       },
-                      children: [0, 1].map((index) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                      children: [0, 1].map((index) => /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                         ShortcutCaptureCard,
                         {
                           ref: (node) => {
@@ -22928,34 +23987,34 @@ var PropertyPanelView = import_react14.default.forwardRef(
                       ))
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { style: shortcutCaptureHintStyle, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { style: shortcutCaptureHintStyle, children: [
                     "\u4EC5\u652F\u6301 Shift / Alt / Ctrl / Command\uFF0C\u957F\u6309 ",
                     COMMENT_SHORTCUT_LONG_PRESS_MS,
                     "ms \u89E6\u53D1\u3002"
                   ] }),
-                  shortcutValidationError ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { style: { fontSize: 12, color: EDITOR_CHROME.textDanger }, children: shortcutValidationError }) : null
+                  shortcutValidationError ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { style: { fontSize: 12, color: EDITOR_CHROME.textDanger }, children: shortcutValidationError }) : null
                 ] })
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               import_antd8.Modal,
               {
-                title: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "we-runtime-directory-picker__title", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { children: "\u9009\u62E9 AI \u5DE5\u4F5C\u76EE\u5F55" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-directory-picker__description", children: "\u9009\u62E9\u6279\u6CE8\u548C AI \u6587\u4EF6\u64CD\u4F5C\u6240\u5728\u7684\u9879\u76EE\u76EE\u5F55\u3002" })
+                title: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "we-runtime-directory-picker__title", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { children: "\u9009\u62E9 AI \u5DE5\u4F5C\u76EE\u5F55" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "we-runtime-directory-picker__description", children: "\u9009\u62E9\u6279\u6CE8\u548C AI \u6587\u4EF6\u64CD\u4F5C\u6240\u5728\u7684\u9879\u76EE\u76EE\u5F55\u3002" })
                 ] }),
                 open: directoryPickerOpen,
                 centered: true,
                 width: 720,
                 className: "we-runtime-directory-picker-modal",
                 getContainer: false,
-                closeIcon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                closeIcon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                   import_antd8.Tooltip,
                   {
                     title: "\u5173\u95ED\u76EE\u5F55\u9009\u62E9\u5668",
                     placement: "bottomRight",
                     getPopupContainer: resolveRuntimePopupContainer,
-                    children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.CloseOutlined, { "aria-label": "\u5173\u95ED\u76EE\u5F55\u9009\u62E9\u5668" })
+                    children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.CloseOutlined, { "aria-label": "\u5173\u95ED\u76EE\u5F55\u9009\u62E9\u5668" })
                   }
                 ),
                 keyboard: !directoryPickerBusy && !directoryPickerRecentOpen,
@@ -22967,7 +24026,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                   }
                 },
                 footer: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                     import_antd8.Button,
                     {
                       disabled: directoryPickerBusy,
@@ -22976,7 +24035,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                     },
                     "cancel"
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                     import_antd8.Button,
                     {
                       type: "primary",
@@ -22990,7 +24049,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                     "select"
                   )
                 ],
-                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                   "div",
                   {
                     className: "we-runtime-directory-picker",
@@ -23001,7 +24060,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                       }
                     },
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                         "form",
                         {
                           className: "we-runtime-directory-picker__path-row",
@@ -23011,13 +24070,13 @@ var PropertyPanelView = import_react14.default.forwardRef(
                             handleDirectoryPickerPathSubmit();
                           },
                           children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                            /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                               "div",
                               {
                                 ref: directoryPickerPathFieldRef,
                                 className: "we-runtime-directory-picker__path-field",
                                 children: [
-                                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                                     import_antd8.Input,
                                     {
                                       size: "large",
@@ -23046,7 +24105,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                                       onKeyDown: handleDirectoryPickerPathKeyDown
                                     }
                                   ),
-                                  directoryPickerRecentOpen ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                                  directoryPickerRecentOpen ? /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                                     "div",
                                     {
                                       id: "we-runtime-directory-picker-recent-list",
@@ -23054,10 +24113,10 @@ var PropertyPanelView = import_react14.default.forwardRef(
                                       "aria-label": "\u6700\u8FD1\u9879\u76EE",
                                       className: "we-runtime-directory-picker__recent-list",
                                       children: [
-                                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-directory-picker__recent-heading", children: "\u6700\u8FD1\u9879\u76EE" }),
+                                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "we-runtime-directory-picker__recent-heading", children: "\u6700\u8FD1\u9879\u76EE" }),
                                         filteredDirectoryPickerRecentWorkspaces.length > 0 ? filteredDirectoryPickerRecentWorkspaces.map((workspace, index) => {
                                           const workspaceName = getAiExecutionRecentWorkspaceName(workspace.path);
-                                          return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                                          return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                                             "div",
                                             {
                                               id: `we-runtime-directory-picker-recent-${index}`,
@@ -23066,7 +24125,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                                               className: `we-runtime-directory-picker__recent-item${index === directoryPickerRecentActiveIndex ? " we-runtime-directory-picker__recent-item--active" : ""}`,
                                               onPointerMove: () => setDirectoryPickerRecentActiveIndex(index),
                                               children: [
-                                                /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                                                /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                                                   "button",
                                                   {
                                                     type: "button",
@@ -23074,10 +24133,10 @@ var PropertyPanelView = import_react14.default.forwardRef(
                                                     onMouseDown: (event) => event.preventDefault(),
                                                     onClick: () => handleDirectoryPickerRecentBrowse(workspace.path),
                                                     children: [
-                                                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.HistoryOutlined, { "aria-hidden": "true" }),
-                                                      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { className: "we-runtime-directory-picker__recent-copy", children: [
-                                                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-directory-picker__recent-name", children: workspaceName }),
-                                                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                                                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.HistoryOutlined, { "aria-hidden": "true" }),
+                                                      /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { className: "we-runtime-directory-picker__recent-copy", children: [
+                                                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-directory-picker__recent-name", children: workspaceName }),
+                                                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                                                           "span",
                                                           {
                                                             className: "we-runtime-directory-picker__recent-path",
@@ -23089,20 +24148,20 @@ var PropertyPanelView = import_react14.default.forwardRef(
                                                     ]
                                                   }
                                                 ),
-                                                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                                                /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                                                   import_antd8.Tooltip,
                                                   {
                                                     title: "\u4ECE\u6700\u8FD1\u9879\u76EE\u4E2D\u79FB\u9664",
                                                     placement: "left",
                                                     getPopupContainer: resolveRuntimePopupContainer,
-                                                    children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                                                    children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                                                       import_antd8.Button,
                                                       {
                                                         type: "text",
                                                         size: "small",
                                                         className: "we-runtime-directory-picker__recent-remove",
                                                         "aria-label": `\u4ECE\u6700\u8FD1\u9879\u76EE\u4E2D\u79FB\u9664\uFF1A${workspaceName}`,
-                                                        icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.DeleteOutlined, {}),
+                                                        icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.DeleteOutlined, {}),
                                                         onMouseDown: (event) => event.preventDefault(),
                                                         onClick: (event) => {
                                                           event.stopPropagation();
@@ -23116,14 +24175,14 @@ var PropertyPanelView = import_react14.default.forwardRef(
                                             },
                                             workspace.path
                                           );
-                                        }) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-directory-picker__recent-empty", children: "\u6CA1\u6709\u5339\u914D\u7684\u6700\u8FD1\u9879\u76EE" })
+                                        }) : /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "we-runtime-directory-picker__recent-empty", children: "\u6CA1\u6709\u5339\u914D\u7684\u6700\u8FD1\u9879\u76EE" })
                                       ]
                                     }
                                   ) : null
                                 ]
                               }
                             ),
-                            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                               import_antd8.Button,
                               {
                                 size: "large",
@@ -23136,25 +24195,25 @@ var PropertyPanelView = import_react14.default.forwardRef(
                           ]
                         }
                       ),
-                      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "we-runtime-directory-picker__location", children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-directory-picker__location-label", children: "\u4F4D\u7F6E" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-directory-picker__divider" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "we-runtime-directory-picker__location", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-directory-picker__location-label", children: "\u4F4D\u7F6E" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-directory-picker__divider" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                           "div",
                           {
                             ref: directoryPickerBreadcrumbRef,
                             role: "navigation",
                             "aria-label": "\u76EE\u5F55\u8DEF\u5F84",
                             className: "we-runtime-directory-picker__breadcrumbs",
-                            children: directoryPickerBreadcrumbs.map((breadcrumb, index) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_react14.default.Fragment, { children: [
-                              index > 0 ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
-                                import_icons9.RightOutlined,
+                            children: directoryPickerBreadcrumbs.map((breadcrumb, index) => /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(import_react16.default.Fragment, { children: [
+                              index > 0 ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+                                import_icons10.RightOutlined,
                                 {
                                   className: "we-runtime-directory-picker__breadcrumb-separator",
                                   "aria-hidden": "true"
                                 }
                               ) : null,
-                              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                              /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                                 import_antd8.Button,
                                 {
                                   type: "text",
@@ -23171,21 +24230,21 @@ var PropertyPanelView = import_react14.default.forwardRef(
                             ] }, breadcrumb.path))
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-directory-picker__divider" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "we-runtime-directory-picker__location-actions", children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-directory-picker__divider" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "we-runtime-directory-picker__location-actions", children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                             import_antd8.Tooltip,
                             {
                               title: "\u8FD4\u56DE\u4E3B\u76EE\u5F55",
                               placement: "bottomRight",
                               getPopupContainer: resolveRuntimePopupContainer,
-                              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                              children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                                 import_antd8.Button,
                                 {
                                   type: "text",
                                   size: "small",
                                   "aria-label": "\u8FD4\u56DE\u4E3B\u76EE\u5F55",
-                                  icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.HomeOutlined, {}),
+                                  icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.HomeOutlined, {}),
                                   disabled: directoryPickerBusy || !directoryPickerState?.home,
                                   onClick: () => {
                                     void browseAiExecutionDirectories(directoryPickerState?.home);
@@ -23194,19 +24253,19 @@ var PropertyPanelView = import_react14.default.forwardRef(
                               )
                             }
                           ),
-                          /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                             import_antd8.Tooltip,
                             {
                               title: "\u8FD4\u56DE\u4E0A\u4E00\u7EA7",
                               placement: "bottomRight",
                               getPopupContainer: resolveRuntimePopupContainer,
-                              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                              children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                                 import_antd8.Button,
                                 {
                                   type: "text",
                                   size: "small",
                                   "aria-label": "\u8FD4\u56DE\u4E0A\u4E00\u7EA7",
-                                  icon: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.ArrowUpOutlined, {}),
+                                  icon: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.ArrowUpOutlined, {}),
                                   disabled: directoryPickerBusy || !directoryPickerState?.parent,
                                   onClick: () => {
                                     void browseAiExecutionDirectories(
@@ -23219,15 +24278,15 @@ var PropertyPanelView = import_react14.default.forwardRef(
                           )
                         ] })
                       ] }),
-                      directoryPickerRecentError ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "we-runtime-directory-picker__recent-error", role: "status", children: [
+                      directoryPickerRecentError ? /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "we-runtime-directory-picker__recent-error", role: "status", children: [
                         "\u6700\u8FD1\u9879\u76EE\u6682\u4E0D\u53EF\u7528\uFF1A",
                         directoryPickerRecentError
                       ] }) : null,
-                      directoryPickerError ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-directory-picker__error", role: "alert", children: directoryPickerError }) : null,
-                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-directory-picker__list", children: directoryPickerBusy ? /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "we-runtime-directory-picker__empty", children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.ReloadOutlined, { spin: true }),
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { children: "\u6B63\u5728\u8BFB\u53D6\u76EE\u5F55..." })
-                      ] }) : directoryPickerState?.directories.length ? directoryPickerState.directories.map((directory) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                      directoryPickerError ? /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "we-runtime-directory-picker__error", role: "alert", children: directoryPickerError }) : null,
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "we-runtime-directory-picker__list", children: directoryPickerBusy ? /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "we-runtime-directory-picker__empty", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.ReloadOutlined, { spin: true }),
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { children: "\u6B63\u5728\u8BFB\u53D6\u76EE\u5F55..." })
+                      ] }) : directoryPickerState?.directories.length ? directoryPickerState.directories.map((directory) => /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                         "button",
                         {
                           type: "button",
@@ -23237,10 +24296,10 @@ var PropertyPanelView = import_react14.default.forwardRef(
                             void browseAiExecutionDirectories(directory.path);
                           },
                           children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_icons9.FolderOpenOutlined, { "aria-hidden": "true" }),
-                            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "we-runtime-directory-picker__row-name", children: directory.name }),
-                            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
-                              import_icons9.RightOutlined,
+                            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(import_icons10.FolderOpenOutlined, { "aria-hidden": "true" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "we-runtime-directory-picker__row-name", children: directory.name }),
+                            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+                              import_icons10.RightOutlined,
                               {
                                 className: "we-runtime-directory-picker__row-arrow",
                                 "aria-hidden": "true"
@@ -23249,13 +24308,13 @@ var PropertyPanelView = import_react14.default.forwardRef(
                           ]
                         },
                         directory.path
-                      )) : /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "we-runtime-directory-picker__empty", children: "\u5F53\u524D\u76EE\u5F55\u6CA1\u6709\u53EF\u8FDB\u5165\u7684\u5B50\u76EE\u5F55\uFF0C\u4F60\u4ECD\u53EF\u4EE5\u9009\u62E9\u5B83\u4F5C\u4E3A AI \u5DE5\u4F5C\u76EE\u5F55\u3002" }) })
+                      )) : /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "we-runtime-directory-picker__empty", children: "\u5F53\u524D\u76EE\u5F55\u6CA1\u6709\u53EF\u8FDB\u5165\u7684\u5B50\u76EE\u5F55\uFF0C\u4F60\u4ECD\u53EF\u4EE5\u9009\u62E9\u5B83\u4F5C\u4E3A AI \u5DE5\u4F5C\u76EE\u5F55\u3002" }) })
                     ]
                   }
                 )
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
               import_antd8.Modal,
               {
                 title: "\u5FEB\u6377\u952E",
@@ -23266,7 +24325,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                 maskClosable: true,
                 onCancel: () => setKeyboardShortcutsDialogOpen(false),
                 footer: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                     import_antd8.Button,
                     {
                       type: "primary",
@@ -23276,7 +24335,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                     "close"
                   )
                 ],
-                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 0 }, children: [
+                children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: 0 }, children: [
                   {
                     keys: [`${navigator.platform?.includes("Mac") ? "\u2318" : "Ctrl"} + Enter`, "Esc"],
                     label: "\u4FDD\u5B58\u5E76\u5173\u95ED\u6C14\u6CE1\u5361\u7247",
@@ -23306,7 +24365,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                       desc: "\u7126\u70B9\u4E0D\u5728\u8F93\u5165\u6846\u6216\u6587\u672C\u7F16\u8F91\u533A\u65F6\uFF0C\u5220\u9664\u5DF2\u9009\u5143\u7D20\u5E76\u5728\u7236\u7EA7\u521B\u5EFA\u53EF\u6062\u590D\u6279\u6CE8"
                     }
                   ] : []
-                ].map((item) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+                ].map((item) => /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
                   "div",
                   {
                     style: {
@@ -23318,8 +24377,8 @@ var PropertyPanelView = import_react14.default.forwardRef(
                       borderBottom: `1px solid ${EDITOR_CHROME.border}`
                     },
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                           "div",
                           {
                             style: {
@@ -23330,7 +24389,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                             children: item.label
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                           "div",
                           {
                             style: {
@@ -23342,7 +24401,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                           }
                         )
                       ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                         "div",
                         {
                           style: {
@@ -23352,7 +24411,7 @@ var PropertyPanelView = import_react14.default.forwardRef(
                             alignItems: "center",
                             paddingTop: 2
                           },
-                          children: item.keys.map((key) => /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                          children: item.keys.map((key) => /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
                             "kbd",
                             {
                               style: {
@@ -23405,16 +24464,16 @@ function syncDraftAgainstSaved(prev, nextSaved, resetDraft) {
 }
 
 // src/ui/runtime/runtime-effects/use-feedback-bridge.ts
-var import_react15 = __toESM(require("react"), 1);
+var import_react17 = __toESM(require("react"), 1);
 var import_antd9 = require("antd");
 var HOST_TOAST_EVENT_NAME = "axhub-commentary-host-toast";
 var MESSAGE_TYPES = /* @__PURE__ */ new Set(["success", "info", "warning", "error"]);
-var PromptBridgeContent = import_react15.default.forwardRef(
+var PromptBridgeContent = import_react17.default.forwardRef(
   (props, ref) => {
-    const [value, setValue] = import_react15.default.useState(props.defaultValue ?? "");
-    const [error, setError] = import_react15.default.useState("");
-    const inputElementRef = import_react15.default.useRef(null);
-    import_react15.default.useImperativeHandle(ref, () => ({
+    const [value, setValue] = import_react17.default.useState(props.defaultValue ?? "");
+    const [error, setError] = import_react17.default.useState("");
+    const inputElementRef = import_react17.default.useRef(null);
+    import_react17.default.useImperativeHandle(ref, () => ({
       getValue: () => value,
       setError: (nextError) => {
         setError(nextError);
@@ -23434,7 +24493,7 @@ var PromptBridgeContent = import_react15.default.forwardRef(
         setError("");
       }
     };
-    const field = props.multiline ? import_react15.default.createElement(import_antd9.Input.TextArea, {
+    const field = props.multiline ? import_react17.default.createElement(import_antd9.Input.TextArea, {
       ref: (instance) => {
         inputElementRef.current = instance?.resizableTextArea?.textArea ?? null;
       },
@@ -23443,7 +24502,7 @@ var PromptBridgeContent = import_react15.default.forwardRef(
       readOnly: props.readOnly,
       placeholder: props.placeholder,
       onChange: handleChange
-    }) : import_react15.default.createElement(import_antd9.Input, {
+    }) : import_react17.default.createElement(import_antd9.Input, {
       ref: (instance) => {
         inputElementRef.current = instance?.input ?? null;
       },
@@ -23452,17 +24511,17 @@ var PromptBridgeContent = import_react15.default.forwardRef(
       placeholder: props.placeholder,
       onChange: handleChange
     });
-    return import_react15.default.createElement(
+    return import_react17.default.createElement(
       "div",
       { style: { display: "grid", gap: 10 } },
-      props.content ? import_react15.default.createElement("div", { style: { whiteSpace: "pre-line" } }, props.content) : null,
-      props.label ? import_react15.default.createElement(
+      props.content ? import_react17.default.createElement("div", { style: { whiteSpace: "pre-line" } }, props.content) : null,
+      props.label ? import_react17.default.createElement(
         "div",
         { style: { fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.88)" } },
         props.label
       ) : null,
       field,
-      error ? import_react15.default.createElement(
+      error ? import_react17.default.createElement(
         "div",
         { style: { fontSize: 12, color: "#ff4d4f" } },
         error
@@ -23473,7 +24532,7 @@ var PromptBridgeContent = import_react15.default.forwardRef(
 PromptBridgeContent.displayName = "PromptBridgeContent";
 function useFeedbackBridge() {
   const app = import_antd9.App.useApp();
-  import_react15.default.useEffect(() => {
+  import_react17.default.useEffect(() => {
     setWebEditorFeedbackBridge({
       confirm: ({
         title,
@@ -23500,10 +24559,10 @@ function useFeedbackBridge() {
           maskClosable: true,
           getContainer,
           cancelButtonProps: cancelText ? void 0 : { style: { display: "none" } },
-          footer: secondaryText ? (_originNode, { OkBtn }) => import_react15.default.createElement(
-            import_react15.default.Fragment,
+          footer: secondaryText ? (_originNode, { OkBtn }) => import_react17.default.createElement(
+            import_react17.default.Fragment,
             null,
-            import_react15.default.createElement(
+            import_react17.default.createElement(
               import_antd9.Button,
               {
                 key: "secondary",
@@ -23514,7 +24573,7 @@ function useFeedbackBridge() {
               },
               secondaryText
             ),
-            import_react15.default.createElement(OkBtn)
+            import_react17.default.createElement(OkBtn)
           ) : void 0,
           onOk,
           onCancel
@@ -23552,11 +24611,11 @@ function useFeedbackBridge() {
         onOk,
         onCancel
       }) => {
-        const contentRef = import_react15.default.createRef();
+        const contentRef = import_react17.default.createRef();
         const modalRef = app.modal.confirm({
           className: "we-runtime-feedback-modal",
           title,
-          content: import_react15.default.createElement(PromptBridgeContent, {
+          content: import_react17.default.createElement(PromptBridgeContent, {
             ref: contentRef,
             content,
             label,
@@ -23621,10 +24680,10 @@ function useFeedbackBridge() {
 }
 
 // src/ui/runtime/runtime-effects/use-pointer-tracker.ts
-var import_react16 = __toESM(require("react"), 1);
+var import_react18 = __toESM(require("react"), 1);
 function usePointerTracker() {
-  const latestPointerPositionRef = import_react16.default.useRef(null);
-  import_react16.default.useEffect(() => {
+  const latestPointerPositionRef = import_react18.default.useRef(null);
+  import_react18.default.useEffect(() => {
     const recordPointerPosition = (event) => {
       if (!Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return;
       latestPointerPositionRef.current = {
@@ -23647,35 +24706,35 @@ function usePointerTracker() {
 }
 
 // src/ui/runtime/runtime-effects/use-selection-mode-guards.ts
-var import_react17 = __toESM(require("react"), 1);
+var import_react19 = __toESM(require("react"), 1);
 function useSelectionModeGuards(params) {
   const { propertyPanelOptions, setToolMinimized } = params;
   const initialSelectionModeActive = params.initialSelectionModeActive ?? true;
-  const toolMinimizedRef = import_react17.default.useRef(false);
-  const [selectionModeActive, setSelectionModeActive] = import_react17.default.useState(initialSelectionModeActive);
-  const selectionModeActiveRef = import_react17.default.useRef(initialSelectionModeActive);
-  const selectionHoverOwnersRef = import_react17.default.useRef(/* @__PURE__ */ new Set());
-  const selectionInteractionLockOwnersRef = import_react17.default.useRef(/* @__PURE__ */ new Set());
-  const selectionRestoreTimerRef = import_react17.default.useRef(null);
-  const selectionNeedsExplicitReactivateRef = import_react17.default.useRef(false);
-  const markerVisibilityBeforeMinimizeRef = import_react17.default.useRef(
+  const toolMinimizedRef = import_react19.default.useRef(false);
+  const [selectionModeActive, setSelectionModeActive] = import_react19.default.useState(initialSelectionModeActive);
+  const selectionModeActiveRef = import_react19.default.useRef(initialSelectionModeActive);
+  const selectionHoverOwnersRef = import_react19.default.useRef(/* @__PURE__ */ new Set());
+  const selectionInteractionLockOwnersRef = import_react19.default.useRef(/* @__PURE__ */ new Set());
+  const selectionRestoreTimerRef = import_react19.default.useRef(null);
+  const selectionNeedsExplicitReactivateRef = import_react19.default.useRef(false);
+  const markerVisibilityBeforeMinimizeRef = import_react19.default.useRef(
     propertyPanelOptions?.getChangeMarkersVisible?.() ?? true
   );
-  const shouldAllowPageInteraction = import_react17.default.useCallback(
+  const shouldAllowPageInteraction = import_react19.default.useCallback(
     () => toolMinimizedRef.current || !selectionModeActiveRef.current,
     []
   );
-  const syncSelectionModeAvailability = import_react17.default.useCallback(() => {
+  const syncSelectionModeAvailability = import_react19.default.useCallback(() => {
     const enabled = selectionModeActiveRef.current && !toolMinimizedRef.current && !selectionNeedsExplicitReactivateRef.current && selectionHoverOwnersRef.current.size === 0 && selectionInteractionLockOwnersRef.current.size === 0;
     propertyPanelOptions?.onToggleSelectionMode?.(enabled, {
       allowPageInteraction: shouldAllowPageInteraction()
     });
   }, [propertyPanelOptions, shouldAllowPageInteraction]);
-  const isSelectionModeActive = import_react17.default.useCallback(
+  const isSelectionModeActive = import_react19.default.useCallback(
     () => selectionModeActiveRef.current && !toolMinimizedRef.current && !selectionNeedsExplicitReactivateRef.current && selectionHoverOwnersRef.current.size === 0 && selectionInteractionLockOwnersRef.current.size === 0,
     []
   );
-  const handleHoverSelectionSuppressedChange = import_react17.default.useCallback(
+  const handleHoverSelectionSuppressedChange = import_react19.default.useCallback(
     (source, hovered) => {
       if (selectionRestoreTimerRef.current !== null) {
         window.clearTimeout(selectionRestoreTimerRef.current);
@@ -23698,7 +24757,7 @@ function useSelectionModeGuards(params) {
     },
     [syncSelectionModeAvailability]
   );
-  const handleSelectionInteractionLockChange = import_react17.default.useCallback(
+  const handleSelectionInteractionLockChange = import_react19.default.useCallback(
     (source, locked) => {
       if (locked) {
         selectionInteractionLockOwnersRef.current.add(source);
@@ -23709,7 +24768,7 @@ function useSelectionModeGuards(params) {
     },
     [syncSelectionModeAvailability]
   );
-  const handleSelectionModeActiveChange = import_react17.default.useCallback(
+  const handleSelectionModeActiveChange = import_react19.default.useCallback(
     (active) => {
       const nextActive = Boolean(active);
       if (selectionModeActiveRef.current === nextActive) {
@@ -23739,7 +24798,7 @@ function useSelectionModeGuards(params) {
     },
     [propertyPanelOptions, syncSelectionModeAvailability]
   );
-  const handleToolMinimizedChange = import_react17.default.useCallback(
+  const handleToolMinimizedChange = import_react19.default.useCallback(
     (nextMinimized) => {
       if (toolMinimizedRef.current === nextMinimized) return;
       toolMinimizedRef.current = nextMinimized;
@@ -23770,7 +24829,7 @@ function useSelectionModeGuards(params) {
     },
     [propertyPanelOptions, setToolMinimized, syncSelectionModeAvailability]
   );
-  import_react17.default.useEffect(() => {
+  import_react19.default.useEffect(() => {
     return () => {
       if (selectionRestoreTimerRef.current !== null) {
         window.clearTimeout(selectionRestoreTimerRef.current);
@@ -23799,7 +24858,7 @@ function useSelectionModeGuards(params) {
 }
 
 // src/ui/runtime/runtime-effects/use-clipboard-comment-paste.ts
-var import_react18 = __toESM(require("react"), 1);
+var import_react20 = __toESM(require("react"), 1);
 
 // src/ui/runtime/dom-utils.ts
 function isEditableOrFormControl(element) {
@@ -23826,128 +24885,6 @@ function isIframeElement(node) {
   return node.tagName === "IFRAME";
 }
 
-// src/ui/runtime/image-attachments.ts
-var MAX_PROMPT_IMAGE_ATTACHMENTS = 3;
-var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-function createAttachmentId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `img_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
-function inferExtension(mimeType) {
-  const normalized = String(mimeType ?? "").trim().toLowerCase();
-  if (!normalized.startsWith("image/")) return "png";
-  const ext = normalized.slice("image/".length).replace(/[^a-z0-9+.-]/g, "");
-  if (!ext) return "png";
-  if (ext === "jpeg") return "jpg";
-  if (ext === "svg+xml") return "svg";
-  return ext;
-}
-function normalizeImageName(name, mimeType, index) {
-  const trimmed = String(name ?? "").trim();
-  if (trimmed) return trimmed;
-  return `clipboard-image-${index + 1}.${inferExtension(mimeType)}`;
-}
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error ?? new Error("blob-read-failed"));
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.readAsDataURL(blob);
-  });
-}
-async function createPromptImageAttachment(blob, index = 0, fallbackName) {
-  const mimeType = String(blob.type ?? "").trim() || "image/png";
-  return {
-    id: createAttachmentId(),
-    name: normalizeImageName(
-      "name" in blob && typeof blob.name === "string" ? blob.name : fallbackName,
-      mimeType,
-      index
-    ),
-    data: await blobToDataUrl(blob),
-    mimeType,
-    size: Number(blob.size ?? 0),
-    createdAt: Date.now(),
-    source: "user"
-  };
-}
-function isStandardSvgText(value) {
-  const source = String(value ?? "").trim();
-  if (!source || typeof DOMParser === "undefined") return false;
-  try {
-    const document2 = new DOMParser().parseFromString(source, "image/svg+xml");
-    const root = document2.documentElement;
-    return root.localName === "svg" && root.namespaceURI === SVG_NAMESPACE;
-  } catch {
-    return false;
-  }
-}
-async function createPromptImageAttachmentFromSvgText(value) {
-  const source = String(value ?? "").trim();
-  if (!isStandardSvgText(source)) return null;
-  const blob = new Blob([source], { type: "image/svg+xml" });
-  return createPromptImageAttachment(blob, 0, "clipboard-image-1.svg");
-}
-async function readPromptImageAttachmentsFromDataTransferItems(items) {
-  if (!items) return [];
-  const imageFiles = Array.from(items).filter((item) => item.kind === "file" && String(item.type ?? "").startsWith("image/")).map((item) => item.getAsFile()).filter((file) => Boolean(file));
-  return Promise.all(imageFiles.map((file, index) => createPromptImageAttachment(file, index)));
-}
-async function readPromptImageAttachmentsFromClipboardItems(items) {
-  if (!items?.length) return [];
-  const blobs = await Promise.all(
-    items.flatMap(
-      (item) => item.types.filter((type) => String(type ?? "").startsWith("image/")).map(async (type) => ({
-        blob: await item.getType(type),
-        type
-      }))
-    )
-  );
-  return Promise.all(
-    blobs.map(({ blob }, index) => createPromptImageAttachment(blob, index))
-  );
-}
-function mergePromptImageAttachments(existing, incoming, maxCount = MAX_PROMPT_IMAGE_ATTACHMENTS) {
-  const safeExisting = existing.slice(0, maxCount);
-  const capacity = Math.max(0, maxCount - safeExisting.length);
-  const accepted = incoming.slice(0, capacity);
-  return {
-    images: [...safeExisting, ...accepted],
-    acceptedCount: accepted.length,
-    droppedCount: Math.max(0, incoming.length - accepted.length)
-  };
-}
-function isTargetScreenshotImage(image) {
-  return image.source === "target-screenshot";
-}
-function splitPromptImageAttachments(images) {
-  const userImages = [];
-  let targetScreenshot = null;
-  for (const image of images) {
-    if (isTargetScreenshotImage(image)) {
-      targetScreenshot = image;
-    } else {
-      userImages.push(image);
-    }
-  }
-  return { userImages, targetScreenshot };
-}
-function replaceUserPromptImageAttachments(existing, nextUserImages, maxCount = MAX_PROMPT_IMAGE_ATTACHMENTS) {
-  const { targetScreenshot } = splitPromptImageAttachments(existing);
-  const userImages = nextUserImages.filter((image) => !isTargetScreenshotImage(image)).slice(0, maxCount);
-  return targetScreenshot ? [...userImages, targetScreenshot] : userImages;
-}
-function buildPromptImageAttachmentSignature(elementKey, image) {
-  return [
-    String(elementKey ?? "").trim(),
-    String(image.mimeType ?? "").trim(),
-    String(Number(image.size ?? 0)),
-    String(image.data ?? "").slice(0, 96)
-  ].join("::");
-}
-
 // src/ui/runtime/runtime-effects/use-clipboard-comment-paste.ts
 var IMAGE_DEDUP_WINDOW_MS = 450;
 function getWindowRuntimeRecord(target) {
@@ -23965,15 +24902,15 @@ function useClipboardCommentPaste(params) {
     selectionNeedsExplicitReactivateRef,
     onApplyImagesToElement
   } = params;
-  const pasteDebugStatsRef = import_react18.default.useRef({
+  const pasteDebugStatsRef = import_react20.default.useRef({
     hotkeyCount: 0,
     pasteEventCount: 0,
     tryApplyCount: 0,
     lastResult: "idle",
     lastTextPreview: ""
   });
-  const recentImageSignaturesRef = import_react18.default.useRef(/* @__PURE__ */ new Map());
-  import_react18.default.useEffect(() => {
+  const recentImageSignaturesRef = import_react20.default.useRef(/* @__PURE__ */ new Map());
+  import_react20.default.useEffect(() => {
     getWindowRuntimeRecord(window)[WEB_EDITOR_V2_PASTE_DEBUG_KEY] = {
       getState: () => ({
         hasSameOriginParentWindow: hasSameOriginParentWindow(),
@@ -24000,7 +24937,7 @@ function useClipboardCommentPaste(params) {
     propertyPanelOptions,
     selectionNeedsExplicitReactivateRef
   ]);
-  import_react18.default.useEffect(() => {
+  import_react20.default.useEffect(() => {
     if (!propertyPanelOptions?.onAiNoteChange || !propertyPanelOptions.getAiNote || !propertyPanelOptions.getHoveredElement) {
       return;
     }
@@ -24504,7 +25441,7 @@ function useClipboardCommentPaste(params) {
 }
 
 // src/ui/runtime/runtime-effects/use-outside-click-selection-restore.ts
-var import_react19 = __toESM(require("react"), 1);
+var import_react21 = __toESM(require("react"), 1);
 function isElementNode(node) {
   return typeof Element !== "undefined" && node instanceof Element;
 }
@@ -24550,7 +25487,7 @@ function useOutsideClickSelectionRestore(params) {
     selectionNeedsExplicitReactivateRef,
     syncSelectionModeAvailability
   } = params;
-  import_react19.default.useEffect(() => {
+  import_react21.default.useEffect(() => {
     const restoreSelectionAfterOutsideClick = (event) => {
       restoreSelectionModeFromOutsidePointerDown({
         event,
@@ -24706,237 +25643,28 @@ function writeEditableText(element, value) {
   element.replaceChildren(...nodes);
 }
 
-// src/ui/runtime/comment-list-view.tsx
-var import_react20 = __toESM(require("react"), 1);
-var import_jsx_runtime14 = require("react/jsx-runtime");
-var actions = [
-  { action: "send", label: "\u53D1\u9001\u4FEE\u6539", available: "sendAvailable" },
-  { action: "generate", label: "\u751F\u6210\u539F\u578B", available: "generateAvailable" },
-  { action: "document", label: "\u5F15\u5165\u8BF4\u660E", available: "documentAvailable" }
-];
-var styles = `
-  .we-comment-list{position:fixed;right:52px;top:16px;bottom:16px;width:320px;max-width:calc(100vw - 64px);display:flex;flex-direction:column;pointer-events:auto;border:1px solid ${EDITOR_CHROME.border};border-radius:14px;background:${EDITOR_CHROME.surface};color:${EDITOR_CHROME.textPrimary};box-shadow:${EDITOR_CHROME.shadow};overflow:hidden;z-index:10020;font-size:12px;font-family:inherit}
-  .we-comment-list *{box-sizing:border-box}
-  .we-comment-list button{font-family:inherit;font-size:12px;cursor:pointer;color:inherit}
-  .we-comment-list button:disabled{cursor:not-allowed;opacity:.45}
-  .we-comment-list button:focus-visible,.we-comment-list input:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:2px}
-  .we-comment-list__header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:16px;border-bottom:1px solid ${EDITOR_CHROME.border}}
-  .we-comment-list__header h2{margin:0;font-size:14px;font-weight:600}
-  .we-comment-list__close{border:0;background:transparent;width:28px;height:28px;border-radius:6px;font-size:20px!important}
-  .we-comment-list__selection{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;color:${EDITOR_CHROME.textSecondary}}
-  .we-comment-list label{display:flex;align-items:center;gap:8px;cursor:pointer}
-  .we-comment-list input{margin:0;accent-color:${EDITOR_CHROME.accent};width:15px;height:15px;flex-shrink:0}
-  .we-comment-list__body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 12px 12px}
-  .we-comment-list__item{padding:12px;margin-bottom:8px;border:1px solid ${EDITOR_CHROME.border};border-radius:9px;background:${EDITOR_CHROME.surfaceMuted}}
-  .we-comment-list__item[data-selected=true]{border-color:${EDITOR_CHROME.accent};background:${EDITOR_CHROME.accentSoft}}
-  .we-comment-list__item header{display:flex;align-items:center;gap:8px}
-  .we-comment-list__locate{padding:2px 0;border:0;background:transparent;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;font-weight:600}
-  .we-comment-list__note{margin:8px 0 0 23px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;color:${EDITOR_CHROME.textSecondary}}
-  .we-comment-list__hint{font-size:11px;line-height:1.6;color:${EDITOR_CHROME.textMuted};margin:8px 0 0}
-  .we-comment-list__empty{padding:44px 16px;text-align:center;line-height:1.8;color:${EDITOR_CHROME.textMuted}}
-  .we-comment-list__footer{padding:12px 16px;border-top:1px solid ${EDITOR_CHROME.border};flex-shrink:0}
-  .we-comment-list__actions{display:flex;gap:6px;flex-wrap:wrap}
-  .we-comment-list__action{flex:1;min-height:34px;white-space:nowrap;padding:6px 8px;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:7px;background:${EDITOR_CHROME.surface}}
-  .we-comment-list__action:first-child{background:${EDITOR_CHROME.accent};color:white;border-color:transparent}
-  .we-comment-list .ax-page-skeleton{--ax-sk-fill:${EDITOR_CHROME.surfaceInteractive};--ax-sk-shine:${EDITOR_CHROME.surfaceMuted}}
-  @media(max-width:760px){.we-comment-list{right:52px;top:8px;bottom:8px;width:320px;max-width:calc(100vw - 60px)}.we-comment-list[data-has-target=true]{bottom:52dvh}.we-comment-list__header{padding:10px 12px}.we-comment-list__selection{padding:8px 12px}.we-comment-list__footer{padding:8px 12px}.we-comment-list__hint{margin-top:4px}}
-`;
-function CommentListView(props) {
-  const [entries, setEntries] = import_react20.default.useState(() => {
-    try {
-      return props.getEntries();
-    } catch {
-      return [];
-    }
-  });
-  const [selected, setSelected] = import_react20.default.useState([]);
-  const [loadState, setLoadState] = import_react20.default.useState(() => props.getLoadState?.() ?? { status: "ready" });
-  const selectionRevisionRef = import_react20.default.useRef(loadState.revision);
-  const [busy, setBusy] = import_react20.default.useState(null);
-  const [error, setError] = import_react20.default.useState("");
-  const [readError, setReadError] = import_react20.default.useState("");
-  const [message, setMessage] = import_react20.default.useState("");
-  const busyRef = import_react20.default.useRef(false);
-  const mountedRef = import_react20.default.useRef(true);
-  import_react20.default.useEffect(() => {
-    mountedRef.current = true;
-    const refresh = () => {
-      try {
-        const state2 = props.getLoadState?.() ?? { status: "ready" };
-        if (selectionRevisionRef.current !== state2.revision) {
-          selectionRevisionRef.current = state2.revision;
-          setSelected([]);
-          setError("");
-          setMessage("");
-        }
-        setLoadState((previous) => previous.status === state2.status && previous.error === state2.error && previous.revision === state2.revision ? previous : state2);
-        const next = props.getEntries();
-        setEntries((previous) => previous.length === next.length && previous.every((entry, i) => {
-          const item = next[i];
-          return entry.id === item.id && entry.note === item.note && entry.label === item.label && entry.element === item.element && entry.disabledReason === item.disabledReason;
-        }) ? previous : next);
-        setSelected((previous) => previous.every((id) => next.some((entry) => entry.id === id)) ? previous : previous.filter((id) => next.some((entry) => entry.id === id)));
-        setReadError("");
-      } catch (cause) {
-        setReadError(cause instanceof Error ? cause.message : "\u6279\u6CE8\u8BFB\u53D6\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
-      }
-    };
-    refresh();
-    const timer = globalThis.setInterval(refresh, 500);
-    return () => {
-      mountedRef.current = false;
-      globalThis.clearInterval(timer);
-    };
-  }, [props.getEntries, props.getLoadState]);
-  import_react20.default.useEffect(() => () => props.onInteractionChange(false), [props.onInteractionChange]);
-  const available = entries.filter((entry) => entry.element && !entry.disabledReason);
-  const allSelected = available.length > 0 && available.every((entry) => selected.includes(entry.id));
-  const unavailableSelection = selected.some((id) => !available.some((entry) => entry.id === id));
-  const run = async (action) => {
-    const latest = props.getLoadState?.();
-    if (latest && (latest.status !== "ready" || latest.revision !== selectionRevisionRef.current)) {
-      setSelected([]);
-      setError("\u9875\u9762\u5DF2\u5207\u6362\u6216\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
-      return;
-    }
-    if (busyRef.current || !selected.length || unavailableSelection || loadState.status !== "ready") return;
-    busyRef.current = true;
-    setBusy(action);
-    setError("");
-    setMessage("");
-    try {
-      await props.onRun(action, selected.slice());
-      if (mountedRef.current) setMessage(action === "send" ? "\u5DF2\u63D0\u4EA4\u6240\u9009\u6279\u6CE8\u7684\u4FEE\u6539" : action === "generate" ? "\u5DF2\u6253\u5F00\u539F\u578B\u751F\u6210\u7A97\u53E3" : "\u5DF2\u6253\u5F00\u5F15\u5165\u8BF4\u660E\u7A97\u53E3");
-    } catch (cause) {
-      if (mountedRef.current) setError(cause instanceof Error ? cause.message : "\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5");
-    } finally {
-      busyRef.current = false;
-      if (mountedRef.current) setBusy(null);
-    }
-  };
-  return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
-    "aside",
-    {
-      className: "we-comment-list",
-      "data-has-target": props.hasTarget === true,
-      "data-we-selection-lock-root": "true",
-      "aria-label": "\u6279\u6CE8\u5217\u8868",
-      onPointerEnter: () => props.onInteractionChange(true),
-      onPointerLeave: () => props.onInteractionChange(false),
-      onFocusCapture: () => props.onInteractionChange(true),
-      onBlurCapture: (event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) props.onInteractionChange(false);
-      },
-      children: [
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("style", { nonce: resolveCspNonce(), children: styles }),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("header", { className: "we-comment-list__header", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("h2", { children: [
-            "\u6279\u6CE8\u5217\u8868 ",
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { style: { color: EDITOR_CHROME.textMuted, fontWeight: 400 }, children: entries.length })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { className: "we-comment-list__close", "aria-label": "\u5173\u95ED\u6279\u6CE8\u5217\u8868", title: "\u5173\u95ED\u6279\u6CE8\u5217\u8868", onClick: props.onClose, children: "\xD7" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "we-comment-list__selection", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("label", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-              "input",
-              {
-                type: "checkbox",
-                "aria-label": "\u5168\u9009\u6279\u6CE8",
-                checked: allSelected,
-                disabled: loadState.status !== "ready" || Boolean(busy) || !available.length && !selected.length,
-                ref: (node) => {
-                  if (node) node.indeterminate = selected.length > 0 && !allSelected;
-                },
-                onChange: () => setSelected(allSelected ? [] : available.map((entry) => entry.id))
-              }
-            ),
-            "\u5168\u9009"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("span", { "aria-live": "polite", children: [
-            "\u5DF2\u9009 ",
-            selected.length,
-            " \u6761"
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "we-comment-list__body", children: loadState.status === "loading" ? props.loadingContent ?? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { role: "status", "aria-label": "\u6B63\u5728\u52A0\u8F7D\u6279\u6CE8", "aria-busy": "true", children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { "aria-hidden": "true", style: { height: 72, marginBottom: 10, borderRadius: 9, background: EDITOR_CHROME.surfaceInteractive } }, i)) }) : loadState.status === "error" || readError ? /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { role: "alert", children: loadState.error || readError || "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" }),
-          props.onRetry ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { type: "button", "aria-label": "\u91CD\u8BD5\u52A0\u8F7D\u6279\u6CE8", className: "we-comment-list__action", onClick: async () => {
-            setLoadState({ status: "loading" });
-            setError("");
-            try {
-              await props.onRetry?.();
-              setLoadState(props.getLoadState?.() ?? { status: "ready" });
-            } catch (cause) {
-              setLoadState({ status: "error", error: cause instanceof Error ? cause.message : "\u6279\u6CE8\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5" });
-            }
-          }, children: "\u91CD\u65B0\u52A0\u8F7D" }) : null
-        ] }) : !entries.length ? /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "we-comment-list__empty", children: [
-          "\u6682\u65E0\u6279\u6CE8",
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("br", {}),
-          "\u9009\u62E9\u9875\u9762\u7EC4\u4EF6\u5E76\u6682\u5B58\u6279\u6CE8\u540E\uFF0C\u5C06\u663E\u793A\u5728\u8FD9\u91CC\u3002"
-        ] }) : entries.map((entry, index) => /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("article", { className: "we-comment-list__item", "data-selected": selected.includes(entry.id), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("header", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-              "input",
-              {
-                type: "checkbox",
-                "aria-label": `\u9009\u62E9\u6279\u6CE8 ${entry.label}`,
-                checked: selected.includes(entry.id),
-                disabled: Boolean(busy) || (Boolean(entry.disabledReason) || !entry.element) && !selected.includes(entry.id),
-                onChange: () => {
-                  setSelected((previous) => previous.includes(entry.id) ? previous.filter((id) => id !== entry.id) : [...previous, entry.id]);
-                  setError("");
-                  setMessage("");
-                }
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("button", { className: "we-comment-list__locate", title: `\u5B9A\u4F4D\u7EC4\u4EF6\uFF1A${entry.label}`, disabled: !entry.element || Boolean(busy), onClick: () => {
-              if (entry.element) props.onLocate?.(entry.element);
-            }, children: [
-              index + 1,
-              ". ",
-              entry.label
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { className: "we-comment-list__note", children: entry.note || "\u5DF2\u4FDD\u5B58\u7EC4\u4EF6\u4FEE\u6539" }),
-          entry.disabledReason ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { className: "we-comment-list__hint", children: entry.disabledReason }) : null
-        ] }, entry.id)) }),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("footer", { className: "we-comment-list__footer", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "we-comment-list__actions", children: actions.map((item) => /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-            "button",
-            {
-              className: "we-comment-list__action",
-              "aria-label": item.label,
-              "aria-busy": busy === item.action,
-              disabled: loadState.status !== "ready" || Boolean(busy) || !selected.length || unavailableSelection || !props[item.available] || Boolean(readError),
-              onClick: () => run(item.action),
-              children: busy === item.action ? "\u5904\u7406\u4E2D\u2026" : item.label
-            },
-            item.action
-          )) }),
-          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { className: "we-comment-list__hint", children: "\u4E09\u4E2A\u52A8\u4F5C\u53EF\u5206\u522B\u6267\u884C\uFF0C\u6682\u5B58\u6279\u6CE8\u4F9B\u540E\u7EED\u7EE7\u7EED\u4F7F\u7528\u3002" }),
-          error ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { role: "alert", style: { color: EDITOR_CHROME.textDanger, marginBottom: 0 }, children: error }) : null,
-          message ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { role: "status", style: { color: EDITOR_CHROME.accent, marginBottom: 0 }, children: message }) : null
-        ] })
-      ]
-    }
-  );
-}
-
 // src/ui/runtime/right-entry.tsx
-var import_react21 = __toESM(require("react"), 1);
+var import_react22 = __toESM(require("react"), 1);
 var import_react_dom2 = require("react-dom");
 
 // src/ui/runtime/annotation-toolbar-bridge.ts
-function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction) {
+function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction, onPanelsChange) {
   let toolbar = null;
   let mount = null;
   let observedShadow = null;
   let previousSelectionLock = null;
   let closingPanels = false;
+  let actionFrame = 0;
+  let disposed = false;
   const handleNativeClick = (event) => {
-    if (!closingPanels && !event.composedPath().includes(mount)) onNativeAction();
+    if (closingPanels || event.composedPath().includes(mount)) return;
+    onNativeAction();
+    if (typeof window !== "undefined") {
+      window.cancelAnimationFrame(actionFrame);
+      actionFrame = window.requestAnimationFrame(() => {
+        if (!disposed) onPanelsChange?.(Boolean(toolbar?.querySelector('.axhub-annotation-edge-button[aria-pressed="true"], .axhub-annotation-edge-button[aria-expanded="true"]')));
+      });
+    }
   };
   const detach = () => {
     toolbar?.removeEventListener("click", handleNativeClick, true);
@@ -24951,10 +25679,11 @@ function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction) 
     if (shadow !== observedShadow) {
       observer.disconnect();
       observer.observe(ownerDocument.documentElement, { childList: true, subtree: true });
-      if (shadow) observer.observe(shadow, { childList: true, subtree: true });
+      if (shadow) observer.observe(shadow, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-pressed", "aria-expanded"] });
       observedShadow = shadow;
     }
     const next = shadow?.querySelector(".axhub-annotation-edge-toolbar") ?? null;
+    onPanelsChange?.(Boolean(next?.querySelector('.axhub-annotation-edge-button[aria-pressed="true"], .axhub-annotation-edge-button[aria-expanded="true"]')));
     if (next === toolbar && (!mount || toolbar?.contains(mount))) return;
     detach();
     toolbar = next;
@@ -24986,6 +25715,8 @@ function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction) 
       }
     },
     dispose() {
+      disposed = true;
+      if (typeof window !== "undefined") window.cancelAnimationFrame(actionFrame);
       observer.disconnect();
       detach();
     }
@@ -24993,10 +25724,14 @@ function connectAnnotationToolbar(ownerDocument, onMountChange, onNativeAction) 
 }
 
 // src/ui/runtime/right-entry.tsx
-var import_jsx_runtime15 = require("react/jsx-runtime");
+var import_jsx_runtime16 = require("react/jsx-runtime");
 var styles2 = `
   .we-right-entry{display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:auto}
   .we-right-entry[data-standalone=true]{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:10020;padding:6px 4px;border:1px solid ${EDITOR_CHROME.borderStrong};border-right:0;border-radius:12px 0 0 12px;background:${EDITOR_CHROME.surface}}
+  @media(min-width:761px){
+    .we-right-entry[data-standalone=true][data-docked=true]{right:320px}
+    [data-edge=right] .axhub-annotation-edge-toolbar:has([data-we-right-entry][data-docked=true]){right:320px!important}
+  }
   .we-right-entry button{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;flex-shrink:0;border:0;border-radius:6px;background:transparent;color:${EDITOR_CHROME.textSecondary};cursor:pointer;touch-action:manipulation}
   .we-right-entry button:hover{background:${EDITOR_CHROME.hoverSubtle}}
   .we-right-entry button[aria-expanded=true]{background:${EDITOR_CHROME.accentSoft};color:${EDITOR_CHROME.accent}}
@@ -25005,20 +25740,21 @@ var styles2 = `
   @media(prefers-reduced-motion:reduce){.we-right-entry,.we-right-entry button{transition:none}}
 `;
 function RightEntryActions(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
     "div",
     {
       className: "we-right-entry",
       "data-we-right-entry": "true",
       "data-standalone": props.standalone === true,
+      "data-docked": props.docked === true,
       "data-we-selection-lock-root": "true",
       "data-axhub-annotation-direct-action": "true",
       role: "group",
       "aria-label": "\u6279\u6CE8\u4E0E\u5FEB\u6377\u952E",
       onPointerDown: (event) => event.stopPropagation(),
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("style", { nonce: resolveCspNonce(), children: styles2 }),
-        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("style", { nonce: resolveCspNonce(), children: styles2 }),
+        /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
           "button",
           {
             type: "button",
@@ -25027,49 +25763,354 @@ function RightEntryActions(props) {
             "aria-expanded": props.open,
             "data-we-comment-list-entry": "true",
             onClick: props.onToggle,
-            children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("path", { d: "M8 5h12M8 12h12M8 19h12" }),
-              /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("circle", { cx: "3", cy: "5", r: "1" }),
-              /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("circle", { cx: "3", cy: "12", r: "1" }),
-              /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("circle", { cx: "3", cy: "19", r: "1" })
+            children: /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("path", { d: "M8 5h12M8 12h12M8 19h12" }),
+              /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("circle", { cx: "3", cy: "5", r: "1" }),
+              /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("circle", { cx: "3", cy: "12", r: "1" }),
+              /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("circle", { cx: "3", cy: "19", r: "1" })
             ] })
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { type: "button", "aria-label": "\u5FEB\u6377\u952E", title: "\u5FEB\u6377\u952E", onClick: props.onShortcuts, children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("rect", { x: "2", y: "5", width: "20", height: "14", rx: "2" }),
-          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("path", { d: "M6 9h1m3 0h1m3 0h1m3 0h.1M6 12h1m3 0h1m3 0h1m3 0h.1M7 15h10" })
+        /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("button", { type: "button", "aria-label": "\u5FEB\u6377\u952E", title: "\u5FEB\u6377\u952E", onClick: props.onShortcuts, children: /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", "aria-hidden": "true", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("rect", { x: "2", y: "5", width: "20", height: "14", rx: "2" }),
+          /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("path", { d: "M6 9h1m3 0h1m3 0h1m3 0h.1M6 12h1m3 0h1m3 0h1m3 0h.1M7 15h10" })
         ] }) })
       ]
     }
   );
 }
 function RightEntry(props) {
-  const [mount, setMount] = import_react21.default.useState(null);
-  const bridgeRef = import_react21.default.useRef(null);
-  const nativeActionRef = import_react21.default.useRef(props.onNativeAction);
+  const [mount, setMount] = import_react22.default.useState(null);
+  const bridgeRef = import_react22.default.useRef(null);
+  const nativeActionRef = import_react22.default.useRef(props.onNativeAction);
   nativeActionRef.current = props.onNativeAction;
-  import_react21.default.useEffect(() => {
+  const panelsChangeRef = import_react22.default.useRef(props.onNativePanelsChange);
+  panelsChangeRef.current = props.onNativePanelsChange;
+  import_react22.default.useEffect(() => {
     if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
-    const bridge = connectAnnotationToolbar(document, setMount, () => nativeActionRef.current());
+    const bridge = connectAnnotationToolbar(document, setMount, () => nativeActionRef.current(), (open) => panelsChangeRef.current?.(open));
     bridgeRef.current = bridge;
     return () => {
       bridge.dispose();
       bridgeRef.current = null;
     };
   }, []);
-  import_react21.default.useEffect(() => {
+  import_react22.default.useEffect(() => {
     if (props.open) bridgeRef.current?.closePanels();
   }, [props.open, mount]);
-  const content = /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(RightEntryActions, { ...props, standalone: !mount, onShortcuts: () => {
+  const content = /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(RightEntryActions, { ...props, standalone: !mount, onShortcuts: () => {
     bridgeRef.current?.closePanels();
     props.onNativeAction();
+    props.onNativePanelsChange?.(false);
     props.onShortcuts();
   } });
   return mount ? (0, import_react_dom2.createPortal)(content, mount) : content;
 }
 
+// src/ui/runtime/preview-canvas-controls.tsx
+var import_react23 = __toESM(require("react"), 1);
+var import_jsx_runtime17 = require("react/jsx-runtime");
+var percentages = [10, 25, 50, 75, 100, 125, 150, 200, 300];
+var styles3 = `
+  .we-canvas-controls{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:3px;padding:4px;border:1px solid ${EDITOR_CHROME.borderStrong};border-radius:9px;background:${EDITOR_CHROME.surface};color:${EDITOR_CHROME.textPrimary};box-shadow:${EDITOR_CHROME.shadow};pointer-events:auto;z-index:10021;font-size:12px;font-family:inherit;max-width:calc(100vw - 24px)}
+  .we-canvas-controls[data-docked=true]{left:calc((100vw - 364px)/2)}
+  .we-canvas-controls button,.we-canvas-controls select{height:30px;box-sizing:border-box;border:0;border-radius:5px;background:transparent;color:inherit;font-family:inherit;font-size:12px;cursor:pointer}
+  .we-canvas-controls button{display:flex;align-items:center;justify-content:center;width:30px;padding:0;flex-shrink:0}
+  .we-canvas-controls button:hover,.we-canvas-controls select:hover{background:${EDITOR_CHROME.hoverSubtle}}
+  .we-canvas-controls button:disabled{opacity:.4;cursor:not-allowed}
+  .we-canvas-controls button[aria-pressed=true]{color:${EDITOR_CHROME.accent};background:${EDITOR_CHROME.accentSoft}}
+  .we-canvas-controls button:focus-visible,.we-canvas-controls select:focus-visible{outline:2px solid ${EDITOR_CHROME.accent};outline-offset:1px}
+  .we-canvas-controls select{width:80px;padding:0 4px;font-variant-numeric:tabular-nums;background:${EDITOR_CHROME.surface}}
+  .we-canvas-controls__divider{height:18px;width:1px;background:${EDITOR_CHROME.border};margin:0 3px}
+  @media(max-width:760px){.we-canvas-controls,.we-canvas-controls[data-docked=true]{left:calc((100vw - 52px)/2);bottom:10px;max-width:calc(100vw - 60px)}.we-canvas-controls[data-has-target=true]{top:calc(48dvh + 10px);bottom:auto}.we-canvas-controls button{width:28px}.we-canvas-controls select{width:72px}}
+`;
+function isEditable(event) {
+  return event.composedPath().some((node) => typeof node?.matches === "function" && node.matches('input,textarea,select,[contenteditable]:not([contenteditable="false"])'));
+}
+function isEditorUi(event) {
+  return event.composedPath().some((node) => typeof node?.hasAttribute === "function" && node.hasAttribute("data-we-selection-lock-root"));
+}
+function PreviewCanvasControls(props) {
+  const [view, setView] = import_react23.default.useState(getPageZoomView);
+  const [panMode, setPanMode] = import_react23.default.useState(false);
+  const [spaceDown, setSpaceDown] = import_react23.default.useState(false);
+  const [dragging, setDragging] = import_react23.default.useState(false);
+  const panModeRef = import_react23.default.useRef(panMode);
+  panModeRef.current = panMode;
+  const lastViewRef = import_react23.default.useRef(null);
+  const scopeRef = import_react23.default.useRef(props.getScopeKey?.());
+  const interactionRef = import_react23.default.useRef(props.onInteractionChange);
+  interactionRef.current = props.onInteractionChange;
+  const zoom = import_react23.default.useCallback((scale) => {
+    setPageZoomView(scale);
+    setView(getPageZoomView());
+  }, []);
+  import_react23.default.useEffect(() => {
+    if (!props.getScopeKey) return;
+    const check = () => {
+      const next = props.getScopeKey?.();
+      if (scopeRef.current === next) return;
+      scopeRef.current = next;
+      lastViewRef.current = null;
+      zoom("fit");
+    };
+    const timer = globalThis.setInterval(check, 500);
+    window.addEventListener("popstate", check);
+    window.addEventListener("hashchange", check);
+    return () => {
+      globalThis.clearInterval(timer);
+      window.removeEventListener("popstate", check);
+      window.removeEventListener("hashchange", check);
+    };
+  }, [props.getScopeKey, zoom]);
+  import_react23.default.useEffect(() => {
+    if (!props.active) return;
+    let frame = 0;
+    let acquired = false;
+    let released = false;
+    const sync = () => setView(getPageZoomView());
+    const release = () => {
+      window.cancelAnimationFrame(frame);
+      if (released) return;
+      released = true;
+      if (acquired) lastViewRef.current = getPageZoomView();
+      setPageZoomEnabled(false, { owner: "canvas-controls" });
+    };
+    props.releaseRef.current = release;
+    frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => {
+        if (released) return;
+        setPageZoomEnabled(true, { owner: "canvas-controls" });
+        acquired = true;
+        const previous = lastViewRef.current;
+        if (previous) {
+          setPageZoomView(previous.mode === "fit" ? "fit" : previous.scale);
+          panPageZoom(previous.panX, previous.panY);
+        }
+        sync();
+      });
+    });
+    window.addEventListener(PAGE_LAYOUT_CHANGE_EVENT, sync);
+    return () => {
+      window.removeEventListener(PAGE_LAYOUT_CHANGE_EVENT, sync);
+      release();
+      interactionRef.current(false);
+      if (props.releaseRef.current === release) props.releaseRef.current = () => {
+      };
+    };
+  }, [props.active, props.releaseRef, props.activationRevision]);
+  import_react23.default.useEffect(() => {
+    if (!props.active) return;
+    let space = false;
+    let drag = null;
+    let suppressClick = null;
+    const stop = (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const keyDown = (event) => {
+      if (isEditable(event) || event.altKey) return;
+      const command = event.ctrlKey || event.metaKey;
+      if (command && ["+", "=", "-", "0"].includes(event.key)) {
+        stop(event);
+        zoom(event.key === "0" ? 1 : Math.round((getPageZoomView().scale + (event.key === "-" ? -0.1 : 0.1)) * 100) / 100);
+      } else if (event.shiftKey && event.code === "Digit1") {
+        stop(event);
+        zoom("fit");
+      } else if (event.code === "Space" && !command && !isEditorUi(event)) {
+        stop(event);
+        space = true;
+        setSpaceDown(true);
+      }
+    };
+    const keyUp = (event) => {
+      if (event.code === "Space" && space) {
+        stop(event);
+        space = false;
+        setSpaceDown(false);
+      }
+    };
+    const wheel = (event) => {
+      if (!(event.ctrlKey || event.metaKey) || isEditable(event) || isEditorUi(event)) return;
+      stop(event);
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1);
+      setPageZoomView(getPageZoomView().scale * Math.exp(-delta * 2e-3), { x: event.clientX, y: event.clientY });
+    };
+    const pointerDown = (event) => {
+      suppressClick = null;
+      if (isEditable(event) || isEditorUi(event) || !(event.button === 1 || event.button === 0 && (space || panModeRef.current))) return;
+      stop(event);
+      drag = { x: event.clientX, y: event.clientY, id: event.pointerId };
+      setDragging(true);
+    };
+    const pointerMove = (event) => {
+      if (!drag || drag.id !== event.pointerId) return;
+      stop(event);
+      panPageZoom(event.clientX - drag.x, event.clientY - drag.y);
+      drag = { x: event.clientX, y: event.clientY, id: event.pointerId };
+    };
+    const pointerEnd = (event) => {
+      if (drag?.id !== event.pointerId) return;
+      stop(event);
+      if (event.type !== "pointercancel") suppressClick = { id: event.pointerId, x: event.clientX, y: event.clientY, until: Date.now() + 500 };
+      drag = null;
+      setDragging(false);
+    };
+    const click = (event) => {
+      const gesture = suppressClick;
+      suppressClick = null;
+      if (gesture && Date.now() <= gesture.until && event.detail > 0 && Math.abs(event.clientX - gesture.x) < 4 && Math.abs(event.clientY - gesture.y) < 4) stop(event);
+    };
+    const blur = () => {
+      space = false;
+      drag = null;
+      suppressClick = null;
+      setSpaceDown(false);
+      setDragging(false);
+    };
+    window.addEventListener("keydown", keyDown, true);
+    window.addEventListener("keyup", keyUp, true);
+    window.addEventListener("wheel", wheel, { capture: true, passive: false });
+    window.addEventListener("pointerdown", pointerDown, true);
+    window.addEventListener("pointermove", pointerMove, true);
+    window.addEventListener("pointerup", pointerEnd, true);
+    window.addEventListener("pointercancel", pointerEnd, true);
+    window.addEventListener("click", click, true);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("keydown", keyDown, true);
+      window.removeEventListener("keyup", keyUp, true);
+      window.removeEventListener("wheel", wheel, true);
+      window.removeEventListener("pointerdown", pointerDown, true);
+      window.removeEventListener("pointermove", pointerMove, true);
+      window.removeEventListener("pointerup", pointerEnd, true);
+      window.removeEventListener("pointercancel", pointerEnd, true);
+      window.removeEventListener("click", click, true);
+      window.removeEventListener("blur", blur);
+      blur();
+    };
+  }, [props.active, zoom]);
+  import_react23.default.useEffect(() => {
+    if (!props.active || !(panMode || spaceDown || dragging)) return;
+    const style = document.documentElement.style;
+    const previous = style.getPropertyValue("cursor"), priority = style.getPropertyPriority("cursor");
+    style.setProperty("cursor", dragging ? "grabbing" : "grab", "important");
+    return () => {
+      if (previous) style.setProperty("cursor", previous, priority);
+      else style.removeProperty("cursor");
+    };
+  }, [props.active, panMode, spaceDown, dragging]);
+  if (!props.active) return null;
+  const percent = Math.round(view.scale * 100);
+  const options = percentages.includes(percent) ? percentages : [...percentages, percent].sort((a, b) => a - b);
+  const icon = (children) => /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", children });
+  return /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)(
+    "div",
+    {
+      className: "we-canvas-controls",
+      role: "toolbar",
+      "aria-label": "\u9884\u89C8\u753B\u5E03\u64CD\u4F5C",
+      "data-we-selection-lock-root": "true",
+      "data-docked": props.docked,
+      "data-has-target": props.hasTarget,
+      onPointerEnter: () => props.onInteractionChange(true),
+      onPointerLeave: () => props.onInteractionChange(false),
+      onFocusCapture: () => props.onInteractionChange(true),
+      onBlurCapture: (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) props.onInteractionChange(false);
+      },
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("style", { nonce: resolveCspNonce(), children: styles3 }),
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("button", { type: "button", "aria-label": "\u7F29\u5C0F\u753B\u5E03", title: "\u7F29\u5C0F\uFF08Ctrl/\u2318 \u2212\uFF09", disabled: view.scale <= 0.1, onClick: () => zoom(Math.round((view.scale - 0.1) * 100) / 100), children: icon(/* @__PURE__ */ (0, import_jsx_runtime17.jsx)("path", { d: "M5 12h14" })) }),
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("select", { "aria-label": "\u753B\u5E03\u7F29\u653E\u6BD4\u4F8B", value: String(percent), title: "\u753B\u5E03\u7F29\u653E\u6BD4\u4F8B", onChange: (event) => zoom(Number(event.target.value) / 100), children: options.map((value) => /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("option", { value, children: [
+          value,
+          "%"
+        ] }, value)) }),
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("button", { type: "button", "aria-label": "\u653E\u5927\u753B\u5E03", title: "\u653E\u5927\uFF08Ctrl/\u2318 +\uFF09", disabled: view.scale >= 3, onClick: () => zoom(Math.round((view.scale + 0.1) * 100) / 100), children: icon(/* @__PURE__ */ (0, import_jsx_runtime17.jsx)("path", { d: "M5 12h14M12 5v14" })) }),
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("span", { className: "we-canvas-controls__divider" }),
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("button", { type: "button", "aria-label": "\u9002\u5E94\u753B\u5E03\u5BBD\u5EA6", "aria-pressed": view.mode === "fit", title: "\u9002\u5E94\u5BBD\u5EA6\uFF08Shift 1\uFF09", onClick: () => zoom("fit"), children: icon(/* @__PURE__ */ (0, import_jsx_runtime17.jsx)(import_jsx_runtime17.Fragment, { children: /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("path", { d: "M4 5v14M20 5v14M7 12h10m-7-3-3 3 3 3m4-6 3 3-3 3" }) })) }),
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("button", { type: "button", "aria-label": "\u91CD\u7F6E\u753B\u5E03\u89C6\u56FE", title: "\u91CD\u7F6E\u4E3A 100% \u5E76\u590D\u4F4D\uFF08Ctrl/\u2318 0\uFF09", onClick: () => zoom(1), children: icon(/* @__PURE__ */ (0, import_jsx_runtime17.jsx)(import_jsx_runtime17.Fragment, { children: /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("path", { d: "M3 10a9 9 0 1 1 1 7M3 4v6h6" }) })) }),
+        /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("button", { type: "button", "aria-label": "\u62D6\u52A8\u753B\u5E03", "aria-pressed": panMode, title: "\u62D6\u52A8\u753B\u5E03\uFF08\u4E5F\u53EF\u6309\u4F4F\u7A7A\u683C\u6216\u9F20\u6807\u4E2D\u952E\u62D6\u52A8\uFF09", onClick: () => setPanMode((value) => !value), children: icon(/* @__PURE__ */ (0, import_jsx_runtime17.jsx)("path", { d: "M8 12V5a2 2 0 0 1 4 0v6-7a2 2 0 0 1 4 0v8-5a2 2 0 0 1 4 0v9c0 4-3 6-7 6-3 0-4-1-6-4l-4-5a2 2 0 0 1 3-2l2 2" })) })
+      ]
+    }
+  );
+}
+
+// src/ui/runtime/use-comment-list-host.ts
+var import_react24 = __toESM(require("react"), 1);
+function useCommentListHost(options) {
+  const [hosted, setHosted] = import_react24.default.useState(false);
+  const latest = import_react24.default.useRef(options);
+  latest.current = options;
+  import_react24.default.useEffect(() => {
+    setHosted(false);
+    const origin = options.origin;
+    if (!options.enabled || !origin || window.parent === window) return;
+    const newSession = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+    let session = newSession();
+    let ackAt = 0;
+    let scope = "";
+    let disposed = false;
+    let generation = "";
+    const running = /* @__PURE__ */ new Set();
+    const post = (body) => window.parent.postMessage({ type: COMMENT_LIST_DOCK_MESSAGE, session, generation, ...body }, origin);
+    const sync = () => {
+      const snapshot = latest.current.snapshot();
+      if (scope !== snapshot.scope) {
+        if (scope) session = newSession();
+        scope = snapshot.scope;
+        ackAt = 0;
+        setHosted(false);
+      }
+      post({ kind: "state", state: { ...snapshot, session } });
+      if (Date.now() - ackAt > 2e3) setHosted(false);
+    };
+    const listener = async (event) => {
+      const data = event.data;
+      if (event.source !== window.parent || event.origin !== origin || data?.type !== COMMENT_LIST_DOCK_MESSAGE) return;
+      if (data.kind === "probe" && typeof data.generation === "string") {
+        generation = data.generation;
+        sync();
+        return;
+      }
+      if (data.generation !== generation || data.session !== session || data.scope !== latest.current.snapshot().scope) return;
+      if (data.kind === "ack") {
+        ackAt = Date.now();
+        setHosted(data.accepted === true);
+        return;
+      }
+      if (data.kind !== "action" || typeof data.id !== "string" || running.has(data.id)) return;
+      running.add(data.id);
+      try {
+        await latest.current.onAction(data.command);
+        if (!disposed) {
+          sync();
+          post({ kind: "result", id: data.id, scope: data.scope });
+        }
+      } catch (error) {
+        if (!disposed) {
+          sync();
+          post({ kind: "result", id: data.id, scope: data.scope, error: error instanceof Error ? error.message : "\u6279\u6CE8\u64CD\u4F5C\u5931\u8D25" });
+        }
+      } finally {
+        running.delete(data.id);
+      }
+    };
+    window.addEventListener("message", listener);
+    sync();
+    const timer = globalThis.setInterval(sync, 500);
+    return () => {
+      disposed = true;
+      globalThis.clearInterval(timer);
+      window.removeEventListener("message", listener);
+      post({ kind: "state", state: { ...latest.current.snapshot(), session, open: false } });
+    };
+  }, [options.enabled, options.origin]);
+  return hosted && options.enabled;
+}
+
 // src/ui/runtime/runtime-shell.tsx
-var import_jsx_runtime16 = require("react/jsx-runtime");
+var import_jsx_runtime18 = require("react/jsx-runtime");
 function normalizeRuntimeUiSettings(settings, interactionProfile) {
   const normalized = applyMobileSettingsOverride(
     applyInteractionProfileToUiSettings(sanitizeWebEditorUiSettings(settings), interactionProfile)
@@ -25172,52 +26213,58 @@ function WebEditorUiApp(props) {
     propertyPanelOptions?.getUiMode?.() ?? propertyPanelOptions?.initialUiMode ?? "bubble-card"
   );
   const interactionProfile = propertyPanelOptions?.interactionProfile ?? "design";
-  const [currentTarget, setCurrentTarget] = import_react22.default.useState(null);
-  const [commentListOpen, setCommentListOpen] = import_react22.default.useState(false);
-  const [anchorRect, setAnchorRect] = import_react22.default.useState(null);
-  const [uiMode, setUiMode] = import_react22.default.useState(initialUiMode);
-  const [toolMinimized, setToolMinimized] = import_react22.default.useState(false);
-  const [propertyPanelOpen, setPropertyPanelOpen] = import_react22.default.useState(initialPropertyPanelOpen);
-  const [bubbleStyleEditorOpen, setBubbleStyleEditorOpen] = import_react22.default.useState(false);
-  const [inlineTextEditing, setInlineTextEditing] = import_react22.default.useState(false);
-  const [inlineTextTarget, setInlineTextTarget] = import_react22.default.useState(null);
-  const [blockingLayerOpen, setBlockingLayerOpen] = import_react22.default.useState(false);
-  const [commentarySkillOptions, setCommentarySkillOptions] = import_react22.default.useState(() => normalizeRuntimeSkillOptions(propertyPanelOptions?.commentarySkillOptions));
+  const [currentTarget, setCurrentTarget] = import_react25.default.useState(null);
+  const [commentListOpen, setCommentListOpen] = import_react25.default.useState(false);
+  const [commentSelectedIds, setCommentSelectedIds] = import_react25.default.useState([]);
+  const [nativePanelsOpen, setNativePanelsOpen] = import_react25.default.useState(false);
+  const [canvasActivationRevision, setCanvasActivationRevision] = import_react25.default.useState(0);
+  const releaseCanvasRef = import_react25.default.useRef(() => {
+  });
+  const [commentEditRequest, setCommentEditRequest] = import_react25.default.useState();
+  const [anchorRect, setAnchorRect] = import_react25.default.useState(null);
+  const [uiMode, setUiMode] = import_react25.default.useState(initialUiMode);
+  const [toolMinimized, setToolMinimized] = import_react25.default.useState(false);
+  const [propertyPanelOpen, setPropertyPanelOpen] = import_react25.default.useState(initialPropertyPanelOpen);
+  const [bubbleStyleEditorOpen, setBubbleStyleEditorOpen] = import_react25.default.useState(false);
+  const [inlineTextEditing, setInlineTextEditing] = import_react25.default.useState(false);
+  const [inlineTextTarget, setInlineTextTarget] = import_react25.default.useState(null);
+  const [blockingLayerOpen, setBlockingLayerOpen] = import_react25.default.useState(false);
+  const [commentarySkillOptions, setCommentarySkillOptions] = import_react25.default.useState(() => normalizeRuntimeSkillOptions(propertyPanelOptions?.commentarySkillOptions));
   const commentarySkillSelectionManaged = commentarySkillOptions.length > 0;
-  const [enabledCommentarySkillIds, setEnabledCommentarySkillIds] = import_react22.default.useState(
+  const [enabledCommentarySkillIds, setEnabledCommentarySkillIds] = import_react25.default.useState(
     () => resolveRuntimeSkillIds(
       propertyPanelOptions?.commentarySelectedSkillIds,
       propertyPanelOptions?.commentarySkillOptions,
       propertyPanelOptions?.commentarySkillSettingsConfigured === true
     )
   );
-  const [uiSettings, setUiSettings] = import_react22.default.useState(
+  const [uiSettings, setUiSettings] = import_react25.default.useState(
     () => normalizeRuntimeUiSettings(
       propertyPanelOptions?.getUiSettings?.() ?? DEFAULT_WEB_EDITOR_UI_SETTINGS,
       interactionProfile
     )
   );
-  const [agentVisualState, setAgentVisualState] = import_react22.default.useState(
+  const [agentVisualState, setAgentVisualState] = import_react25.default.useState(
     () => normalizeRuntimeUiSettings(
       propertyPanelOptions?.getUiSettings?.() ?? DEFAULT_WEB_EDITOR_UI_SETTINGS,
       interactionProfile
     ).agentAwake ? "awake" : "sleeping"
   );
-  const [noteState, setNoteState] = import_react22.default.useState({
+  const [noteState, setNoteState] = import_react25.default.useState({
     savedNote: "",
     draftNote: "",
     noteDirty: false,
     savedNoteMeta: { skillIds: [] }
   });
-  const [textState, setTextState] = import_react22.default.useState({
+  const [textState, setTextState] = import_react25.default.useState({
     savedText: "",
     draftText: "",
     textDirty: false
   });
-  const [imageState, setImageState] = import_react22.default.useState({
+  const [imageState, setImageState] = import_react25.default.useState({
     images: []
   });
-  const [annotationState, setAnnotationState] = import_react22.default.useState({
+  const [annotationState, setAnnotationState] = import_react25.default.useState({
     annotationEnabled: false,
     savedAnnotationMarkdown: "",
     annotationDraftMarkdown: "",
@@ -25225,14 +26272,14 @@ function WebEditorUiApp(props) {
     annotationLoading: false,
     annotationSaving: false
   });
-  const currentTargetRef = import_react22.default.useRef(null);
-  const inlineTextTargetRef = import_react22.default.useRef(null);
-  const uiModeRef = import_react22.default.useRef(initialUiMode);
-  const noteStateRef = import_react22.default.useRef(noteState);
-  const noteTargetElementsRef = import_react22.default.useRef([]);
-  const textStateRef = import_react22.default.useRef(textState);
-  const imageStateRef = import_react22.default.useRef(imageState);
-  const annotationStateRef = import_react22.default.useRef(annotationState);
+  const currentTargetRef = import_react25.default.useRef(null);
+  const inlineTextTargetRef = import_react25.default.useRef(null);
+  const uiModeRef = import_react25.default.useRef(initialUiMode);
+  const noteStateRef = import_react25.default.useRef(noteState);
+  const noteTargetElementsRef = import_react25.default.useRef([]);
+  const textStateRef = import_react25.default.useRef(textState);
+  const imageStateRef = import_react25.default.useRef(imageState);
+  const annotationStateRef = import_react25.default.useRef(annotationState);
   const latestPointerPositionRef = usePointerTracker();
   const selectionGuards = useSelectionModeGuards({
     propertyPanelOptions,
@@ -25240,41 +26287,123 @@ function WebEditorUiApp(props) {
     setToolMinimized
   });
   const commentListAvailable = Boolean(propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch && interactionProfile === "design" && !propertyPanelOptions.externalAnnotationMode);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     if (commentListAvailable && selectionGuards.selectionModeActive) setCommentListOpen(true);
     if (!commentListAvailable) setCommentListOpen(false);
   }, [commentListAvailable, currentTarget, selectionGuards.selectionModeActive]);
   const showCommentList = commentListAvailable && commentListOpen && !toolMinimized && !blockingLayerOpen;
-  const handleCommentSaved = import_react22.default.useCallback(() => setCommentListOpen(true), []);
-  const promptSelectionInteractionLockChangeRef = import_react22.default.useRef(
+  const hostedCommentList = useCommentListHost({
+    enabled: showCommentList && uiSettings.commentListPinned,
+    origin: propertyPanelOptions?.commentListDockOrigin,
+    snapshot: () => ({
+      scope: propertyPanelOptions?.componentComments?.getScopeKey() ?? "",
+      open: showCommentList && uiSettings.commentListPinned,
+      entries: (propertyPanelOptions?.getCommentListEntries?.() ?? []).map((entry) => ({ id: entry.id, label: entry.label, note: entry.note, purpose: entry.purpose, state: entry.state, disabledReason: entry.disabledReason, locatable: Boolean(entry.element) })),
+      selectedIds: commentSelectedIds,
+      darkMode: uiSettings.darkMode,
+      loadState: propertyPanelOptions?.getCommentListLoadState?.() ?? { status: "ready" },
+      sendAvailable: !propertyPanelOptions?.hideExecutionControls && !propertyPanelOptions?.hideCurrentElementExecutionAction,
+      generateAvailable: Boolean(propertyPanelOptions?.onGenerateComponentStates),
+      documentAvailable: Boolean(propertyPanelOptions?.onDocumentComponent)
+    }),
+    onAction: async (command) => {
+      const ids = command.ids ?? [];
+      switch (command.action) {
+        case "close":
+          setCommentListOpen(false);
+          break;
+        case "unpin":
+          handleUiSettingsChange({ ...uiSettings, commentListPinned: false });
+          break;
+        case "select": {
+          const currentIds = new Set(propertyPanelOptions?.getCommentListEntries?.().map((entry) => entry.id));
+          if (ids.some((id) => !currentIds.has(id))) throw new Error("\u6279\u6CE8\u5DF2\u53D8\u66F4\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+          setCommentSelectedIds(ids);
+          break;
+        }
+        case "edit": {
+          const result = propertyPanelOptions?.componentComments?.edit(ids[0]);
+          if (!result) throw new Error("\u65E0\u6CD5\u7F16\u8F91\u6279\u6CE8");
+          propertyPanelOptions?.onSelectComment?.(result.element);
+          setBubbleStyleEditorOpen(false);
+          setCommentEditRequest({ id: ids[0], purpose: result.purpose, revision: Date.now() });
+          break;
+        }
+        case "locate": {
+          const entry = propertyPanelOptions?.getCommentListEntries?.().find((entry2) => entry2.id === ids[0]);
+          if (!entry?.element) throw new Error("\u7EC4\u4EF6\u5DF2\u5931\u6548");
+          propertyPanelOptions?.onSelectComment?.(entry.element);
+          break;
+        }
+        case "remove":
+          await propertyPanelOptions?.componentComments?.removeMany(ids);
+          break;
+        case "run":
+          if (!["send", "generate", "document"].includes(command.batchAction || "")) throw new Error("\u65E0\u6548\u7684\u6279\u6CE8\u52A8\u4F5C");
+          await propertyPanelOptions?.onRunCommentBatch?.(command.batchAction, ids);
+          break;
+        case "retry":
+          await propertyPanelOptions?.onRetryCommentList?.();
+          break;
+        default:
+          throw new Error("\u4E0D\u652F\u6301\u7684\u6279\u6CE8\u64CD\u4F5C");
+      }
+    }
+  });
+  const releaseCommentDockRef = import_react25.default.useRef(() => {
+  });
+  import_react25.default.useEffect(() => {
+    let frame = 0;
+    const release = () => {
+      window.cancelAnimationFrame(frame);
+      setPageZoomEnabled(false, { owner: "comment-list" });
+    };
+    releaseCommentDockRef.current = release;
+    const sync = () => {
+      release();
+      if (showCommentList && uiSettings.commentListPinned && !hostedCommentList && window.innerWidth > 760) {
+        frame = window.requestAnimationFrame(() => {
+          frame = window.requestAnimationFrame(() => setPageZoomEnabled(true, { owner: "comment-list", reservedRightWidth: 372 }));
+        });
+      }
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      release();
+    };
+  }, [showCommentList, uiSettings.commentListPinned, hostedCommentList]);
+  const handleCommentSaved = import_react25.default.useCallback(() => setCommentListOpen(true), []);
+  const promptSelectionInteractionLockChangeRef = import_react25.default.useRef(
     selectionGuards.handlePromptSelectionInteractionLockChange
   );
-  const finishInlineTextEditing = import_react22.default.useCallback(() => {
+  const finishInlineTextEditing = import_react25.default.useCallback(() => {
     promptSelectionInteractionLockChangeRef.current(false);
     inlineTextTargetRef.current = null;
     setInlineTextTarget(null);
     setInlineTextEditing(false);
   }, []);
   useFeedbackBridge();
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     promptSelectionInteractionLockChangeRef.current = selectionGuards.handlePromptSelectionInteractionLockChange;
   }, [selectionGuards.handlePromptSelectionInteractionLockChange]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     noteStateRef.current = noteState;
   }, [noteState]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     textStateRef.current = textState;
   }, [textState]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     inlineTextTargetRef.current = inlineTextTarget;
   }, [inlineTextTarget]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     imageStateRef.current = imageState;
   }, [imageState]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     annotationStateRef.current = annotationState;
   }, [annotationState]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     if (!commentarySkillSelectionManaged) return;
     const configured = propertyPanelOptions?.commentarySkillSettingsConfigured === true;
     const nextSkillOptions = normalizeRuntimeSkillOptions(
@@ -25294,28 +26423,28 @@ function WebEditorUiApp(props) {
     propertyPanelOptions?.commentarySelectedSkillIds,
     propertyPanelOptions?.commentarySkillSettingsConfigured
   ]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     const nextUiMode = normalizeRuntimeUiMode(propertyPanelOptions?.getUiMode?.());
     if (!nextUiMode || uiModeRef.current === nextUiMode) return;
     uiModeRef.current = nextUiMode;
     setUiMode(nextUiMode);
   });
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     onThemeModeChange?.(uiSettings.darkMode ? "dark" : "light");
   }, [onThemeModeChange, uiSettings.darkMode]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     const nextVisualState = uiSettings.agentAwake ? "awake" : "sleeping";
     setAgentVisualState((prev) => prev === nextVisualState ? prev : nextVisualState);
   }, [uiSettings.agentAwake]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     selectionGuards.toolMinimizedRef.current = toolMinimized;
   }, [selectionGuards.toolMinimizedRef, toolMinimized]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     if (!propertyPanelVisible) {
       setPropertyPanelOpen(false);
     }
   }, [propertyPanelVisible]);
-  const taskStateProvider = import_react22.default.useMemo(
+  const taskStateProvider = import_react25.default.useMemo(
     () => ({
       getCurrentTask: (element) => propertyPanelOptions?.getElementAgentTaskState?.(element) ?? breadcrumbsOptions?.getElementAgentTaskState?.(element) ?? null,
       getVisibleTasks: () => propertyPanelOptions?.getVisibleElementAgentTaskStates?.() ?? breadcrumbsOptions?.getVisibleElementAgentTaskStates?.() ?? [],
@@ -25326,8 +26455,8 @@ function WebEditorUiApp(props) {
     }),
     [breadcrumbsOptions, propertyPanelOptions]
   );
-  const [taskRenderTick, setTaskRenderTick] = import_react22.default.useState(0);
-  import_react22.default.useEffect(() => {
+  const [taskRenderTick, setTaskRenderTick] = import_react25.default.useState(0);
+  import_react25.default.useEffect(() => {
     let previousSignature = "";
     const timerId = window.setInterval(() => {
       const tasks = taskStateProvider.getVisibleTasks();
@@ -25350,7 +26479,7 @@ function WebEditorUiApp(props) {
       window.clearInterval(timerId);
     };
   }, [taskStateProvider]);
-  const syncSavedNote = import_react22.default.useCallback(
+  const syncSavedNote = import_react25.default.useCallback(
     (element, resetDraft) => {
       const nextSavedNote = propertyPanelOptions?.getAiNote?.(element) ?? "";
       const nextSkillIds = propertyPanelOptions?.getAiNoteSkillIds?.(element) ?? [];
@@ -25383,7 +26512,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const syncSavedText = import_react22.default.useCallback(
+  const syncSavedText = import_react25.default.useCallback(
     (element, resetDraft) => {
       const canEditText2 = propertyPanelOptions?.canEditText?.(element) ?? false;
       const nextSavedText = canEditText2 ? propertyPanelOptions?.getTextValue?.(element) ?? "" : "";
@@ -25408,7 +26537,7 @@ function WebEditorUiApp(props) {
     [propertyPanelOptions]
   );
   const imageAttachmentsEnabled = propertyPanelOptions?.enableImageAttachments !== false;
-  const syncSavedImages = import_react22.default.useCallback(
+  const syncSavedImages = import_react25.default.useCallback(
     (element) => {
       if (!imageAttachmentsEnabled) {
         setImageState({ images: [] });
@@ -25423,7 +26552,7 @@ function WebEditorUiApp(props) {
     },
     [imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const syncSavedAnnotationMarkdown = import_react22.default.useCallback(
+  const syncSavedAnnotationMarkdown = import_react25.default.useCallback(
     (element, resetDraft) => {
       const canEditAnnotationMarkdown = Boolean(
         element && propertyPanelOptions?.canEditAnnotationMarkdown?.(element) && propertyPanelOptions?.onAnnotationMarkdownChange
@@ -25476,7 +26605,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const commitDraftNote = import_react22.default.useCallback(
+  const commitDraftNote = import_react25.default.useCallback(
     async (elementOverride, options2 = {}) => {
       const element = elementOverride ?? currentTargetRef.current;
       if (!propertyPanelOptions?.onAiNoteChange) return false;
@@ -25506,7 +26635,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const commitDraftText = import_react22.default.useCallback(
+  const commitDraftText = import_react25.default.useCallback(
     async (elementOverride) => {
       const element = elementOverride ?? inlineTextTargetRef.current ?? currentTargetRef.current;
       if (!element || !propertyPanelOptions?.onTextValueChange) return false;
@@ -25531,7 +26660,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const commitDraftAnnotationMarkdown = import_react22.default.useCallback(
+  const commitDraftAnnotationMarkdown = import_react25.default.useCallback(
     async (elementOverride, markdownOverride, options2 = {}) => {
       const element = elementOverride ?? currentTargetRef.current;
       if (!element || !propertyPanelOptions?.onAnnotationMarkdownChange) return false;
@@ -25580,7 +26709,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions]
   );
-  const handleTargetChange = import_react22.default.useCallback(
+  const handleTargetChange = import_react25.default.useCallback(
     (element) => {
       if (currentTargetRef.current === element) return;
       const previousTarget = currentTargetRef.current;
@@ -25617,10 +26746,10 @@ function WebEditorUiApp(props) {
       syncSavedText
     ]
   );
-  const handleAnchorRectChange = import_react22.default.useCallback((rect) => {
+  const handleAnchorRectChange = import_react25.default.useCallback((rect) => {
     setAnchorRect(rect);
   }, []);
-  const handleUiModeChange = import_react22.default.useCallback(
+  const handleUiModeChange = import_react25.default.useCallback(
     (mode) => {
       const normalizedMode = normalizeRuntimeUiMode(mode);
       if (uiModeRef.current === normalizedMode) return;
@@ -25633,13 +26762,13 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions, selectionGuards.toolMinimizedRef]
   );
-  const handleRefreshNoteState = import_react22.default.useCallback(() => {
+  const handleRefreshNoteState = import_react25.default.useCallback(() => {
     syncSavedNote(currentTargetRef.current, false);
     syncSavedText(inlineTextTargetRef.current ?? currentTargetRef.current, false);
     syncSavedImages(currentTargetRef.current);
     syncSavedAnnotationMarkdown(currentTargetRef.current, false);
   }, [syncSavedAnnotationMarkdown, syncSavedImages, syncSavedNote, syncSavedText]);
-  const handleUiSettingsChange = import_react22.default.useCallback(
+  const handleUiSettingsChange = import_react25.default.useCallback(
     (nextSettings) => {
       const sanitized = normalizeRuntimeUiSettings(nextSettings, interactionProfile);
       setUiSettings(sanitized);
@@ -25647,7 +26776,7 @@ function WebEditorUiApp(props) {
     },
     [interactionProfile, propertyPanelOptions]
   );
-  const handleAgentVisualStateChange = import_react22.default.useCallback(
+  const handleAgentVisualStateChange = import_react25.default.useCallback(
     (nextState) => {
       setAgentVisualState(nextState);
       setUiSettings((prev) => {
@@ -25672,11 +26801,11 @@ function WebEditorUiApp(props) {
   const currentTaskRunning = currentAgentTask?.status === "pending" || currentAgentTask?.status === "created";
   const canEditNote = propertyPanelOptions?.canEditAiNote?.(currentTarget) ?? Boolean(propertyPanelOptions?.onAiNoteChange);
   const canClearCurrentElementEdits = propertyPanelOptions?.canClearCurrentElementEdits?.(currentTarget) ?? Boolean(propertyPanelOptions?.onClearCurrentElementEdits);
-  const annotationDocumentEditUrl = import_react22.default.useMemo(() => {
+  const annotationDocumentEditUrl = import_react25.default.useMemo(() => {
     const resolver = breadcrumbsOptions?.getAnnotationDocumentEditUrl ?? propertyPanelOptions?.getAnnotationDocumentEditUrl;
     return String(resolver?.(currentTarget) ?? "").trim();
   }, [breadcrumbsOptions, currentTarget, propertyPanelOptions]);
-  const canStartInlineTextEditing = import_react22.default.useCallback(
+  const canStartInlineTextEditing = import_react25.default.useCallback(
     (element) => {
       if (!element || !element.isConnected) return false;
       if (!propertyPanelOptions?.onTextValueChange) return false;
@@ -25689,7 +26818,7 @@ function WebEditorUiApp(props) {
   );
   const activeTextTarget = inlineTextTarget ?? currentTarget;
   const canEditText = canStartInlineTextEditing(activeTextTarget);
-  const handleDraftChange = import_react22.default.useCallback((value) => {
+  const handleDraftChange = import_react25.default.useCallback((value) => {
     const prev = noteStateRef.current;
     if (!isPromptTextChangeAllowed(prev.draftNote, value)) {
       notifyRuntimeMessage("warning", PROMPT_TEXT_LIMIT_MESSAGE);
@@ -25703,7 +26832,7 @@ function WebEditorUiApp(props) {
     noteStateRef.current = nextState;
     setNoteState(nextState);
   }, []);
-  const handleCancelNote = import_react22.default.useCallback(() => {
+  const handleCancelNote = import_react25.default.useCallback(() => {
     const prev = noteStateRef.current;
     const nextState = {
       ...prev,
@@ -25713,13 +26842,13 @@ function WebEditorUiApp(props) {
     noteStateRef.current = nextState;
     setNoteState(nextState);
   }, []);
-  const handleConfirmNote = import_react22.default.useCallback(
+  const handleConfirmNote = import_react25.default.useCallback(
     async (options2 = {}) => {
       await commitDraftNote(void 0, options2);
     },
     [commitDraftNote]
   );
-  const handleTextDraftChange = import_react22.default.useCallback((value) => {
+  const handleTextDraftChange = import_react25.default.useCallback((value) => {
     const prev = textStateRef.current;
     const nextState = {
       ...prev,
@@ -25729,7 +26858,7 @@ function WebEditorUiApp(props) {
     textStateRef.current = nextState;
     setTextState(nextState);
   }, []);
-  const handleCancelText = import_react22.default.useCallback(() => {
+  const handleCancelText = import_react25.default.useCallback(() => {
     const prev = textStateRef.current;
     const nextState = {
       ...prev,
@@ -25739,10 +26868,10 @@ function WebEditorUiApp(props) {
     textStateRef.current = nextState;
     setTextState(nextState);
   }, []);
-  const handleConfirmText = import_react22.default.useCallback(async () => {
+  const handleConfirmText = import_react25.default.useCallback(async () => {
     await commitDraftText(inlineTextTargetRef.current);
   }, [commitDraftText]);
-  const handleAnnotationDraftChange = import_react22.default.useCallback((value) => {
+  const handleAnnotationDraftChange = import_react25.default.useCallback((value) => {
     const prev = annotationStateRef.current;
     const nextState = {
       ...prev,
@@ -25752,16 +26881,16 @@ function WebEditorUiApp(props) {
     annotationStateRef.current = nextState;
     setAnnotationState(nextState);
   }, []);
-  const handleClearAnnotationMarkdown = import_react22.default.useCallback(() => {
+  const handleClearAnnotationMarkdown = import_react25.default.useCallback(() => {
     void commitDraftAnnotationMarkdown(void 0, "", { force: true });
   }, [commitDraftAnnotationMarkdown]);
-  const handleConfirmAnnotationMarkdown = import_react22.default.useCallback(
+  const handleConfirmAnnotationMarkdown = import_react25.default.useCallback(
     async (markdownOverride) => {
       await commitDraftAnnotationMarkdown(void 0, markdownOverride);
     },
     [commitDraftAnnotationMarkdown]
   );
-  const handleInlineTextEditingChange = import_react22.default.useCallback(
+  const handleInlineTextEditingChange = import_react25.default.useCallback(
     (editing, element) => {
       if (!editing) {
         finishInlineTextEditing();
@@ -25782,7 +26911,7 @@ function WebEditorUiApp(props) {
     },
     [canStartInlineTextEditing, finishInlineTextEditing, selectionGuards, syncSavedText]
   );
-  const handleImagesChange = import_react22.default.useCallback(
+  const handleImagesChange = import_react25.default.useCallback(
     async (images) => {
       const element = currentTargetRef.current;
       if (!imageAttachmentsEnabled) return;
@@ -25800,14 +26929,14 @@ function WebEditorUiApp(props) {
     },
     [imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const handleRemoveImage = import_react22.default.useCallback(
+  const handleRemoveImage = import_react25.default.useCallback(
     async (imageId) => {
       const nextImages = imageStateRef.current.images.filter((image) => image.id !== imageId);
       await handleImagesChange(nextImages);
     },
     [handleImagesChange]
   );
-  const applyImagesToElement = import_react22.default.useCallback(
+  const applyImagesToElement = import_react25.default.useCallback(
     async (element, incomingImages) => {
       if (!imageAttachmentsEnabled) {
         return { acceptedCount: 0, droppedCount: incomingImages.length };
@@ -25854,7 +26983,7 @@ function WebEditorUiApp(props) {
     },
     [imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const handleNotePasteCapture = import_react22.default.useCallback(
+  const handleNotePasteCapture = import_react25.default.useCallback(
     (event) => {
       const element = currentTargetRef.current;
       const clipboardItems = event.clipboardData?.items;
@@ -25922,7 +27051,7 @@ function WebEditorUiApp(props) {
     },
     [applyImagesToElement, imageAttachmentsEnabled, propertyPanelOptions]
   );
-  const handleClearCurrentElementEdits = import_react22.default.useCallback(async () => {
+  const handleClearCurrentElementEdits = import_react25.default.useCallback(async () => {
     const element = currentTargetRef.current;
     if (!element || !propertyPanelOptions?.onClearCurrentElementEdits) return;
     if (!(propertyPanelOptions.canClearCurrentElementEdits?.(element) ?? true)) return;
@@ -25949,7 +27078,7 @@ function WebEditorUiApp(props) {
     syncSavedNote,
     syncSavedText
   ]);
-  const handleDeleteExternalComment = import_react22.default.useCallback(
+  const handleDeleteExternalComment = import_react25.default.useCallback(
     async (commentId) => {
       const element = currentTargetRef.current;
       if (!element || !propertyPanelOptions?.onDeleteExternalComment) return;
@@ -25960,7 +27089,7 @@ function WebEditorUiApp(props) {
     },
     [propertyPanelOptions, syncSavedNote]
   );
-  const handleDeleteCurrentAnnotationNode = import_react22.default.useCallback(async () => {
+  const handleDeleteCurrentAnnotationNode = import_react25.default.useCallback(async () => {
     const element = currentTargetRef.current;
     if (!element || !propertyPanelOptions?.onDeleteCurrentAnnotationNode) return;
     await propertyPanelOptions.onDeleteCurrentAnnotationNode(element);
@@ -25978,7 +27107,7 @@ function WebEditorUiApp(props) {
     syncSavedNote,
     syncSavedText
   ]);
-  const handleSendCurrentElementPromptToAgent = import_react22.default.useMemo(() => {
+  const handleSendCurrentElementPromptToAgent = import_react25.default.useMemo(() => {
     if (!propertyPanelOptions?.onSendCurrentElementPromptToAgent) {
       return void 0;
     }
@@ -26002,7 +27131,7 @@ function WebEditorUiApp(props) {
     selectionNeedsExplicitReactivateRef: selectionGuards.selectionNeedsExplicitReactivateRef,
     syncSelectionModeAvailability: selectionGuards.syncSelectionModeAvailability
   });
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     if (!inlineTextEditing) return;
     if (canEditText && activeTextTarget?.isConnected) return;
     const previousTextTarget = inlineTextTargetRef.current;
@@ -26018,7 +27147,7 @@ function WebEditorUiApp(props) {
     handleCancelText,
     inlineTextEditing
   ]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     const editableElement = inlineTextEditing && canEditText && activeTextTarget instanceof HTMLElement ? activeTextTarget : null;
     propertyPanelOptions?.onInlineTextEditingElementChange?.(editableElement);
     if (!editableElement) {
@@ -26183,24 +27312,64 @@ function WebEditorUiApp(props) {
     inlineTextEditing,
     propertyPanelOptions
   ]);
-  return /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("div", { style: panelContainerStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("style", { nonce: resolveCspNonce(), children: WEB_EDITOR_POPUP_ROOT_STYLES }),
-    commentListAvailable && !toolMinimized && !blockingLayerOpen ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { style: panelContainerStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("style", { nonce: resolveCspNonce(), children: WEB_EDITOR_POPUP_ROOT_STYLES }),
+    commentListAvailable && !toolMinimized && !blockingLayerOpen ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
       RightEntry,
       {
         open: showCommentList,
+        docked: showCommentList && uiSettings.commentListPinned && !hostedCommentList,
         onToggle: () => setCommentListOpen((open) => !open),
-        onNativeAction: () => setCommentListOpen(false),
+        onNativePanelsChange: setNativePanelsOpen,
+        onNativeAction: () => {
+          suspendPageZoomForNativePanel();
+          releaseCanvasRef.current();
+          releaseCommentDockRef.current();
+          setPageZoomEnabled(false);
+          setCanvasActivationRevision((value) => value + 1);
+          setPropertyPanelOpen(false);
+          setNativePanelsOpen(true);
+          setCommentListOpen(false);
+        },
         onShortcuts: () => {
           void propertyPanelRef.current?.runHostToolbarAction({ type: "open-keyboard-shortcuts" });
         }
       }
     ) : null,
-    showCommentList && propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+    commentListAvailable ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+      PreviewCanvasControls,
+      {
+        active: !toolMinimized && !blockingLayerOpen && !nativePanelsOpen,
+        docked: showCommentList && uiSettings.commentListPinned && !hostedCommentList,
+        hasTarget: Boolean(currentTarget),
+        releaseRef: releaseCanvasRef,
+        getScopeKey: propertyPanelOptions?.componentComments?.getScopeKey,
+        activationRevision: canvasActivationRevision,
+        onInteractionChange: selectionGuards.handlePromptHoverSelectionSuppressedChange
+      }
+    ) : null,
+    commentListAvailable && propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
       CommentListView,
       {
         getEntries: propertyPanelOptions.getCommentListEntries,
         onRun: propertyPanelOptions.onRunCommentBatch,
+        hidden: !showCommentList || hostedCommentList,
+        pinned: uiSettings.commentListPinned,
+        selectedIds: commentSelectedIds,
+        onSelectionChange: setCommentSelectedIds,
+        onPinnedChange: (pinned) => {
+          if (pinned) setPropertyPanelOpen(false);
+          handleUiSettingsChange({ ...uiSettings, commentListPinned: pinned });
+        },
+        onEdit: propertyPanelOptions.componentComments ? (id) => {
+          const result = propertyPanelOptions.componentComments.edit(id);
+          selectionGuards.handlePromptHoverSelectionSuppressedChange(false);
+          propertyPanelOptions.onSelectComment?.(result.element);
+          setBubbleStyleEditorOpen(false);
+          setCommentEditRequest({ id, purpose: result.purpose, revision: Date.now() });
+        } : void 0,
+        onRemove: propertyPanelOptions.componentComments?.remove,
+        onRemoveMany: propertyPanelOptions.componentComments?.removeMany,
         getLoadState: propertyPanelOptions.getCommentListLoadState,
         onRetry: propertyPanelOptions.onRetryCommentList,
         loadingContent: propertyPanelOptions.commentListLoadingContent,
@@ -26216,7 +27385,7 @@ function WebEditorUiApp(props) {
         documentAvailable: Boolean(propertyPanelOptions.onDocumentComponent)
       }
     ) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
       ElementAgentTaskOverlays,
       {
         tasks: blockingLayerOpen ? [] : taskStateProvider.getVisibleTasks(),
@@ -26225,7 +27394,7 @@ function WebEditorUiApp(props) {
         renderTick: taskRenderTick
       }
     ),
-    breadcrumbsOptions ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+    breadcrumbsOptions ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
       PromptCardView,
       {
         ref: breadcrumbsRef,
@@ -26234,7 +27403,12 @@ function WebEditorUiApp(props) {
         selectedElementCount: propertyPanelOptions?.getSelectedElements?.().length ?? (currentTarget ? 1 : 0),
         pinnedToTopRight: uiSettings.promptCardPinnedToTopRight,
         propertyPanelOpen,
-        commentListOpen: showCommentList,
+        commentListOpen: showCommentList && !hostedCommentList,
+        componentComments: propertyPanelOptions?.componentComments,
+        commentEditRequest,
+        getCommentListLoadState: propertyPanelOptions?.getCommentListLoadState,
+        commentListLoadingContent: propertyPanelOptions?.commentListLoadingContent,
+        onRetryCommentList: propertyPanelOptions?.onRetryCommentList,
         onCommentSaved: handleCommentSaved,
         onPersistComments: propertyPanelOptions?.onPersistComments,
         onPinnedToTopRightChange: (pinned) => handleUiSettingsChange({
@@ -26321,7 +27495,7 @@ function WebEditorUiApp(props) {
         onDeleteCurrentAnnotationNode: handleDeleteCurrentAnnotationNode
       }
     ) : null,
-    propertyPanelOptions && propertyPanelVisible ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+    propertyPanelOptions && propertyPanelVisible ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
       PropertyPanelView,
       {
         ref: propertyPanelRef,
@@ -26415,7 +27589,7 @@ function createQueuedBridge(getApi) {
 }
 
 // src/ui/runtime/create-web-editor-ui-runtime.tsx
-var import_jsx_runtime17 = require("react/jsx-runtime");
+var import_jsx_runtime19 = require("react/jsx-runtime");
 function subscribeDeferredHostToolbarState(options) {
   const current = options.getCurrent();
   if (current) {
@@ -26475,8 +27649,8 @@ function createWebEditorUiRuntime(options) {
   }
   options.container.append(host);
   const root = (0, import_client.createRoot)(host);
-  const propertyPanelRef = import_react23.default.createRef();
-  const breadcrumbsRef = import_react23.default.createRef();
+  const propertyPanelRef = import_react26.default.createRef();
+  const breadcrumbsRef = import_react26.default.createRef();
   let disposed = false;
   const dispose = () => {
     if (disposed) return;
@@ -26543,17 +27717,17 @@ function createWebEditorUiRuntime(options) {
     annotationEnableTitle: "\u5F00\u542F\u9700\u6C42\u6807\u6CE8"
   });
   function RuntimeMount() {
-    const styleCache = import_react23.default.useMemo(() => (0, import_cssinjs.createCache)(), []);
-    const cspNonce = import_react23.default.useMemo(() => resolveCspNonce(), []);
-    const popupContainerRef = import_react23.default.useRef(null);
-    const [themeMode, setThemeMode] = import_react23.default.useState(
+    const styleCache = import_react26.default.useMemo(() => (0, import_cssinjs.createCache)(), []);
+    const cspNonce = import_react26.default.useMemo(() => resolveCspNonce(), []);
+    const popupContainerRef = import_react26.default.useRef(null);
+    const [themeMode, setThemeMode] = import_react26.default.useState(
       () => options.propertyPanelOptions?.getUiSettings?.()?.darkMode ? "dark" : "light"
     );
-    import_react23.default.useEffect(() => {
+    import_react26.default.useEffect(() => {
       propertyPanelBridge?.flush();
       breadcrumbsBridge?.flush();
     });
-    return /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(import_cssinjs.StyleProvider, { cache: styleCache, container: options.shadowRoot, children: /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(import_cssinjs.StyleProvider, { cache: styleCache, container: options.shadowRoot, children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
       import_antd10.ConfigProvider,
       {
         componentSize: "small",
@@ -26563,7 +27737,7 @@ function createWebEditorUiRuntime(options) {
           popupContainerRef.current ?? options.container
         ),
         theme: createRuntimeAntdTheme(themeMode),
-        children: /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(import_antd10.App, { children: /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(import_antd10.App, { children: /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(
           "div",
           {
             style: {
@@ -26573,7 +27747,7 @@ function createWebEditorUiRuntime(options) {
               ...createEditorChromeCssVars(themeMode)
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
                 WebEditorUiApp,
                 {
                   propertyPanelOptions: options.propertyPanelOptions,
@@ -26587,14 +27761,14 @@ function createWebEditorUiRuntime(options) {
                   onThemeModeChange: setThemeMode
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("div", { ref: popupContainerRef, ...{ [WEB_EDITOR_POPUP_ROOT_ATTR]: "true" } })
+              /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { ref: popupContainerRef, ...{ [WEB_EDITOR_POPUP_ROOT_ATTR]: "true" } })
             ]
           }
         ) })
       }
     ) });
   }
-  root.render(/* @__PURE__ */ (0, import_jsx_runtime17.jsx)(RuntimeMount, {}));
+  root.render(/* @__PURE__ */ (0, import_jsx_runtime19.jsx)(RuntimeMount, {}));
   return {
     propertyPanel: propertyPanelBridge ? {
       setTarget(element) {
@@ -28132,14 +29306,14 @@ function createHandlesController(options) {
     const topEdgeDelta = finalRect.top - s.startRect.top;
     renderSelectionRect(finalRect);
     setHud(`${Math.round(finalRect.width)} \xD7 ${Math.round(finalRect.height)}`);
-    const styles3 = {};
+    const styles4 = {};
     if (s.affectsWidth) {
       const widthCssPx = borderBoxToCssSize(
         nextWidthBorderBox,
         s.extras.horizontalExtras,
         s.extras.boxSizing
       );
-      styles3.width = formatPx(widthCssPx);
+      styles4.width = formatPx(widthCssPx);
     }
     if (s.affectsHeight) {
       const heightCssPx = borderBoxToCssSize(
@@ -28147,34 +29321,34 @@ function createHandlesController(options) {
         s.extras.verticalExtras,
         s.extras.boxSizing
       );
-      styles3.height = formatPx(heightCssPx);
+      styles4.height = formatPx(heightCssPx);
     }
     if (s.mode === "absolute" || s.mode === "fixed") {
       if (s.affectsWidth) {
-        styles3.left = formatPx(s.startPosX + leftEdgeDelta);
-        styles3.right = "";
+        styles4.left = formatPx(s.startPosX + leftEdgeDelta);
+        styles4.right = "";
       }
       if (s.affectsHeight) {
-        styles3.top = formatPx(s.startPosY + topEdgeDelta);
-        styles3.bottom = "";
+        styles4.top = formatPx(s.startPosY + topEdgeDelta);
+        styles4.bottom = "";
       }
     } else if (s.mode === "relative") {
       if (s.affectsWidth && s.hasWest) {
-        styles3.left = formatPx(s.startPosX + leftEdgeDelta);
+        styles4.left = formatPx(s.startPosX + leftEdgeDelta);
       }
       if (s.affectsHeight && s.hasNorth) {
-        styles3.top = formatPx(s.startPosY + topEdgeDelta);
+        styles4.top = formatPx(s.startPosY + topEdgeDelta);
       }
     } else {
       if (s.affectsWidth && s.hasWest) {
-        styles3["margin-left"] = formatPx(s.startPosX + leftEdgeDelta);
+        styles4["margin-left"] = formatPx(s.startPosX + leftEdgeDelta);
       }
       if (s.affectsHeight && s.hasNorth) {
-        styles3["margin-top"] = formatPx(s.startPosY + topEdgeDelta);
+        styles4["margin-top"] = formatPx(s.startPosY + topEdgeDelta);
       }
     }
     try {
-      tx.set(styles3);
+      tx.set(styles4);
     } catch (error) {
       console.warn(`${WEB_EDITOR_V2_LOG_PREFIX} Resize preview apply failed:`, error);
       cancelSession("apply_failed");
@@ -30297,6 +31471,7 @@ function createPositionTracker(options) {
   disposer.listen(window, "scroll", handleViewportChange, PASSIVE_LISTENER);
   disposer.listen(document, "scroll", handleViewportChange, { ...PASSIVE_LISTENER, capture: true });
   disposer.listen(window, "resize", handleViewportChange, PASSIVE_LISTENER);
+  disposer.listen(window, PAGE_LAYOUT_CHANGE_EVENT, handleViewportChange, PASSIVE_LISTENER);
   function setHoverElement(element) {
     if (disposer.isDisposed) return;
     if (hoverElement === element) return;
@@ -30380,11 +31555,11 @@ function writeStyleValue(style, property, value) {
     style.setProperty(prop, v);
   }
 }
-function applyStylesSnapshot(element, styles3) {
-  if (!styles3) return;
+function applyStylesSnapshot(element, styles4) {
+  if (!styles4) return;
   const inlineStyle = getInlineStyle(element);
   if (!inlineStyle) return;
-  for (const [property, value] of Object.entries(styles3)) {
+  for (const [property, value] of Object.entries(styles4)) {
     writeStyleValue(inlineStyle, property, value);
   }
 }
@@ -32490,6 +33665,27 @@ function createComponentStatesAction(options) {
 }
 
 // src/core/editor/comment-batch.ts
+function buildCommentEntryInstructions(entry, skillOptions = []) {
+  const skills = mergePromptCardSkills(skillOptions);
+  return [
+    entry.note,
+    ...(entry.skillIds || []).map((id) => skills.find((skill) => skill.id === id)?.prompt || `\u8BF7\u53C2\u8003\u6280\u80FD\uFF1A${id}`),
+    ...(entry.images || []).filter((image) => image.source !== "target-screenshot").map((image) => `\u53C2\u8003\u9644\u4EF6\uFF1A${image.name}\uFF08\u89C1\u622A\u56FE\u4E2D\u7684\u540C\u540D\u53C2\u8003\u56FE\uFF09`)
+  ].filter(Boolean).join("\n\n");
+}
+function buildCommentBatchPrompt(entries, options = {}) {
+  const prompt = entries.map((entry, index) => [
+    `## \u6279\u6CE8 ${index + 1}\uFF1A\u4FEE\u6539\u539F\u578B`,
+    `\u6279\u6CE8 ID\uFF1A${entry.id}`,
+    `\u7EC4\u4EF6\uFF1A${entry.label}`,
+    `\u5B9A\u4F4D\uFF1A${JSON.stringify(entry.locator)}`,
+    buildCommentEntryInstructions(entry, options.skillOptions),
+    ...(entry.images || []).filter((image) => image.source !== "target-screenshot").map((image) => `\u9644\u4EF6 ${image.name}\uFF1A${image.assetPath || image.data}`),
+    `\u7EC4\u4EF6 HTML\uFF1A
+${entry.element?.outerHTML || ""}`
+  ].filter(Boolean).join("\n")).join("\n\n");
+  return options.transformPrompt?.(prompt) ?? prompt;
+}
 function createCommentBatchAction(options) {
   let busy = false;
   return async (action, ids) => {
@@ -32505,11 +33701,18 @@ function createCommentBatchAction(options) {
       const entry = available.get(id);
       if (!entry?.element?.isConnected) throw new Error("\u6240\u9009\u6279\u6CE8\u7684\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
       if (entry.disabledReason) throw new Error(entry.disabledReason);
-      return { ...entry, element: entry.element };
+      const expectedPurpose = COMMENT_PURPOSES.find((item) => item.action === action).id;
+      if ((entry.purpose !== void 0 || !options.send) && entry.purpose !== expectedPurpose) throw new Error("\u6240\u9009\u6279\u6CE8\u7528\u9014\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u6309\u7528\u9014\u53D1\u9001\uFF1B\u65E7\u683C\u5F0F\u6279\u6CE8\u8BF7\u91CD\u65B0\u521B\u5EFA");
+      return { ...entry, skillIds: entry.skillIds?.slice(), images: entry.images?.map((image) => ({ ...image })), element: entry.element };
     });
     busy = true;
     try {
       if (action === "send") {
+        if (options.sendEntries) {
+          assertCurrentScope();
+          await options.sendEntries(entries);
+          return;
+        }
         if (!options.send) throw new Error("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u53D1\u9001\u4FEE\u6539");
         await options.send(entries.map((entry) => entry.element));
         return;
@@ -32517,7 +33720,7 @@ function createCommentBatchAction(options) {
       if (action === "document" && !options.document) throw new Error("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u5F15\u5165\u8BF4\u660E");
       if (action === "generate" && !options.generate) throw new Error("\u5F53\u524D\u9875\u9762\u4E0D\u652F\u6301\u751F\u6210\u539F\u578B");
       const note = entries.map((entry, index) => `${index + 1}. ${entry.label}${entry.selector ? ` (${entry.selector})` : ""}
-${entry.note}`).join("\n\n");
+${buildCommentEntryInstructions(entry, options.skillOptions)}`).join("\n\n");
       if (note.length > 8e3) throw new Error("\u6240\u9009\u6279\u6CE8\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u51CF\u5C11\u9009\u62E9\u540E\u91CD\u8BD5");
       const sourceHtml = entries.map((entry) => entry.element.outerHTML).join("\n");
       if (action === "generate" && sourceHtml.length > 6e4) throw new Error("\u6240\u9009\u7EC4\u4EF6\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u51CF\u5C11\u9009\u62E9\u540E\u91CD\u8BD5");
@@ -32526,6 +33729,12 @@ ${entry.note}`).join("\n\n");
         assertCurrentScope();
         if (!entry.element.isConnected) throw new Error("\u6240\u9009\u6279\u6CE8\u7684\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
         screenshots.push({ label: entry.label, screenshot: await options.capture(entry.element, "component") });
+        for (const image of entry.images || []) {
+          if (image.source === "target-screenshot") continue;
+          const data = image.data || image.assetPath;
+          if (!data) throw new Error(`\u53C2\u8003\u9644\u4EF6 ${image.name} \u672A\u80FD\u8BFB\u53D6\uFF0C\u8BF7\u91CD\u65B0\u6DFB\u52A0`);
+          screenshots.push({ label: `${entry.label} \xB7 \u53C2\u8003\u9644\u4EF6 ${image.name}`, screenshot: { data, name: image.name, width: 1, height: 1 } });
+        }
       }
       if (entries.some((entry) => !entry.element.isConnected)) throw new Error("\u6240\u9009\u6279\u6CE8\u7684\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
       assertCurrentScope();
@@ -32637,15 +33846,15 @@ function isElementWithinComposedSubtree(element, ancestor) {
   }
   return false;
 }
-function resolveInlineTextTarget(selectionTarget, pathElements, isEditable = isEditableTextTarget) {
+function resolveInlineTextTarget(selectionTarget, pathElements, isEditable2 = isEditableTextTarget) {
   if (!selectionTarget?.isConnected) return null;
   for (const element of pathElements) {
     if (!element.isConnected) continue;
     if (!isElementWithinComposedSubtree(element, selectionTarget)) continue;
-    if (isEditable(element)) return element;
+    if (isEditable2(element)) return element;
     if (element === selectionTarget) return null;
   }
-  return isEditable(selectionTarget) ? selectionTarget : null;
+  return isEditable2(selectionTarget) ? selectionTarget : null;
 }
 function resolveInlineTextFragmentTargetAtPoint(selectionTarget, clientX, clientY) {
   if (!selectionTarget?.isConnected) return null;
@@ -32797,6 +34006,16 @@ function createLifecycleService(deps) {
   let interactionProfileRestartQueued = false;
   let commentListLoadState = { status: "loading" };
   let commentRestoreRevision = 0;
+  state2.componentCommentsById ?? (state2.componentCommentsById = /* @__PURE__ */ new Map());
+  const commentPageScope = () => services.persistence.getCurrentPageScope?.() || `${window.location.pathname}${window.location.search || ""}${window.location.hash || ""}`;
+  const commentScopeKey = () => JSON.stringify([options.host.getPersistenceScope?.()?.storageScope || "", commentPageScope()]);
+  const componentCommentStore = createComponentCommentStore({
+    records: state2.componentCommentsById,
+    getScope: commentScopeKey,
+    getPageScope: commentPageScope,
+    persist: persistComments,
+    onRollback: () => services.persistence.refreshLocalSnapshot?.()
+  });
   async function restoreCommentList() {
     const revision = ++commentRestoreRevision;
     commentListLoadState = { status: "loading", revision };
@@ -33120,43 +34339,45 @@ ${externalSection}` : promptWithSkills;
     return elements;
   }
   function getCommentListEntries() {
-    return Array.from(state2.editMetaByKey.values()).filter((meta) => Boolean(meta.note.trim() || meta.images.length || meta.dirtySince !== null)).map((meta) => {
+    const records = Array.from(state2.componentCommentsById.values()).filter((record) => !record.entry.deletedAt && (!record.entry.pageScope || record.entry.pageScope === commentPageScope())).map(({ entry, images }) => {
       let element = null;
       try {
-        element = locateElement(meta.locator);
+        element = locateElement(entry.locator);
       } catch {
       }
       if (!element?.isConnected) element = null;
-      const disabledReason = !element ? "\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9" : meta.readOnly ? "\u6B64\u6279\u6CE8\u4E3A\u53EA\u8BFB" : services.agentBridge.isElementInteractionLocked(element) ? "\u6B64\u7EC4\u4EF6\u6B63\u5728\u5904\u7406\u4E2D\uFF0C\u8BF7\u7A0D\u5019" : void 0;
       return {
-        id: meta.elementKey,
-        label: meta.label,
-        note: meta.note,
-        selector: meta.locator.selectors[0],
+        id: entry.id,
+        commentId: entry.id,
+        elementKey: entry.elementKey,
+        locator: entry.locator,
+        label: entry.label || "\u7EC4\u4EF6",
+        note: entry.comment || "",
+        purpose: entry.purpose,
+        state: entry.state,
+        skillIds: entry.skillIds?.slice(),
+        images: images.map((image) => ({ ...image })),
+        selector: entry.locator.selectors[0],
         element,
-        disabledReason
+        disabledReason: !element ? "\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9" : entry.state === "editing" || services.agentBridge.isElementInteractionLocked(element) ? "\u6B64\u7EC4\u4EF6\u6B63\u5728\u5904\u7406\u4E2D\uFF0C\u8BF7\u7A0D\u5019" : void 0
       };
     });
+    return records;
   }
   const runCommentBatch = createCommentBatchAction({
     getEntries: getCommentListEntries,
-    getScopeRevision: () => commentRestoreRevision,
-    send: async (elements) => {
+    skillOptions: options.ui.commentarySkillOptions,
+    getScopeRevision: () => `${commentScopeKey()}:${commentRestoreRevision}`,
+    sendEntries: async (entries) => {
+      const elements = Array.from(new Set(entries.map((entry) => entry.element)));
+      const promptText = buildCommentBatchPrompt(entries, { skillOptions: options.ui.commentarySkillOptions, transformPrompt: options.host.transformPrompt });
+      if (promptText.length > 2e5) throw new Error("\u6279\u6CE8\u4E0E\u9644\u4EF6\u5185\u5BB9\u8FC7\u957F\uFF0C\u8BF7\u51CF\u5C11\u9009\u62E9\u540E\u91CD\u8BD5");
       if (shouldDelegateAiActionToHost()) {
-        const refs = elements.flatMap((element) => {
-          const meta = services.changes.getMetaForElement(element);
-          return meta ? [toExternalEditingTarget(meta)] : [];
-        });
-        const editingRun = beginHostExternalEditing(refs);
-        try {
-          const handled = await runHostAiAction(buildHostSendToAgentAction(elements[0], elements));
-          if (!handled) throw new Error(lastHostAiActionError || "\u5BBF\u4E3B\u6682\u672A\u5904\u7406 AI \u6267\u884C\u8BF7\u6C42\u3002");
-        } catch (error) {
-          markHostExternalEditingError(editingRun, error instanceof Error ? error.message : String(error));
-          throw error;
-        }
+        const targets = entries.map((entry) => ({ elementKey: entry.elementKey, commentId: entry.id, locator: entry.locator, label: entry.label }));
+        const handled = await runHostAiAction({ type: "send-to-agent", ...targets[0], targets, promptText, preserveOnAutoClear: true });
+        if (!handled) throw new Error(lastHostAiActionError || "\u5BBF\u4E3B\u6682\u672A\u5904\u7406 AI \u6267\u884C\u8BF7\u6C42\u3002");
       } else {
-        await services.agentBridge.handleSendPromptToAgentForElements(elements, buildSaveRunPromptForAgentElement);
+        await services.agentBridge.handleSendPromptToAgentForElements(elements, (element) => buildCommentBatchPrompt(entries.filter((entry) => entry.element === element), { skillOptions: options.ui.commentarySkillOptions }));
       }
       state2.positionTracker?.forceUpdate(true);
     },
@@ -33176,6 +34397,44 @@ ${externalSection}` : promptWithSkills;
       throw new Error("\u6279\u6CE8\u672A\u80FD\u4FDD\u5B58\uFF0C\u8BF7\u91CD\u8BD5\u6682\u5B58\u540E\u518D\u6267\u884C");
     }
   }
+  const componentComments = {
+    getScopeKey: commentScopeKey,
+    getDraft: (element, purpose) => componentCommentStore.getDraft(services.changes.getMetaForElement(element), purpose),
+    updateDraft: (element, purpose, patch) => componentCommentStore.updateDraft(services.changes.getMetaForElement(element), purpose, patch),
+    saveDraft: (element, purpose) => {
+      if (!element.isConnected) return Promise.reject(new Error("\u7EC4\u4EF6\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9"));
+      if (commentListLoadState.status !== "ready") return Promise.reject(new Error("\u6279\u6CE8\u6B63\u5728\u52A0\u8F7D\uFF0C\u8BF7\u7A0D\u5019"));
+      if (services.agentBridge.isElementInteractionLocked(element)) return Promise.reject(new Error("\u7EC4\u4EF6\u6B63\u5728\u5904\u7406\u4E2D\uFF0C\u8BF7\u7A0D\u5019"));
+      return componentCommentStore.saveDraft(services.changes.getMetaForElement(element), purpose);
+    },
+    startNew: (element, purpose) => componentCommentStore.startNew(services.changes.getMetaForElement(element), purpose),
+    edit: (id) => {
+      if (commentListLoadState.status !== "ready") throw new Error("\u6279\u6CE8\u6B63\u5728\u52A0\u8F7D\u6216\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u540E\u7F16\u8F91");
+      const entry = getCommentListEntries().find((item) => item.id === id);
+      if (!entry?.element || entry.disabledReason) throw new Error(entry?.disabledReason || "\u7EC4\u4EF6\u5DF2\u5931\u6548");
+      if (!isComponentCommentPurpose(entry.purpose)) {
+        throw new Error("\u6B64\u6279\u6CE8\u7528\u9014\u6682\u4E0D\u652F\u6301\uFF0C\u8BF7\u4FDD\u7559\u539F\u8BB0\u5F55");
+      }
+      return { element: entry.element, purpose: componentCommentStore.edit(id) };
+    },
+    remove: async (id) => {
+      if (commentListLoadState.status !== "ready") throw new Error("\u6279\u6CE8\u6B63\u5728\u52A0\u8F7D\u6216\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u540E\u5220\u9664");
+      if (!getCommentListEntries().some((entry) => entry.id === id)) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+      await componentCommentStore.remove(id);
+    },
+    removeMany: async (ids) => {
+      if (commentListLoadState.status !== "ready") throw new Error("\u6279\u6CE8\u6B63\u5728\u52A0\u8F7D\u6216\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u540E\u5220\u9664");
+      const currentIds = new Set(getCommentListEntries().map((entry) => entry.id));
+      if (ids.some((id) => !currentIds.has(id))) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\u6216\u6279\u6CE8\u5DF2\u53D8\u66F4\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9");
+      await componentCommentStore.removeMany(ids);
+    },
+    run: async (action, ids) => {
+      const revision = commentRestoreRevision;
+      await persistComments();
+      if (revision !== commentRestoreRevision) throw new Error("\u9875\u9762\u5DF2\u5207\u6362\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6279\u6CE8");
+      await runCommentBatch(action, ids);
+    }
+  };
   function resolvePromptTargetRefsFromEditHistory() {
     return Array.from(state2.editMetaByKey.values()).filter(
       (meta) => services.persistence.getCommentTaskState?.(meta.elementKey) !== "completed" && (meta.dirtySince !== null || String(meta.note ?? "").trim() || Array.isArray(meta.images) && meta.images.length > 0)
@@ -34295,8 +35554,10 @@ ${externalSection}` : promptWithSkills;
             }
           },
           getCommentListEntries,
+          componentComments,
           getCommentListLoadState: () => commentListLoadState,
           commentListLoadingContent: options.ui.commentListLoadingContent,
+          commentListDockOrigin: options.ui.commentListDockOrigin,
           onRetryCommentList: async () => {
             const deleted = await restoreCommentList();
             services.agentBridge.discardDeletedElementStates?.(deleted);
@@ -35274,6 +36535,7 @@ function cloneTweakValues(values) {
 }
 function createPersistenceService(options) {
   const { state: state2, changes } = options;
+  state2.componentCommentsById ?? (state2.componentCommentsById = /* @__PURE__ */ new Map());
   const getResourceContext = options.getResourceContext ?? (() => null);
   const getHostPersistenceScope = options.getPersistenceScope ?? null;
   const persistenceAdapter = options.persistenceAdapter ?? null;
@@ -35281,6 +36543,8 @@ function createPersistenceService(options) {
   const getInteractionProfile = options.getInteractionProfile ?? (() => options.interactionProfile ?? "design");
   let cacheWriteTimer = null;
   let cacheRestoreInProgress = false;
+  let restoreSequence = 0;
+  let pendingRestoreSequence = null;
   let currentAdapterDocument = null;
   let lastAdapterDocument = null;
   let preserveMissingCurrentScopeRecordsOnNextWrite = false;
@@ -35430,7 +36694,7 @@ function createPersistenceService(options) {
         path: resolveStorageScope() ?? window.location.pathname ?? "",
         updatedAt,
         showMarkers: state2.changeMarkersVisible,
-        entries: entries.map((entry) => withCurrentPageScope(entry))
+        entries: entries.map((entry) => entry.componentComment && entry.pageScope ? entry : withCurrentPageScope(entry))
       };
       window.localStorage.setItem(key, JSON.stringify(payload));
     } catch {
@@ -35660,6 +36924,7 @@ function createPersistenceService(options) {
   function applyCurrentCommentStates(comments) {
     const currentStates = buildCurrentCommentStates();
     return comments.map((comment) => {
+      if (comment.componentComment) return { ...comment };
       const commentId = normalizeCommentId(comment.id);
       const currentState = commentId && isCurrentPageScopedRecord(comment) ? currentStates.get(commentId) : null;
       return {
@@ -35669,7 +36934,7 @@ function createPersistenceService(options) {
     });
   }
   function buildDocumentImages() {
-    return Array.from(state2.editMetaByKey.values()).filter((meta) => !meta.readOnly).flatMap(
+    const transactionImages = Array.from(state2.editMetaByKey.values()).filter((meta) => !meta.readOnly && !state2.componentCommentsById.has(meta.commentId || "")).flatMap(
       (meta) => meta.images.map((image) => {
         const commentId = ensureElementEditCommentId(meta);
         return withCurrentPageScope({
@@ -35685,15 +36950,18 @@ function createPersistenceService(options) {
         });
       })
     );
+    return [...transactionImages, ...Array.from(state2.componentCommentsById.values()).flatMap(
+      (record) => record.entry.deletedAt ? [] : record.images.map((image) => ({ ...withCurrentPageScope({ ...image, commentId: record.entry.id }), ...record.entry.pageScope ? { pageScope: record.entry.pageScope } : {} }))
+    )];
   }
   function cacheEntryToCommentEntry(entry) {
-    const { note, commentId, ...rest } = entry;
+    const { note, commentId, componentImages: _componentImages, ...rest } = entry;
     return {
       ...rest,
       elementKey: entry.elementKey,
       id: normalizeCommentId(commentId),
       state: isPrototypeEditCommentStatus(entry.state) ? entry.state : "idle",
-      ...note ? { comment: note } : {},
+      ...entry.componentComment || entry.purpose ? { comment: note ?? "" } : note ? { comment: note } : {},
       ...Array.isArray(entry.externalComments) ? { externalComments: entry.externalComments.map((comment) => ({ ...comment })) } : {}
     };
   }
@@ -35702,7 +36970,7 @@ function createPersistenceService(options) {
     return {
       ...rest,
       commentId: id,
-      ...comment ? { note: comment } : {},
+      ...comment || entry.componentComment || entry.purpose ? { note: comment ?? "" } : {},
       ...Array.isArray(entry.externalComments) ? { externalComments: entry.externalComments.map((comment2) => ({ ...comment2 })) } : {}
     };
   }
@@ -35737,9 +37005,10 @@ function createPersistenceService(options) {
       (lastAdapterDocument?.comments ?? []).map((entry) => [normalizeCommentId(entry.id), entry])
     );
     const currentComments = entries.map((entry) => {
-      const current = withCurrentPageScope(cacheEntryToCommentEntry(entry));
+      const source = cacheEntryToCommentEntry(entry);
+      const current = source.componentComment && source.pageScope ? source : withCurrentPageScope(source);
       const previous = previousCommentsById.get(normalizeCommentId(current.id));
-      return previous ? { ...previous, ...current } : current;
+      return previous ? { ...previous, ...current, ...current.componentComment ? { deletedAt: current.deletedAt } : {} } : current;
     }).filter((entry) => Boolean(normalizeCommentId(entry.id)));
     const currentImages = buildDocumentImages();
     const currentCommentIds = new Set(currentComments.map((entry) => entry.id));
@@ -35827,6 +37096,7 @@ function createPersistenceService(options) {
       normalizedImages.map((image) => normalizeCommentId(image.commentId)).filter(Boolean)
     );
     const normalizedComments = comments.filter((entry) => normalizeCommentId(entry.id) && !isDeletedRecord(entry)).filter((entry) => {
+      if (entry.componentComment || entry.purpose) return true;
       const hasSkillSelection = Array.isArray(entry.skillIds) && entry.skillIds.some((skillId) => String(skillId ?? "").trim());
       if (!hasSkillSelection) return true;
       return Boolean(
@@ -35874,6 +37144,7 @@ function createPersistenceService(options) {
   function clearCurrentPageRuntimeState() {
     state2.transactionManager?.clear?.();
     state2.editMetaByKey.clear();
+    state2.componentCommentsById.clear();
     state2.pendingMarkerAnchors.clear();
     state2.processedEditTimestampsByKey.clear();
     state2.selectionAnchor = null;
@@ -36172,6 +37443,8 @@ function createPersistenceService(options) {
       comments: sourceDocument.comments.map((comment, index) => index === commentIndex ? nextComment : comment)
     };
     commentStateByCommentId.set(commentId, normalizeCommentState(nextComment));
+    const componentComment = state2.componentCommentsById.get(commentId);
+    if (componentComment) componentComment.entry = nextComment;
     lastAdapterDocument = nextDocument;
     currentAdapterDocument = nextDocument;
     await enqueueTrackedAdapterWrite(
@@ -36200,6 +37473,15 @@ function createPersistenceService(options) {
     writeAdapterDocument(entries, reason, clearScope);
   }
   function buildCacheEntriesFromTransactions() {
+    return [
+      ...buildTransactionCacheEntries().filter((entry) => !state2.componentCommentsById.has(entry.commentId || "")),
+      ...Array.from(state2.componentCommentsById.values()).map((record) => ({
+        ...commentEntryToCacheEntry(record.entry),
+        componentImages: record.images.map((image) => ({ ...image }))
+      }))
+    ];
+  }
+  function buildTransactionCacheEntries() {
     const tm = state2.transactionManager;
     if (!tm) {
       return Array.from(state2.editMetaByKey.values()).filter((meta) => (!meta.readOnly || (meta.externalComments?.length ?? 0) > 0) && (meta.note || (meta.skillIds?.length ?? 0) > 0 || meta.anchor || (meta.externalComments?.length ?? 0) > 0)).map((meta) => ({
@@ -36369,11 +37651,11 @@ function createPersistenceService(options) {
     return entries;
   }
   function persistFromTransactions() {
-    if (cacheRestoreInProgress) return;
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null) return;
     writeCache(buildCacheEntriesFromTransactions());
   }
   function persistCommentStateDocument() {
-    if (cacheRestoreInProgress) return;
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null) return;
     writeAdapterDocument(buildCacheEntriesFromTransactions(), "state");
   }
   function getPersistedPrototypeCommentsDocument() {
@@ -36384,11 +37666,15 @@ function createPersistenceService(options) {
       window.clearTimeout(cacheWriteTimer);
       cacheWriteTimer = null;
     }
-    if (cacheRestoreInProgress) return;
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null) return;
     writeCache(buildCacheEntriesFromTransactions(), reason);
   }
+  function refreshLocalSnapshot() {
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null || commentPersistenceMode === "adapter-only") return;
+    writeLocalCache(buildCacheEntriesFromTransactions());
+  }
   function scheduleWrite() {
-    if (cacheRestoreInProgress) return;
+    if (cacheRestoreInProgress || pendingRestoreSequence !== null) return;
     if (cacheWriteTimer !== null) {
       window.clearTimeout(cacheWriteTimer);
     }
@@ -36398,10 +37684,25 @@ function createPersistenceService(options) {
     }, 120);
   }
   function applyCachedEntries(entries) {
+    for (const entry of entries) {
+      if (!(entry.componentComment || entry.purpose) || !entry.commentId || !isCurrentPageScopedRecord(entry) || entry.deletedAt) continue;
+      state2.componentCommentsById.set(entry.commentId, {
+        entry: { ...cacheEntryToCommentEntry(entry), componentComment: true },
+        images: currentAdapterDocument ? currentAdapterDocument.images.filter((image) => image.commentId === entry.commentId && isCurrentPageScopedRecord(image)).map((image) => ({
+          ...image,
+          data: image.data || "",
+          name: image.name || "\u9644\u4EF6",
+          mimeType: image.mimeType || "image/png",
+          size: image.size || 0,
+          createdAt: image.createdAt || Date.now()
+        })) : entry.componentImages?.map((image) => ({ ...image })) ?? []
+      });
+    }
     const tm = state2.transactionManager;
     if (!tm) return;
     const annotationSourceNodeIds = collectAnnotationSourceNodeIdsFromWindow();
     for (const entry of entries) {
+      if (entry.componentComment || entry.purpose) continue;
       if (!isCurrentPageScopedRecord(entry)) {
         continue;
       }
@@ -36584,102 +37885,140 @@ function createPersistenceService(options) {
   }
   async function restoreCachedChanges() {
     if (typeof window === "undefined") return [];
-    const adapterResult = await readAdapterDocument();
-    let adapterDocument = adapterResult.document;
-    const deletedElementKeys = new Set(adapterResult.deletedElementKeys);
-    if (adapterDocument) {
-      lastAdapterDocument = adapterDocument;
-    }
-    if (adapterResult.observedTombstones.length > 0 && adapterDocument && persistenceAdapter?.write) {
-      const scope = resolvePersistenceScope();
-      if (scope) {
-        try {
-          const documentToCompact = adapterDocument;
-          await enqueueTrackedAdapterWrite(
-            scope,
-            () => persistenceAdapter.write(scope, documentToCompact, "restore", {
-              observedTombstones: adapterResult.observedTombstones
-            })
-          );
-          const refreshedResult = await readAdapterDocument();
-          if (refreshedResult.document) {
-            adapterDocument = refreshedResult.document;
-            lastAdapterDocument = adapterDocument;
-            refreshedResult.deletedElementKeys.forEach((elementKey) => {
-              deletedElementKeys.add(elementKey);
-            });
-          }
-        } catch (error) {
-          console.warn("[Commentary] Failed to compact restored prototype comments:", error);
-        }
-      }
-    }
-    const resetCurrentPageRuntimeState = () => {
-      clearCurrentPageRuntimeState();
-      if (adapterDocument) {
-        mergeAdapterCommentStates(adapterDocument);
-      }
-    };
-    const payload = adapterDocument ? {
-      version: CACHE_VERSION,
-      path: adapterDocument.resource.targetPath || resolveStorageScope() || "",
-      updatedAt: Date.now(),
-      showMarkers: state2.changeMarkersVisible,
-      entries: adapterDocument.comments.filter((entry) => isCurrentPageScopedRecord(entry)).map(commentEntryToCacheEntry)
-    } : commentPersistenceMode === "adapter-only" ? null : readCache();
-    if (!payload) {
-      resetCurrentPageRuntimeState();
-      return Array.from(deletedElementKeys);
-    }
-    const scopedEntries = payload.entries.filter((entry) => isCurrentPageScopedRecord(entry));
-    const annotationSourceNodeIds = collectAnnotationSourceNodeIdsFromWindow();
-    const restorableEntries = annotationSourceNodeIds ? scopedEntries.filter((entry) => {
-      const annotationPanelIdentity = normalizeAnnotationPanelCacheIdentity(entry.locator);
-      if (!annotationPanelIdentity) return true;
-      return annotationSourceNodeIds.has(annotationPanelIdentity.elementKey.replace(/^annotation-panel:/, ""));
-    }) : scopedEntries;
-    if (restorableEntries.length !== scopedEntries.length && commentPersistenceMode !== "adapter-only") {
-      writeLocalCache(restorableEntries, payload.updatedAt);
-    }
-    if (scopedEntries.length === 0) {
-      resetCurrentPageRuntimeState();
-      if (adapterDocument) {
-        if (commentPersistenceMode !== "adapter-only") {
-          writeLocalCache([], payload.updatedAt);
-        }
-      }
-      return Array.from(deletedElementKeys);
-    }
-    if (restorableEntries.length === 0) {
-      resetCurrentPageRuntimeState();
-      return Array.from(deletedElementKeys);
-    }
-    cacheRestoreInProgress = true;
-    currentAdapterDocument = adapterDocument;
+    const sequence = ++restoreSequence;
+    const originalScope = JSON.stringify([resolveStorageScope(), resolveCurrentPageScope()]);
+    const isCurrentRestore = () => sequence === restoreSequence && originalScope === JSON.stringify([resolveStorageScope(), resolveCurrentPageScope()]);
+    pendingRestoreSequence = sequence;
     try {
-      resetCurrentPageRuntimeState();
-      if (typeof payload.showMarkers === "boolean") {
-        state2.changeMarkersVisible = payload.showMarkers;
-        setMarkerVisibility(payload.showMarkers);
-      } else {
-        state2.changeMarkersVisible = readMarkerVisibility();
+      const adapterResult = await readAdapterDocument();
+      if (!isCurrentRestore()) return [];
+      let adapterDocument = adapterResult.document;
+      if (options.purgeLegacyComponentComments && getInteractionProfile() === "design" && resolvePersistenceScope()?.documentKind !== "document" && adapterDocument) {
+        const cleanup = clearLegacyComponentComments(adapterDocument);
+        if (cleanup.changed) {
+          const scope = resolvePersistenceScope();
+          if (scope && persistenceAdapter?.write) {
+            await enqueueTrackedAdapterWrite(scope, () => persistenceAdapter.write(scope, cleanup.document, "clear"));
+            if (!isCurrentRestore()) return [];
+          }
+          adapterDocument = cleanup.document;
+        }
       }
-      applyCachedEntries(restorableEntries);
-    } finally {
-      cacheRestoreInProgress = false;
-      currentAdapterDocument = null;
-    }
-    state2.propertyPanel?.refresh();
-    changes.syncEditMetaWithTransactions();
-    if (adapterDocument) {
-      preserveMissingCurrentScopeRecordsOnNextWrite = true;
-      if (commentPersistenceMode !== "adapter-only") {
-        writeLocalCache(buildCacheEntriesFromTransactions());
+      const deletedElementKeys = new Set(adapterResult.deletedElementKeys);
+      if (adapterDocument) {
+        lastAdapterDocument = adapterDocument;
       }
+      if (adapterResult.observedTombstones.length > 0 && adapterDocument && persistenceAdapter?.write) {
+        const scope = resolvePersistenceScope();
+        if (scope) {
+          try {
+            const documentToCompact = adapterDocument;
+            await enqueueTrackedAdapterWrite(
+              scope,
+              () => persistenceAdapter.write(scope, documentToCompact, "restore", {
+                observedTombstones: adapterResult.observedTombstones
+              })
+            );
+            if (!isCurrentRestore()) return [];
+            const refreshedResult = await readAdapterDocument();
+            if (!isCurrentRestore()) return [];
+            if (refreshedResult.document) {
+              adapterDocument = refreshedResult.document;
+              lastAdapterDocument = adapterDocument;
+              refreshedResult.deletedElementKeys.forEach((elementKey) => {
+                deletedElementKeys.add(elementKey);
+              });
+            }
+          } catch (error) {
+            console.warn("[Commentary] Failed to compact restored prototype comments:", error);
+          }
+        }
+      }
+      if (!isCurrentRestore()) return [];
+      const resetCurrentPageRuntimeState = () => {
+        clearCurrentPageRuntimeState();
+        if (adapterDocument) {
+          mergeAdapterCommentStates(adapterDocument);
+        }
+      };
+      let payload = adapterDocument ? {
+        version: CACHE_VERSION,
+        path: adapterDocument.resource.targetPath || resolveStorageScope() || "",
+        updatedAt: Date.now(),
+        showMarkers: state2.changeMarkersVisible,
+        entries: adapterDocument.comments.filter((entry) => isCurrentPageScopedRecord(entry)).map(commentEntryToCacheEntry)
+      } : commentPersistenceMode === "adapter-only" ? null : readCache();
+      if (!adapterDocument && payload && options.purgeLegacyComponentComments && getInteractionProfile() === "design" && resolvePersistenceScope()?.documentKind !== "document") {
+        const cleanup = clearLegacyComponentComments({
+          kind: "prototype-edit-comments",
+          comments: payload.entries.map(cacheEntryToCommentEntry),
+          images: payload.entries.flatMap((entry) => (entry.componentImages || []).map((image) => ({ ...image, commentId: entry.commentId })))
+        });
+        if (cleanup.changed) {
+          payload = { ...payload, entries: cleanup.document.comments.map((entry) => ({
+            ...commentEntryToCacheEntry(entry),
+            componentImages: cleanup.document.images.filter((image) => image.commentId === entry.id).map(({ commentId: _commentId, ...image }) => image)
+          })) };
+          writeLocalCache(payload.entries, payload.updatedAt);
+        }
+      }
+      if (!payload) {
+        resetCurrentPageRuntimeState();
+        return Array.from(deletedElementKeys);
+      }
+      const scopedEntries = payload.entries.filter((entry) => isCurrentPageScopedRecord(entry));
+      const annotationSourceNodeIds = collectAnnotationSourceNodeIdsFromWindow();
+      const restorableEntries = annotationSourceNodeIds ? scopedEntries.filter((entry) => {
+        const annotationPanelIdentity = normalizeAnnotationPanelCacheIdentity(entry.locator);
+        if (!annotationPanelIdentity) return true;
+        return annotationSourceNodeIds.has(annotationPanelIdentity.elementKey.replace(/^annotation-panel:/, ""));
+      }) : scopedEntries;
+      if (restorableEntries.length !== scopedEntries.length && commentPersistenceMode !== "adapter-only") {
+        writeLocalCache(restorableEntries, payload.updatedAt);
+      }
+      if (scopedEntries.length === 0) {
+        resetCurrentPageRuntimeState();
+        if (adapterDocument) {
+          if (commentPersistenceMode !== "adapter-only") {
+            writeLocalCache([], payload.updatedAt);
+          }
+        }
+        return Array.from(deletedElementKeys);
+      }
+      if (restorableEntries.length === 0) {
+        resetCurrentPageRuntimeState();
+        return Array.from(deletedElementKeys);
+      }
+      cacheRestoreInProgress = true;
+      currentAdapterDocument = adapterDocument;
+      try {
+        resetCurrentPageRuntimeState();
+        if (typeof payload.showMarkers === "boolean") {
+          state2.changeMarkersVisible = payload.showMarkers;
+          setMarkerVisibility(payload.showMarkers);
+        } else {
+          state2.changeMarkersVisible = readMarkerVisibility();
+        }
+        applyCachedEntries(restorableEntries);
+      } finally {
+        cacheRestoreInProgress = false;
+        currentAdapterDocument = null;
+      }
+      state2.propertyPanel?.refresh();
+      changes.syncEditMetaWithTransactions();
+      if (adapterDocument) {
+        preserveMissingCurrentScopeRecordsOnNextWrite = true;
+        if (commentPersistenceMode !== "adapter-only") {
+          writeLocalCache(buildCacheEntriesFromTransactions());
+        }
+        return Array.from(deletedElementKeys);
+      }
+      if (pendingRestoreSequence === sequence) pendingRestoreSequence = null;
+      persistFromTransactions();
       return Array.from(deletedElementKeys);
+    } finally {
+      if (pendingRestoreSequence === sequence) pendingRestoreSequence = null;
     }
-    persistFromTransactions();
-    return Array.from(deletedElementKeys);
   }
   function clearCachedChanges(kind) {
     const entries = buildCacheEntriesFromTransactions();
@@ -36689,6 +38028,10 @@ function createPersistenceService(options) {
     }
     const nextEntries = [];
     for (const entry of entries) {
+      if (entry.componentComment || entry.purpose) {
+        nextEntries.push(entry);
+        continue;
+      }
       const next = { locator: entry.locator };
       if (entry.commentId) next.commentId = entry.commentId;
       if (entry.elementKey) next.elementKey = entry.elementKey;
@@ -36716,9 +38059,12 @@ function createPersistenceService(options) {
     writeCache(nextEntries);
   }
   async function clearStorage(scope = "page", target = "all") {
+    restoreSequence++;
+    pendingRestoreSequence = null;
     const entries = buildCacheEntriesFromTransactions();
     const currentStates = buildCurrentCommentStates();
     const retainedEntries = target === "completed" ? entries.filter((entry) => {
+      if (entry.componentComment || entry.purpose) return entry.state !== "completed";
       const commentId = normalizeCommentId(entry.commentId);
       return (currentStates.get(commentId)?.state ?? entry.state) !== "completed";
     }) : [];
@@ -36726,8 +38072,13 @@ function createPersistenceService(options) {
       writeLocalCache(retainedEntries);
     }
     await persistAdapterDocument(retainedEntries, "clear", scope, target);
+    if (target === "all") state2.componentCommentsById.clear();
+    else for (const [id, record] of state2.componentCommentsById) {
+      if (record.entry.state === "completed") state2.componentCommentsById.delete(id);
+    }
   }
   return {
+    getCurrentPageScope: resolveCurrentPageScope,
     readMarkerVisibility,
     setMarkerVisibility,
     readCommentShortcutSettings,
@@ -36755,6 +38106,7 @@ function createPersistenceService(options) {
     scheduleWrite,
     persistFromTransactions,
     flushPendingWrite,
+    refreshLocalSnapshot,
     restoreCachedChanges,
     getPersistedPrototypeCommentsDocument,
     clearCachedChanges,
@@ -38931,6 +40283,22 @@ function createCommentary(options = {}) {
   }
   async function setNodeEditingState(elementKey, nextState, taskRef, targetRef) {
     const normalizedTaskRef = normalizeExternalTaskRef(taskRef);
+    const componentComment = targetRef?.commentId ? state2.componentCommentsById.get(targetRef.commentId) : null;
+    if (componentComment) {
+      const applied = transitionComponentComment(componentComment, nextState, normalizedTaskRef);
+      if (applied) {
+        const target = { elementKey, locator: componentComment.entry.locator, label: componentComment.entry.label || "\u7EC4\u4EF6" };
+        if (nextState === "editing") agentBridge?.setExternalEditingStateByElementKey?.(target, taskRef);
+        else if (nextState === "idle") agentBridge?.clearExternalEditingStateByElementKey?.(elementKey, taskRef);
+        else agentBridge?.setExternalEditingTerminalStateByElementKey?.(target, nextState, taskRef);
+        persistence?.flushPendingWrite("state");
+        await persistence?.waitForPendingWrites();
+        if (nextState === "editing") conversationTaskMonitor?.reconcile();
+        state2.propertyPanel?.refresh();
+        notifyStatusChange();
+      }
+      return { elementKey, state: nextState, applied, ...normalizedTaskRef ? { taskRef: normalizedTaskRef } : {} };
+    }
     const settlePersistedEditingTask = async () => {
       await persistence?.waitForPendingWrites();
       if (nextState === "editing") {
@@ -39152,6 +40520,7 @@ function createCommentary(options = {}) {
   persistence = createPersistenceService({
     state: state2,
     changes,
+    purgeLegacyComponentComments: resolvedOptions.interactionProfile === "design" && !resolvedOptions.ui.externalAnnotationMode,
     getResourceContext: resolvedOptions.host.getResourceContext,
     getPersistenceScope: resolvedOptions.host.getPersistenceScope,
     persistenceAdapter: resolvedOptions.host.persistenceAdapter,

@@ -182,7 +182,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
     const legacyPrototypeCanvasBranch = getSourceSegment(
       source,
@@ -228,7 +228,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(source).toContain("const selectedResourceCanvas = selectedDoc?.openMode === 'canvas' ? selectedDoc : null;");
@@ -244,7 +244,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(source).not.toContain("import CanvasWelcomeGuide from './CanvasWelcomeGuide';");
@@ -272,7 +272,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(standaloneCanvasBranch).toContain("activeProjectId={activeProjectId || ''}");
@@ -580,7 +580,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(source).toContain('preferredModel?: string | null;');
@@ -1245,7 +1245,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(standaloneCanvasBranch).toContain('onSubmitCanvasAssistantPrompt={onSubmitCanvasAssistantPrompt}');
@@ -1257,7 +1257,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
     const prototypeCanvasBranch = getSourceSegment(
       source,
@@ -1276,7 +1276,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
     const prototypeCanvasBranch = getSourceSegment(
       source,

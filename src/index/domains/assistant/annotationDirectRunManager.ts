@@ -19,6 +19,7 @@ export interface AnnotationDirectRunEditingTarget {
   iframe?: HTMLIFrameElement | null;
   elementKey: string;
   targetRef?: {
+    commentId?: string;
     locator?: ElementLocator | null;
     label?: string | null;
   } | null;

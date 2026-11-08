@@ -22,6 +22,10 @@ No testing framework or coverage threshold is configured. Add automated tests wi
 
 ## Commit & Pull Request Guidelines
 
+Before starting each new feature, inspect the working tree and current branch, then create and switch to a dedicated `codex/<feature-name>` branch before editing files. State the branch name in the progress update. Continue related changes and commits on that feature branch; create a new branch for a different feature, rather than for every commit. Do not develop a new feature directly on `main` or reuse an unrelated feature branch.
+
+Choose the branch base from the feature's dependencies: use the current integration branch for independent work, or the required feature branch for dependent work, and explain that dependency. Preserve existing uncommitted changes when switching branches. Run relevant checks before committing, and commit, push, or merge only when authorized by the user. Report the branch, commit, validation results, and any remaining uncommitted changes when handing off.
+
 There is no Git history available from which to infer commit conventions. Use concise, imperative commit subjects, such as `Add initial project configuration`, and keep changes focused.
 
 Pull requests should describe the problem, implementation, and validation performed. Link relevant issues and include screenshots for visible UI changes. Clearly identify any setup steps, compatibility changes, or checks that could not be run.

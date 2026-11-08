@@ -30,6 +30,7 @@ import {
 } from '../agent-prompt-action';
 import { executePromptCardCurrentElementAction, executePromptCardDocumentAction, executePromptCardSaveAction, resolveComponentPrototypeDestination, resolvePromptSubmitShortcut } from './prompt-card-actions';
 import { ComponentPromptFooter } from './component-prompt-footer';
+import { ComponentCommentComposer } from './component-comment-composer';
 import { resolvePromptCardCloseActionTitle } from './prompt-card-shortcut-label';
 import { CloseToolIcon, AgentSparkleIcon, IconActionButton } from './action-buttons';
 import { resolveExternalEditingStatusDescription } from './external-editing-status-hint';
@@ -444,6 +445,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
     const isAnnotationSession = interactionProfile === 'annotation';
     const textCommentMode = interactionProfile === 'text-comment';
     const componentComposer = Boolean(onDocumentComponent && !isAnnotationSession && !externalAnnotationMode && !textCommentMode);
+    const purposeComposer = componentComposer && Boolean(props.componentComments) && selectedElementCount === 1;
 
     const rootRef = React.useRef<HTMLDivElement | null>(null);
     const textComposerRef = React.useRef<HTMLDivElement | null>(null);
@@ -523,7 +525,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
 
     React.useLayoutEffect(() => {
       setPromptDismissed(false);
-    }, [currentTarget]);
+    }, [currentTarget, props.commentEditRequest?.revision]);
 
     React.useLayoutEffect(() => {
       setExternalCommentsToolOpen(true);
@@ -719,6 +721,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
         viewportHeight: window.innerHeight,
         propertyPanelEnabled: (commentListOpen && window.innerWidth > 760) || (propertyPanelEnabled && (!pinnedToTopRight || propertyPanelOpen)),
         pinnedToTopRight,
+        stackWithCommentList: purposeComposer && commentListOpen,
         safePaddingPx: SAFE_PADDING_PX,
         propertyPanelWidth: commentListOpen && window.innerWidth > 760 ? 320 : PROPERTY_PANEL_WIDTH,
         propertyPanelRight: commentListOpen && window.innerWidth > 760 ? 52 : PROPERTY_PANEL_RIGHT,
@@ -729,6 +732,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
       anchorRect,
       currentTarget,
       componentComposer,
+      purposeComposer,
       promptCardSize,
       propertyPanelEnabled,
       pinnedToTopRight,
@@ -1080,9 +1084,10 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
     });
 
     React.useLayoutEffect(() => {
+      if (purposeComposer) return;
       if (!currentElementPromptAction.dismissBubble) return;
       setPromptDismissed(true);
-    }, [currentElementPromptAction.dismissBubble]);
+    }, [currentElementPromptAction.dismissBubble, purposeComposer]);
 
     React.useEffect(() => {
       if (!promptVisible || uiMode !== 'bubble-card' || !currentTaskTerminal) return;
@@ -1326,6 +1331,9 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
           left: promptPosition.left,
           top: promptPosition.top,
           visibility: promptVisible ? 'visible' : 'hidden',
+          ...(purposeComposer && commentListOpen && window.innerWidth <= 760 ? {
+            width: 'calc(100vw - 16px)', maxWidth: 'calc(100vw - 16px)', maxHeight: 'calc(48dvh - 16px)', overflow: 'hidden',
+          } : {}),
           // Mobile: full width prompt card
           ...(isMobileDevice()
             ? {
@@ -1385,6 +1393,25 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
             }
           `}
         </style>
+        {purposeComposer && props.componentComments && !bubbleStyleEditorOpen ? (
+          <ComponentCommentComposer api={props.componentComments} element={currentTarget} label={componentName}
+            editRequest={props.commentEditRequest} onSaved={onCommentSaved}
+            onClose={() => { setPromptDismissed(true); onDismissSelection?.(); }}
+            getLoadState={props.getCommentListLoadState} loadingContent={props.commentListLoadingContent} onRetry={props.onRetryCommentList}
+            skillOptions={skillOptions ?? undefined} enabledSkillIds={enabledSkillIds ?? undefined}
+            available={{ 'modify-prototype': !hideExecutionControls && !hideCurrentElementExecutionAction && canEditNote,
+              'generate-prototype': Boolean(onGenerateComponentStates) && selectedElementCount === 1 && canEditNote,
+              'document-component': Boolean(onDocumentComponent) && selectedElementCount === 1 && canEditNote }}
+            onExport={axureSelectionExportAction.visible ? () => onExportSelectionToDesignTool?.('axure', currentTarget)
+              : designToolExportAction.visible && designAdjustmentTool ? () => onExportSelectionToDesignTool?.(designAdjustmentTool, currentTarget) : undefined}
+            exportDisabled={axureSelectionExportAction.visible ? axureSelectionExportAction.disabled : designToolExportAction.disabled}
+            exportTitle={axureSelectionExportAction.visible ? axureSelectionExportAction.title : designToolExportAction.title}
+            tools={<>
+              {styleDesignEnabled ? <IconActionButton title={styleEditorToggleTitle} icon={<FormatPainterOutlined />} tone="dark" onClick={() => onBubbleStyleEditorOpenChange(true)} /> : null}
+              <IconActionButton title={pinnedToTopRight ? '取消固定' : '固定到右上角'} icon={<PushpinOutlined />} tone={pinnedToTopRight ? 'accent' : 'dark'} onClick={() => onPinnedToTopRightChange?.(!pinnedToTopRight)} />
+            </>}
+          />
+        ) : <>
         <div
           data-we-annotation-session-toolbar="true"
           style={{
@@ -2366,6 +2393,7 @@ export const PromptCardView = React.forwardRef<BreadcrumbsHandle, PromptCardView
             leadingActions={<>{appendContextAction}{clearEditsAction}</>}
           />
         ) : null}
+        </>}
       </div>
     );
 

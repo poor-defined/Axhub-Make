@@ -16,6 +16,84 @@ async function setup(initial = entries) {
   return { view, run, locate, close, setEntries: (next: CommentListEntry[]) => { current = next; } };
 }
 describe('right comment list', () => {
+  it('does not prune shared selection in the hidden iframe copy during a slow hosted deletion', async () => {
+    vi.useFakeTimers(); let current = entries; const changed = vi.fn(); let view!: ReactTestRenderer;
+    await act(async () => { view = create(React.createElement(CommentListView, { getEntries: () => current, hidden: true, selectedIds: ['one'], onSelectionChange: changed,
+      onRun: vi.fn(), onClose: vi.fn(), onInteractionChange: vi.fn(), sendAvailable: true, generateAvailable: true, documentAvailable: true })); });
+    current = []; await act(async () => { vi.advanceTimersByTime(1000); });
+    expect(changed).not.toHaveBeenCalled();
+    current = entries; await act(async () => { vi.advanceTimersByTime(500); });
+    expect(view.root.findByProps({ 'aria-label': '选择批注 one' }).props.checked).toBe(true);
+    await act(async () => view.unmount());
+  });
+  it('pins the real list and keeps its selection when hidden and reopened', async () => {
+    const pin = vi.fn(); let view!: ReactTestRenderer;
+    const props = { getEntries: () => entries, onRun: vi.fn(), onClose: vi.fn(), onInteractionChange: vi.fn(), sendAvailable: true, generateAvailable: true, documentAvailable: true, onPinnedChange: pin, pinned: false };
+    await act(async () => { view = create(React.createElement(CommentListView, props)); });
+    await act(async () => view.root.findByProps({ 'aria-label': '固定批注列表到右侧' }).props.onClick());
+    expect(pin).toHaveBeenCalledWith(true);
+    await act(async () => view.root.findByProps({ 'aria-label': '选择批注 one' }).props.onChange());
+    await act(async () => view.update(React.createElement(CommentListView, { ...props, hidden: true, pinned: true })));
+    expect(view.root.findByType('aside').props.hidden).toBe(true);
+    await act(async () => view.update(React.createElement(CommentListView, { ...props, pinned: true })));
+    expect(view.root.findByType('aside').props['data-pinned']).toBe(true);
+    expect(view.root.findByProps({ 'aria-label': '选择批注 one' }).props.checked).toBe(true);
+    await act(async () => view.unmount());
+  });
+  it('confirms mixed-purpose selected deletion, keeps selection after failure, and allows deleting stale components', async () => {
+    const typed = [{ ...entries[0], purpose: 'modify-prototype' }, { ...entries[1], purpose: 'generate-prototype', element: null, disabledReason: '组件已失效' }, { ...entries[2], purpose: 'modify-prototype', state: 'editing' as const }];
+    const removeMany = vi.fn().mockRejectedValueOnce(new Error('offline')).mockImplementation(async (ids: string[]) => { current = current.filter(entry => !ids.includes(entry.id)); });
+    let current = typed; let view!: ReactTestRenderer;
+    await act(async () => { view = create(React.createElement(CommentListView, { getEntries: () => current, onRun: vi.fn(), onEdit: vi.fn(), onRemoveMany: removeMany,
+      onClose: vi.fn(), onInteractionChange: vi.fn(), sendAvailable: true, generateAvailable: true, documentAvailable: true })); });
+    await act(async () => view.root.findByProps({ 'aria-label': '全选批注' }).props.onChange());
+    expect(view.root.findByProps({ 'aria-label': '选择批注 two' }).props.checked).toBe(true);
+    expect(view.root.findByProps({ 'aria-label': '选择批注 three' }).props.disabled).toBe(true);
+    expect(view.root.findByProps({ 'aria-label': '发送所选批注' }).props.disabled).toBe(true);
+    await act(async () => view.root.findByProps({ 'aria-label': '删除所选批注' }).props.onClick());
+    expect(removeMany).not.toHaveBeenCalled();
+    expect(view.root.findByProps({ role: 'alertdialog' })).toBeTruthy();
+    await act(async () => view.root.findByProps({ 'aria-label': '取消删除批注' }).props.onClick());
+    expect(removeMany).not.toHaveBeenCalled();
+    await act(async () => view.root.findByProps({ 'aria-label': '删除所选批注' }).props.onClick());
+    await act(async () => view.root.findByProps({ 'aria-label': '确认删除批注' }).props.onClick());
+    expect(view.root.findByProps({ 'aria-label': '选择批注 one' }).props.checked).toBe(true);
+    expect(JSON.stringify(view.toJSON())).toContain('offline');
+    await act(async () => view.root.findByProps({ 'aria-label': '确认删除批注' }).props.onClick());
+    expect(removeMany).toHaveBeenLastCalledWith(['one', 'two']);
+    expect(view.root.findAllByProps({ 'aria-label': '选择批注 one' })).toHaveLength(0);
+    expect(view.root.findByProps({ 'aria-label': '选择批注 three' })).toBeTruthy();
+    await act(async () => view.unmount());
+  });
+  it('shows independent purpose records and only permits a matching batch action', async () => {
+    const typed: CommentListEntry[] = [
+      { ...entries[0], purpose: 'modify-prototype' }, { ...entries[1], purpose: 'generate-prototype' },
+    ];
+    const run = vi.fn(), edit = vi.fn(), remove = vi.fn(); let view!: ReactTestRenderer;
+    await act(async () => { view = create(React.createElement(CommentListView, { getEntries: () => typed, onRun: run,
+      onEdit: edit, onRemove: remove, onClose: vi.fn(), onInteractionChange: vi.fn(), sendAvailable: true, generateAvailable: true, documentAvailable: true })); });
+    await act(async () => view.root.findByProps({ 'aria-label': '选择批注 one' }).props.onChange());
+    await act(async () => view.root.findByProps({ 'aria-label': '发送所选批注' }).props.onClick());
+    expect(run).toHaveBeenCalledWith('send', ['one']);
+    await act(async () => view.root.findByProps({ 'aria-label': '选择批注 two' }).props.onChange());
+    expect(view.root.findByProps({ 'aria-label': '发送所选批注' }).props.disabled).toBe(true);
+    expect(JSON.stringify(view.toJSON())).toContain('用途');
+    await act(async () => view.root.findByProps({ 'aria-label': '编辑批注 one' }).props.onClick());
+    expect(edit).toHaveBeenCalledWith('one');
+    await act(async () => view.unmount());
+  });
+  it('filters records by purpose without offering legacy migration', async () => {
+    const typed = [{ ...entries[0], purpose: 'modify-prototype' }, { ...entries[1], purpose: 'generate-prototype' }, entries[2]];
+    const edit = vi.fn(); let view!: ReactTestRenderer;
+    await act(async () => { view = create(React.createElement(CommentListView, { getEntries: () => typed, onRun: vi.fn(), onEdit: edit,
+      onClose: vi.fn(), onInteractionChange: vi.fn(), sendAvailable: true, generateAvailable: true, documentAvailable: true })); });
+    await act(async () => view.root.findByProps({ 'aria-label': '筛选批注用途' }).props.onChange({ target: { value: 'generate-prototype' } }));
+    expect(view.root.findAllByProps({ 'aria-label': '选择批注 one' })).toHaveLength(0);
+    expect(view.root.findAllByProps({ 'aria-label': '选择批注 two' })).toHaveLength(1);
+    expect(view.root.findAllByProps({ value: 'legacy' })).toHaveLength(0);
+    expect(view.root.findAllByProps({ 'aria-label': '选择历史批注用途 three' })).toHaveLength(0);
+    await act(async () => view.unmount());
+  });
   it('clears old page selections even when a fast restore reuses the same element IDs', async () => {
     vi.useFakeTimers(); let revision = 1; let view!: ReactTestRenderer;
     await act(async () => { view = create(React.createElement(CommentListView, {

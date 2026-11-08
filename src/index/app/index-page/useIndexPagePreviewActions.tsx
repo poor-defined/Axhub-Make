@@ -239,8 +239,9 @@ function buildAnnotationDirectRunEditingTargets(
     const uniqueTargets = new Map<string, AnnotationDirectRunEditingTarget>();
     for (const target of targets) {
         const elementKey = String(target?.elementKey || '').trim();
-        if (!elementKey || uniqueTargets.has(elementKey)) continue;
-        uniqueTargets.set(elementKey, {
+        const identity = String(target.commentId || '').trim() || elementKey;
+        if (!elementKey || uniqueTargets.has(identity)) continue;
+        uniqueTargets.set(identity, {
             ...(target.preserveOnAutoClear === true ? { preserveOnAutoClear: true } : {}),
             ...(String(target.commentId || '').trim()
                 ? { commentId: String(target.commentId).trim() }
@@ -1590,7 +1591,7 @@ export function useIndexPagePreviewActions(params: any) {
             const elementKey = String(target?.elementKey || '').trim();
             if (!elementKey) continue;
             const pane = target.pane || 'primary';
-            uniqueTargets.set(`${pane}:${elementKey}`, {
+            uniqueTargets.set(`${pane}:${target.commentId || elementKey}`, {
                 ...target,
                 pane,
                 elementKey,

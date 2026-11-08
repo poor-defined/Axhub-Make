@@ -14,6 +14,7 @@ export interface ComputePromptCardPositionOptions {
   viewportHeight: number;
   propertyPanelEnabled: boolean;
   pinnedToTopRight?: boolean;
+  stackWithCommentList?: boolean;
   safePaddingPx?: number;
   propertyPanelWidth?: number;
   propertyPanelRight?: number;
@@ -48,6 +49,10 @@ export function computePromptCardPosition(options: ComputePromptCardPositionOpti
     propertyPanelRight = 16,
     anchorGapPx = 12,
   } = options;
+
+  if (options.stackWithCommentList && viewportWidth <= 760) {
+    return { left: 8, top: Math.round(Math.max(8, viewportHeight - Math.min(cardHeight, viewportHeight * 0.48 - 16) - 8)) };
+  }
 
   // ── Mobile: fixed to bottom of visible viewport, full width ──────────
   if (isMobileDevice()) {

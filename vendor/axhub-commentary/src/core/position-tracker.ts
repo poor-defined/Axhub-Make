@@ -17,6 +17,7 @@
 
 import type { ViewportRect } from '../overlay/canvas-overlay';
 import { Disposer } from '../utils/disposables';
+import { PAGE_LAYOUT_CHANGE_EVENT } from '../utils/page-zoom-toggle';
 
 // =============================================================================
 // Types
@@ -366,6 +367,7 @@ export function createPositionTracker(options: PositionTrackerOptions): Position
 
   // Listen for resize
   disposer.listen(window, 'resize', handleViewportChange, PASSIVE_LISTENER);
+  disposer.listen(window, PAGE_LAYOUT_CHANGE_EVENT, handleViewportChange, PASSIVE_LISTENER);
 
   // ==========================================================================
   // Public API

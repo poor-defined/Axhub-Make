@@ -1612,6 +1612,31 @@ describe('createWebEditorV2Controller', () => {
     }, 'restore')).rejects.toThrow('Failed to write prototype comments: 409');
   });
 
+  it.each(['http', 'network', 'json'] as const)('surfaces %s comment reads instead of treating failures as an empty document', async failure => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      if (failure === 'network') throw new Error('network unavailable');
+      return { ok: failure !== 'http', status: failure === 'http' ? 500 : 200,
+        json: async () => { if (failure === 'json') throw new Error('invalid json'); return {}; } };
+    }));
+    const adapter = createPrototypeCommentsPersistenceAdapter({ getMakeServerOrigin: () => 'http://localhost:53817' });
+    await expect(adapter.read({ targetPath: 'prototypes/home', storageScope: 'prototypes/home', prototypeId: 'home', filePath: 'src/prototypes/home/index.tsx', resource: null })).rejects.toThrow();
+  });
+
+  it('uses the atomic cleanup read for ordinary components and keeps published and document reads separate', async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ exists: false, document: null }) }));
+    vi.stubGlobal('fetch', fetchMock);
+    let share = '';
+    const adapter = createPrototypeCommentsPersistenceAdapter({ getMakeServerOrigin: () => 'http://localhost:53817', getPurgeLegacyComponentComments: () => true, getPublishedShareId: () => share });
+    const scope = { targetPath: 'prototypes/home', storageScope: 'home', prototypeId: 'home', filePath: 'src/prototypes/home/index.tsx', resource: null };
+    await adapter.read(scope);
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining('purgeLegacyComponents=1'), expect.objectContaining({ method: 'POST' }));
+    share = 'published'; await adapter.read(scope);
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.not.stringContaining('purgeLegacyComponents'), expect.objectContaining({ method: 'GET' }));
+    share = ''; await adapter.read({ ...scope, documentKind: 'document' });
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.not.stringContaining('purgeLegacyComponents'), expect.objectContaining({ method: 'GET' }));
+  });
+
   it('sends prototype comment persistence requests to the Make server origin when the preview runs on another port', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -4161,9 +4186,10 @@ describe('createWebEditorV2Controller', () => {
     });
 
     const controller = createWebEditorV2Controller();
-    await controller.enable({ toolbarMode: 'host' });
+    await controller.enable({ toolbarMode: 'host', makeServerOrigin: 'http://localhost:53817' });
 
     const editorOptions = mocked.createCommentary.mock.calls[0]?.[0];
+    expect(editorOptions.ui.commentListDockOrigin).toBe('http://localhost:53817');
     const actionPromise = editorOptions.ui.onHostToolbarAction({ type: 'wake-agent' });
     const request = parentWindow.postMessage.mock.calls[0]?.[0] as {
       requestId: string;
@@ -4184,6 +4210,7 @@ describe('createWebEditorV2Controller', () => {
         handled: true,
       },
       source: parentWindow,
+      origin: 'http://localhost:53817',
     } as MessageEvent);
 
     await expect(actionPromise).resolves.toBe(true);

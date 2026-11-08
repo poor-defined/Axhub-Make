@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { clearLegacyComponentComments } from '../../vendor/axhub-commentary/src/comment-cleanup.ts';
 
 import { isPathInside, resolveProjectPath, type ProjectMetadata } from './projectCore/index.ts';
 
@@ -933,6 +934,32 @@ export function handlePrototypeCommentsApi(
     return true;
   }
   const { resolved, publishedIdentity } = resolution;
+
+  if (req.method === 'POST' && url.searchParams.get('purgeLegacyComponents') === '1') {
+    if (publishedIdentity?.viewer) {
+      sendCorsJson(res, { error: 'Only the project owner can clear legacy component comments' }, { status: 403 });
+      return true;
+    }
+    try {
+      const previous = readStoredCommentDocument(resolved.commentFilePath);
+      if (!previous) {
+        if (fs.existsSync(resolved.commentFilePath)) throw new Error('Invalid prototype comment document');
+        sendCorsJson(res, { exists: false, document: null, path: resolved.projectRelativeCommentPath });
+        return true;
+      }
+      const result = clearLegacyComponentComments({ ...previous, kind: previous.kind,
+        comments: Array.isArray(previous.comments) ? previous.comments.filter(isRecord) : [],
+        images: Array.isArray(previous.images) ? previous.images.filter(isRecord) : [] });
+      if (result.changed) {
+        writeCommentDocumentAtomic(resolved.commentFilePath, result.document);
+        removeUnreferencedImageAssets(previous, result.document, resolved);
+      }
+      sendCorsJson(res, { exists: true, document: hydrateImageData(result.document, resolved, url), path: resolved.projectRelativeCommentPath });
+    } catch (error) {
+      sendCorsJson(res, { error: error instanceof Error ? error.message : 'Failed to clear legacy comments' }, { status: 400 });
+    }
+    return true;
+  }
 
   if (req.method === 'GET') {
     if (!fs.existsSync(resolved.commentFilePath)) {

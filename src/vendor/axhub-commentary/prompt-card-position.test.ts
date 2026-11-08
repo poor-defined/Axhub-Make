@@ -1,8 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { computePromptCardPosition } from '../../../vendor/axhub-commentary/src/ui/prompt-card-position';
+
 import { sanitizeWebEditorUiSettings } from '../../../vendor/axhub-commentary/src/core/editor/ui-settings';
 import { preparePersistedWebEditorUiSettings, readPersistedWebEditorUiSettings } from '../../../vendor/axhub-commentary/src/core/editor/persisted-ui-settings';
 import { pushMobileModeOverride } from '../../../vendor/axhub-commentary/src/utils/mobile-detect';
+
+it('stacks the purpose composer below the comment list in a narrow viewport', () => {
+  const position = computePromptCardPosition({ anchorRect: { left: 20, top: 100, width: 100, height: 30 }, cardWidth: 374, cardHeight: 370,
+    viewportWidth: 390, viewportHeight: 844, propertyPanelEnabled: false, stackWithCommentList: true });
+  expect(position.left).toBe(8);
+  expect(position.top).toBe(466);
+  expect(position.top).toBeGreaterThan(844 * 0.48);
+});
+
+it('persists the comment list pin preference and defaults older settings to floating', () => {
+  expect(sanitizeWebEditorUiSettings({}).commentListPinned).toBe(false);
+  expect(readPersistedWebEditorUiSettings(preparePersistedWebEditorUiSettings(
+    sanitizeWebEditorUiSettings({ commentListPinned: true }),
+  )).commentListPinned).toBe(true);
+});
 
 const base = {
   anchorRect: { left: 100, top: 300, width: 80, height: 40 },

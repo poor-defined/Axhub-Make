@@ -1,5 +1,7 @@
 import type { CommentaryComponentStatesRequest, CommentaryDocumentComponentCapture } from '../../web-editor-types';
 import type { EditorElementScreenshot } from './screenshot';
+import { COMMENT_PURPOSES } from './component-comments';
+import { mergePromptCardSkills, type PromptCardSkillOption } from '../../ui/runtime/prompt-card-skills';
 
 export type CommentBatchAction = 'send' | 'generate' | 'document';
 export interface CommentListLoadState { status: 'loading' | 'ready' | 'error'; error?: string; revision?: number }
@@ -7,16 +9,43 @@ export interface CommentListEntry {
   id: string;
   label: string;
   note: string;
+  purpose?: string;
+  commentId?: string;
+  elementKey?: string;
+  locator?: import('../../web-editor-types').ElementLocator;
+  state?: import('../../web-editor-types').PrototypeEditCommentStatus;
+  skillIds?: string[];
+  images?: import('./state').PromptImageAttachment[];
   selector?: string;
   element: Element | null;
+  locatable?: boolean;
   disabledReason?: string;
+}
+
+export function buildCommentEntryInstructions(entry: CommentListEntry, skillOptions: readonly PromptCardSkillOption[] = []): string {
+  const skills = mergePromptCardSkills(skillOptions);
+  return [entry.note, ...(entry.skillIds || []).map(id => skills.find(skill => skill.id === id)?.prompt || `请参考技能：${id}`),
+    ...(entry.images || []).filter(image => image.source !== 'target-screenshot').map(image => `参考附件：${image.name}（见截图中的同名参考图）`),
+  ].filter(Boolean).join('\n\n');
+}
+
+export function buildCommentBatchPrompt(entries: readonly CommentListEntry[], options: { skillOptions?: readonly PromptCardSkillOption[]; transformPrompt?: (prompt: string) => string } = {}): string {
+  const prompt = entries.map((entry, index) => [
+    `## 批注 ${index + 1}：修改原型`, `批注 ID：${entry.id}`, `组件：${entry.label}`, `定位：${JSON.stringify(entry.locator)}`,
+    buildCommentEntryInstructions(entry, options.skillOptions),
+    ...(entry.images || []).filter(image => image.source !== 'target-screenshot').map(image => `附件 ${image.name}：${image.assetPath || image.data}`),
+    `组件 HTML：\n${entry.element?.outerHTML || ''}`,
+  ].filter(Boolean).join('\n')).join('\n\n');
+  return options.transformPrompt?.(prompt) ?? prompt;
 }
 
 /** Use explicit persisted identities, independent of the current canvas selection. */
 export function createCommentBatchAction(options: {
   getEntries: () => readonly CommentListEntry[];
-  getScopeRevision?: () => number;
+  skillOptions?: readonly PromptCardSkillOption[];
+  getScopeRevision?: () => number | string;
   send?: (elements: Element[]) => Promise<void>;
+  sendEntries?: (entries: readonly CommentListEntry[]) => Promise<void>;
   document?: (capture: CommentaryDocumentComponentCapture) => Promise<boolean>;
   generate?: (request: CommentaryComponentStatesRequest) => Promise<boolean>;
   capture: (element: Element, name: string) => Promise<EditorElementScreenshot>;
@@ -37,18 +66,21 @@ export function createCommentBatchAction(options: {
       const entry = available.get(id);
       if (!entry?.element?.isConnected) throw new Error('所选批注的组件已失效，请重新选择');
       if (entry.disabledReason) throw new Error(entry.disabledReason);
-      return { ...entry, element: entry.element };
+      const expectedPurpose = COMMENT_PURPOSES.find(item => item.action === action)!.id;
+      if ((entry.purpose !== undefined || !options.send) && entry.purpose !== expectedPurpose) throw new Error('所选批注用途不一致，请按用途发送；旧格式批注请重新创建');
+      return { ...entry, skillIds: entry.skillIds?.slice(), images: entry.images?.map(image => ({ ...image })), element: entry.element };
     });
     busy = true;
     try {
       if (action === 'send') {
+        if (options.sendEntries) { assertCurrentScope(); await options.sendEntries(entries); return; }
         if (!options.send) throw new Error('当前页面不支持发送修改');
         await options.send(entries.map(entry => entry.element));
         return;
       }
       if (action === 'document' && !options.document) throw new Error('当前页面不支持引入说明');
       if (action === 'generate' && !options.generate) throw new Error('当前页面不支持生成原型');
-      const note = entries.map((entry, index) => `${index + 1}. ${entry.label}${entry.selector ? ` (${entry.selector})` : ''}\n${entry.note}`).join('\n\n');
+      const note = entries.map((entry, index) => `${index + 1}. ${entry.label}${entry.selector ? ` (${entry.selector})` : ''}\n${buildCommentEntryInstructions(entry, options.skillOptions)}`).join('\n\n');
       if (note.length > 8000) throw new Error('所选批注内容过长，请减少选择后重试');
       const sourceHtml = entries.map(entry => entry.element.outerHTML).join('\n');
       if (action === 'generate' && sourceHtml.length > 60000) throw new Error('所选组件内容过长，请减少选择后重试');
@@ -57,6 +89,12 @@ export function createCommentBatchAction(options: {
         assertCurrentScope();
         if (!entry.element.isConnected) throw new Error('所选批注的组件已失效，请重新选择');
         screenshots.push({ label: entry.label, screenshot: await options.capture(entry.element, 'component') });
+        for (const image of entry.images || []) {
+          if (image.source === 'target-screenshot') continue;
+          const data = image.data || image.assetPath;
+          if (!data) throw new Error(`参考附件 ${image.name} 未能读取，请重新添加`);
+          screenshots.push({ label: `${entry.label} · 参考附件 ${image.name}`, screenshot: { data, name: image.name, width: 1, height: 1 } });
+        }
       }
       if (entries.some(entry => !entry.element.isConnected)) throw new Error('所选批注的组件已失效，请重新选择');
       assertCurrentScope();
