@@ -75,6 +75,8 @@ import { lazyWithRetry } from '../../utils/lazyWithRetry';
 import { ResourceStartPromptGrid, type ResourceStartPromptCard } from './ResourceStartPromptGrid';
 import { applyResourceStartImageSize } from './resourceStartPromptSelection';
 import { ThemeStartPromptGrid, type ThemeStartPromptCard } from './ThemeStartPromptGrid';
+import { ScreenshotPrototypeComposer, ScreenshotPrototypeStartCard } from './ScreenshotPrototypeComposer';
+import type { ScreenshotPrototypeController } from '../../domains/prototype-generation/useScreenshotPrototype';
 import { buildStartGuidePrompt } from './startGuidePrompt';
 import { useProgressiveLibraryItems } from '../../hooks/useProgressiveLibraryItems';
 
@@ -720,6 +722,7 @@ class CanvasErrorBoundary extends React.Component<CanvasErrorBoundaryProps, Canv
 }
 
 interface ContentAreaProps {
+    screenshotPrototype?: ScreenshotPrototypeController;
     containerRef: React.RefObject<HTMLDivElement>;
     previewIframeRef: React.MutableRefObject<HTMLIFrameElement | null>;
     secondaryPreviewIframeRef: React.MutableRefObject<HTMLIFrameElement | null>;
@@ -1460,7 +1463,9 @@ function StartGuide({
     kind,
     item,
     draftActive = false,
+    screenshotPrototype,
     activeProjectId,
+    onOpenAISettings,
     preferredIDE,
     preferredPromptClient,
     ideAvailability,
@@ -1479,6 +1484,7 @@ function StartGuide({
     kind: StartGuideKind;
     item: ItemData;
     draftActive?: boolean;
+    screenshotPrototype?: ScreenshotPrototypeController;
     activeProjectId?: string | null;
     preferredIDE?: MainIDEPreference;
     preferredPromptClient?: PromptClientPreference;
@@ -1502,6 +1508,7 @@ function StartGuide({
     onCreateDrawioResourceFile?: () => void | Promise<void>;
     onRefreshThemes?: () => void | Promise<void>;
 }) {
+    const screenshotInputRef = useRef<HTMLTextAreaElement>(null);
     const shouldShowPrototypeActions = kind === 'prototype';
     const shouldShowResourceActions = kind === 'resource';
     const shouldShowTopActions = shouldShowPrototypeActions || shouldShowResourceActions;
@@ -2052,7 +2059,9 @@ function StartGuide({
                                 selectPrompt={() => undefined}
                                 onCopyPrompt={copyPrototypeStartCardPrompt}
                                 onExecutePrompt={executePrototypeStartCardPrompt}
+                                trailingCard={<ScreenshotPrototypeStartCard inputRef={screenshotInputRef} />}
                             />
+                            <ScreenshotPrototypeComposer key={activeProjectId || 'no-project'} ref={screenshotInputRef} controller={screenshotPrototype} onOpenAISettings={onOpenAISettings} />
                         </div>
                     ) : kind === 'resource' ? (
                         <div className="w-full">
@@ -2263,6 +2272,7 @@ export default function ContentArea({
     onRefreshPrototypes,
     agentRunConcurrency,
     onSubmitCanvasAssistantPrompt,
+    screenshotPrototype,
     onAddCanvasScreenshotToAI,
     onAddCanvasImageToAI,
 }: ContentAreaProps) {
@@ -3102,6 +3112,7 @@ export default function ContentArea({
                 selectedItem.placeholder === true && viewMode === 'demo' ? (
                     <StartGuide
                         kind="prototype"
+                        screenshotPrototype={screenshotPrototype}
                         item={selectedItem}
                         activeProjectId={activeProjectId}
                         preferredIDE={preferredIDE}
@@ -3279,6 +3290,7 @@ export default function ContentArea({
             ) : prototypeStartDraftActive ? (
                 <StartGuide
                     kind="prototype"
+                    screenshotPrototype={screenshotPrototype}
                     item={draftPrototypeStartItem}
                     draftActive={prototypeStartDraftActive && !selectedItem}
                     activeProjectId={activeProjectId}

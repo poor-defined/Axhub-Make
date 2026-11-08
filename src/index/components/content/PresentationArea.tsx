@@ -257,6 +257,7 @@ export default function PresentationArea(rawProps: PresentationAreaProps) {
                         themes={props.themes}
                         defaultThemeName={props.defaultThemeName}
                         onOpenPrototypeCreateDialog={props.onOpenPrototypeCreateDialog}
+                        screenshotPrototype={props.screenshotPrototype}
                         onOpenAISettings={props.onOpenAISettings}
                         onUploadResourceFiles={props.onUploadResourceFiles}
                         onCreateResourceCanvasFile={props.onCreateResourceCanvasFile}

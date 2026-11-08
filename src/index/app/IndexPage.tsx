@@ -16,6 +16,8 @@ import ReferencePagesPanel from '../components/content/ReferencePagesPanel';
 import ReferencePageView from '../components/content/ReferencePageView';
 import { useComponentDocumentation } from '../domains/documentation/useComponentDocumentation';
 import { useComponentStates } from '../domains/prototype-generation/useComponentStates';
+import { useScreenshotPrototype } from '../domains/prototype-generation/useScreenshotPrototype';
+import type { ScreenshotPrototype } from '../domains/prototype-generation/screenshotPrototypeSession';
 import ComponentStatesDialog from '../components/dialogs/ComponentStatesDialog';
 import { useReferenceWorkspace } from '../domains/documentation/useReferenceWorkspace';
 import { withPrototypeWireframePolicy } from '../../common/prototypeWireframePolicy';
@@ -2727,11 +2729,28 @@ export default function IndexPage({
         shouldOpenInitialProjectDocumentEditor,
     ]);
 
+    const openScreenshotPrototype = (created: ScreenshotPrototype) => {
+        references.setActive(false);
+        prototypeSpec.close();
+        const refreshed = workspace.data.prototypes.find(item => item.name === created.name);
+        setSelectedItem(refreshed || { name: created.name, displayName: created.displayName, jsUrl: '', specUrl: '', filePath: created.filePath, clientUrl: created.clientUrl, previewUrl: created.clientUrl });
+        setSelectedPrototypePageId(null);
+        setPrototypeStartDraftActive(false);
+        setSidebarTab('prototype'); setActiveTab('prototypes'); setViewMode('demo');
+    };
+    const screenshotPrototype = useScreenshotPrototype(workspace.activeProjectId, {
+        promptClient: preferences.conversationPromptClient,
+        model: preferences.conversationModel,
+        autoOpen: contentMode === 'preview' && (!selectedItem || selectedItem.placeholder === true),
+        onDone: async () => { await workspace.loadData(); },
+        onOpen: openScreenshotPrototype,
+    });
     const presentationAreaProps = useIndexPagePresentationPropsBuilder({
         state: {
             collapsed,
             selectedItem,
             prototypeStartDraftActive,
+            screenshotPrototype,
             resourceStartDraftActive,
             themeStartDraftActive,
             viewMode,

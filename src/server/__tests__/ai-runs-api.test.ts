@@ -466,6 +466,26 @@ describe('AI runs API', () => {
     }
   });
 
+  it('sends screenshot prototype images as vision parts while retaining the new prototype target', async () => {
+    const projectRoot = createTempRoot('axhub-ai-runs-screenshot-');
+    writeProjectMetadata(projectRoot, { project: { id: 'screenshot-vision', name: 'Screenshot Vision' } });
+    const acp = await startAcpRunTestServer();
+    const server = await startRegisteredTestServer(projectRoot, acp);
+    try {
+      const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2kAAAAABJRU5ErkJggg==';
+      const images = [png, png];
+      const preparation = await fetch(`${server.origin}/api/prototypes/create-from-screenshot?projectId=${server.projectId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: '截图首页', images: images.map((dataUrl, index) => ({ name: `${index}.png`, dataUrl })) }) });
+      expect(preparation.status).toBe(201);
+      const created = await preparation.json();
+      const response = await fetch(projectAiRunsUrl(server), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scene: 'prototype', prompt: created.prompt, targetPath: `prototypes/${created.name}`, referenceImages: images }) });
+      await collectRunEvents(response);
+      expect(response.status).toBe(200);
+      expect(acp.requests[0].body.messages[0].parts.filter((part: { type: string }) => part.type === 'image')).toEqual(images.map(image => ({ type: 'image', image })));
+      expect(acp.requests[0].body.messages[0].parts[0].text).toContain('截图首页');
+      expect(acp.requests[0].body.messages[0].parts[0].text).toContain(`${created.name}/.spec/spec.md`);
+    } finally { await server.close(); }
+  });
+
   it('returns a structured open-settings run error when ACP runtime is unavailable', async () => {
     const projectRoot = createTempRoot('axhub-ai-runs-runtime-unavailable-');
     writeProjectMetadata(projectRoot, {

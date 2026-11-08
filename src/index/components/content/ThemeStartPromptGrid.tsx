@@ -1,5 +1,6 @@
 import { StartPromptCard, type StartPromptCardIcon } from './StartPromptCard';
 import { StartPromptGrid } from './StartPromptGrid';
+import type { ReactNode } from 'react';
 
 export type ThemeStartPromptCard = {
   id: string;
@@ -16,6 +17,7 @@ export function ThemeStartPromptGrid({
   selectPrompt,
   onCopyPrompt,
   onExecutePrompt,
+  trailingCard,
 }: {
   cards: readonly ThemeStartPromptCard[];
   ariaLabel?: string;
@@ -24,6 +26,7 @@ export function ThemeStartPromptGrid({
   selectPrompt: (prompt: string) => void;
   onCopyPrompt: (card: ThemeStartPromptCard) => void | Promise<void>;
   onExecutePrompt?: (card: ThemeStartPromptCard) => void | Promise<void>;
+  trailingCard?: ReactNode;
 }) {
   return (
     <StartPromptGrid ariaLabel={ariaLabel}>
@@ -45,6 +48,7 @@ export function ThemeStartPromptGrid({
           onExecute={onExecutePrompt ? () => onExecutePrompt(card) : undefined}
         />
       ))}
+      {trailingCard}
     </StartPromptGrid>
   );
 }

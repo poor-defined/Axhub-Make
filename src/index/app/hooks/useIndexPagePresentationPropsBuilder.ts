@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { ScreenshotPrototypeController } from '../../domains/prototype-generation/useScreenshotPrototype';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { AiPanelMode, PresentationAreaGroupedProps, PromptExecutionMeta, PrototypeCreateDialogOpenOptions } from '../../types/index-page.types';
 import type { ViewMode } from '../../types';
@@ -16,6 +17,7 @@ interface UseIndexPagePresentationPropsBuilderParams {
             collapsed: boolean;
             selectedItem: any;
             prototypeStartDraftActive?: boolean;
+            screenshotPrototype?: ScreenshotPrototypeController;
             resourceStartDraftActive?: boolean;
             themeStartDraftActive?: boolean;
             viewMode: ViewMode;
@@ -143,6 +145,7 @@ export function useIndexPagePresentationPropsBuilder({
         state: {
             collapsed: state.collapsed,
             selectedItem: state.selectedItem,
+            screenshotPrototype: state.screenshotPrototype,
             prototypeStartDraftActive: state.prototypeStartDraftActive,
             resourceStartDraftActive: state.resourceStartDraftActive,
             themeStartDraftActive: state.themeStartDraftActive,

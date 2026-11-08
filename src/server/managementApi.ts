@@ -69,6 +69,7 @@ import { handlePrototypeSpecApi } from './managementApi.prototypeSpec.ts';
 import {
   handleCreatePlaceholderPrototype,
   handleCreateComponentStatesPrototype,
+  handleCreateScreenshotPrototype,
   handlePrototypeUploadApi,
   handleStartPlaceholderPrototypeGeneration,
 } from './managementApi.prototypeUpload.ts';
@@ -1553,6 +1554,10 @@ export async function handleManagementApi(req: IncomingMessage, res: ServerRespo
     stringValue,
     readJsonFile,
   })) return true;
+  if (pathname === '/api/prototypes/create-from-screenshot' && req.method === 'POST') {
+    void handleCreateScreenshotPrototype(req, res, options, requestContext, getPrototypeCreateDir(requestContext));
+    return true;
+  }
   if (pathname === '/api/prototypes/create-component-states' && req.method === 'POST') {
     void handleCreateComponentStatesPrototype(req, res, options, requestContext, getPrototypeCreateDir(requestContext));
     return true;
