@@ -21,6 +21,10 @@ export interface WebEditorUiSettings {
   documentCommentMode: boolean;
   /** When true, the host page content scales down from the right edge to make room for the panel. */
   pageZoomEnabled: boolean;
+  /** Keep the desktop comment card in the top-right corner instead of following its target. */
+  promptCardPinnedToTopRight: boolean;
+  /** Dock the comment list beside the right toolbar and reserve room for it. */
+  commentListPinned: boolean;
   /** Maximum number of concurrent element-level Agent runs. */
   agentRunConcurrency: number;
 }
@@ -36,6 +40,8 @@ export const DEFAULT_WEB_EDITOR_UI_SETTINGS: WebEditorUiSettings = {
   captureTargetScreenshot: false,
   documentCommentMode: false,
   pageZoomEnabled: false,
+  promptCardPinnedToTopRight: false,
+  commentListPinned: false,
   agentRunConcurrency: 5,
 };
 
@@ -98,6 +104,8 @@ export function sanitizeWebEditorUiSettings(value: unknown): WebEditorUiSettings
         : Boolean(record.captureTargetScreenshot),
     documentCommentMode: Boolean(record.documentCommentMode),
     pageZoomEnabled: Boolean(record.pageZoomEnabled),
+    promptCardPinnedToTopRight: Boolean(record.promptCardPinnedToTopRight),
+    commentListPinned: Boolean(record.commentListPinned),
   };
 }
 

@@ -15,13 +15,13 @@ import {
 } from '../transaction-manager';
 import { createPerfMonitor } from '../perf-monitor';
 import { createDesignTokensService } from '../design-tokens';
-import { locateElement } from '../locator';
-import {
-  exportSelectionToDesignTool,
-  getDesignToolExportBlockReason,
-  isExportableDesignElement,
-} from '../../design-tool-export';
-import { clearEditorRuntimeRefs, resetEditorTransientState } from './state';
+import { locateElement, generateCssSelector } from '../locator';
+import { createSelectionExportActions } from './selection-export';
+import { createDocumentComponentAction, createComponentStatesAction } from './document-component';
+import { createCommentBatchAction, buildCommentBatchPrompt, type CommentListEntry, type CommentListLoadState } from './comment-batch';
+import { createComponentCommentStore, isComponentCommentPurpose, type ComponentCommentApi } from './component-comments';
+import { clearEditorRuntimeRefs, resetEditorTransientState, DEFAULT_MODIFIERS } from './state';
+import { getSelectedElements, getSelectionActionTargets } from './element-selection';
 import type { EditorLifecycleDeps, ExternalEditingElementTarget } from './contracts';
 import { resolveTextCommentElementMeta, TEXT_COMMENT_TARGET_ATTR } from './text-comment-target';
 import { getGlobalCommentaryTweakProtocol } from '../../tweak/protocol';
@@ -35,6 +35,7 @@ import {
   resolveInlineTextTarget,
 } from './text-session';
 import { captureTargetScreenshot } from './target-screenshot';
+import { captureElementScreenshot } from './screenshot';
 import { createTargetScreenshotCoordinator } from './target-screenshot-coordinator';
 import {
   buildExternalCommentsPromptSection,
@@ -117,6 +118,25 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
   let pendingCommentContextSync = false;
   let routeChangeCleanup: (() => void) | null = null;
   let interactionProfileRestartQueued = false;
+  let commentListLoadState: CommentListLoadState = { status: 'loading' };
+  let commentRestoreRevision = 0;
+  state.componentCommentsById ??= new Map();
+  const commentPageScope = () => services.persistence.getCurrentPageScope?.() || `${window.location.pathname}${window.location.search || ''}${window.location.hash || ''}`;
+  const commentScopeKey = () => JSON.stringify([options.host.getPersistenceScope?.()?.storageScope || '', commentPageScope()]);
+  const componentCommentStore = createComponentCommentStore({ records: state.componentCommentsById, getScope: commentScopeKey, getPageScope: commentPageScope,
+    persist: persistComments, onRollback: () => services.persistence.refreshLocalSnapshot?.() });
+  async function restoreCommentList(): Promise<string[]> {
+    const revision = ++commentRestoreRevision;
+    commentListLoadState = { status: 'loading', revision };
+    try {
+      const result = await services.persistence.restoreCachedChanges();
+      if (revision === commentRestoreRevision) commentListLoadState = { status: 'ready', revision };
+      return result;
+    } catch (error) {
+      if (revision === commentRestoreRevision) commentListLoadState = { status: 'error', revision, error: error instanceof Error ? error.message : '批注加载失败，请重试' };
+      throw error;
+    } finally { state.propertyPanel?.refresh(); }
+  }
   const targetScreenshotCoordinator = createTargetScreenshotCoordinator({
     isEnabled: () =>
       state.uiSettings.captureTargetScreenshot
@@ -222,17 +242,30 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
     );
   }
 
-  function buildHostSendToAgentAction(element?: Element | null): CommentaryHostToolbarAction {
+  function buildHostSendToAgentAction(element?: Element | null, explicitTargets?: Element[]): CommentaryHostToolbarAction {
     const meta = services.changes.getMetaForElement(element ?? null);
-    const promptText = element ? buildSaveRunPromptForAgentElement(element) : '';
+    const selection = explicitTargets ?? getSelectionActionTargets(state, element ?? null);
+    const entries = selection.flatMap((target) => {
+      const prompt = buildSaveRunPromptForAgentElement(target);
+      const targetMeta = services.changes.getMetaForElement(target);
+      return prompt && targetMeta ? [{ prompt, meta: targetMeta }] : [];
+    });
+    const promptText = entries.map((entry) => entry.prompt).join('\n\n');
     return meta?.elementKey
       ? {
           type: 'send-to-agent',
+          ...(explicitTargets ? { preserveOnAutoClear: true } : {}),
           ...(meta.commentId ? { commentId: meta.commentId } : {}),
           elementKey: meta.elementKey,
           locator: meta.locator,
           label: meta.label,
           promptText: promptText || undefined,
+          ...(selection.length > 1
+            ? { targets: entries.map((entry) => ({
+                ...toExternalEditingTarget(entry.meta),
+                ...(entry.meta.commentId ? { commentId: entry.meta.commentId } : {}),
+              })) }
+            : {}),
         }
       : { type: 'send-to-agent' };
   }
@@ -526,6 +559,92 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
     return elements;
   }
 
+  function getCommentListEntries(): CommentListEntry[] {
+    const records: CommentListEntry[] = Array.from(state.componentCommentsById.values()).filter(record => !record.entry.deletedAt && (!record.entry.pageScope || record.entry.pageScope === commentPageScope())).map(({ entry, images }) => {
+      let element: Element | null = null;
+      try { element = locateElement(entry.locator); } catch { /* Retain stale records for viewing. */ }
+      if (!element?.isConnected) element = null;
+      return { id: entry.id, commentId: entry.id, elementKey: entry.elementKey, locator: entry.locator,
+        label: entry.label || '组件', note: entry.comment || '', purpose: entry.purpose, state: entry.state,
+        skillIds: entry.skillIds?.slice(), images: images.map(image => ({ ...image })), selector: entry.locator.selectors[0], element,
+        disabledReason: !element ? '组件已失效，请重新选择' : entry.state === 'editing' || services.agentBridge.isElementInteractionLocked(element) ? '此组件正在处理中，请稍候' : undefined };
+    });
+    return records;
+  }
+
+  const runCommentBatch = createCommentBatchAction({
+    getEntries: getCommentListEntries,
+    skillOptions: options.ui.commentarySkillOptions,
+    getScopeRevision: () => `${commentScopeKey()}:${commentRestoreRevision}`,
+    sendEntries: async entries => {
+      const elements = Array.from(new Set(entries.map(entry => entry.element!)));
+      const promptText = buildCommentBatchPrompt(entries, { skillOptions: options.ui.commentarySkillOptions, transformPrompt: options.host.transformPrompt });
+      if (promptText.length > 200000) throw new Error('批注与附件内容过长，请减少选择后重试');
+      if (shouldDelegateAiActionToHost()) {
+        const targets = entries.map(entry => ({ elementKey: entry.elementKey!, commentId: entry.id, locator: entry.locator, label: entry.label }));
+        const handled = await runHostAiAction({ type: 'send-to-agent', ...targets[0], targets, promptText, preserveOnAutoClear: true });
+        if (!handled) throw new Error(lastHostAiActionError || '宿主暂未处理 AI 执行请求。');
+      } else {
+        await services.agentBridge.handleSendPromptToAgentForElements(elements, element => buildCommentBatchPrompt(entries.filter(entry => entry.element === element), { skillOptions: options.ui.commentarySkillOptions }));
+      }
+      state.positionTracker?.forceUpdate(true);
+    },
+    document: options.ui.onDocumentComponent,
+    generate: options.ui.onGenerateComponentStates,
+    capture: (element, name) => captureElementScreenshot(element, name, {
+      fallbackBackgroundColor: '#ffffff', isEditorUi: node => Boolean(state.shadowHost?.isOverlayElement(node)),
+    }),
+    getSource: () => ({ title: document.title, url: window.location.href }),
+  });
+
+  async function persistComments(): Promise<void> {
+    if (commentListLoadState.status !== 'ready') throw new Error(commentListLoadState.error || '批注正在加载，请稍候');
+    services.persistence.flushPendingWrite();
+    await services.persistence.waitForPendingWrites();
+    if (services.persistence.getSaveStatus() === 'unsaved') {
+      throw new Error('批注未能保存，请重试暂存后再执行');
+    }
+  }
+
+  const componentComments: ComponentCommentApi = {
+    getScopeKey: commentScopeKey,
+    getDraft: (element, purpose) => componentCommentStore.getDraft(services.changes.getMetaForElement(element)!, purpose),
+    updateDraft: (element, purpose, patch) => componentCommentStore.updateDraft(services.changes.getMetaForElement(element)!, purpose, patch),
+    saveDraft: (element, purpose) => {
+      if (!element.isConnected) return Promise.reject(new Error('组件已失效，请重新选择'));
+      if (commentListLoadState.status !== 'ready') return Promise.reject(new Error('批注正在加载，请稍候'));
+      if (services.agentBridge.isElementInteractionLocked(element)) return Promise.reject(new Error('组件正在处理中，请稍候'));
+      return componentCommentStore.saveDraft(services.changes.getMetaForElement(element)!, purpose);
+    },
+    startNew: (element, purpose) => componentCommentStore.startNew(services.changes.getMetaForElement(element)!, purpose),
+    edit: id => {
+      if (commentListLoadState.status !== 'ready') throw new Error('批注正在加载或加载失败，请重试后编辑');
+      const entry = getCommentListEntries().find(item => item.id === id);
+      if (!entry?.element || entry.disabledReason) throw new Error(entry?.disabledReason || '组件已失效');
+      if (!isComponentCommentPurpose(entry.purpose)) {
+        throw new Error('此批注用途暂不支持，请保留原记录');
+      }
+      return { element: entry.element, purpose: componentCommentStore.edit(id) };
+    },
+    remove: async id => {
+      if (commentListLoadState.status !== 'ready') throw new Error('批注正在加载或加载失败，请重试后删除');
+      if (!getCommentListEntries().some(entry => entry.id === id)) throw new Error('页面已切换，请重新选择批注');
+      await componentCommentStore.remove(id);
+    },
+    removeMany: async ids => {
+      if (commentListLoadState.status !== 'ready') throw new Error('批注正在加载或加载失败，请重试后删除');
+      const currentIds = new Set(getCommentListEntries().map(entry => entry.id));
+      if (ids.some(id => !currentIds.has(id))) throw new Error('页面已切换或批注已变更，请重新选择');
+      await componentCommentStore.removeMany(ids);
+    },
+    run: async (action, ids) => {
+      const revision = commentRestoreRevision;
+      await persistComments();
+      if (revision !== commentRestoreRevision) throw new Error('页面已切换，请重新选择批注');
+      await runCommentBatch(action, ids);
+    },
+  };
+
   function resolvePromptTargetRefsFromEditHistory(): ExternalEditingElementTarget[] {
     return Array.from(state.editMetaByKey.values())
       .filter(
@@ -542,6 +661,13 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
   function resolvePromptTargetRefs(
     preferredElement?: Element | null,
   ): ExternalEditingElementTarget[] {
+    const selection = getSelectionActionTargets(state, preferredElement ?? state.selectedElement);
+    if (selection.length > 1) {
+      return selection.flatMap((element) => {
+        const meta = services.changes.getMetaForElement(element);
+        return meta && buildSaveRunPromptForAgentElement(element) ? [toExternalEditingTarget(meta)] : [];
+      });
+    }
     const recoveredTargets = resolvePromptTargetRefsFromEditHistory();
     if (recoveredTargets.length > 0) {
       return recoveredTargets;
@@ -575,6 +701,8 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
   }
 
   function resolvePromptTargets(preferredElement?: Element | null): Element[] {
+    const selection = getSelectionActionTargets(state, preferredElement ?? state.selectedElement);
+    if (selection.length > 1) return selection;
     const recoveredElements = resolvePromptTargetsFromEditHistory();
     if (recoveredElements.length > 0) {
       return recoveredElements;
@@ -1387,7 +1515,7 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
         state.hoveredElement = null;
         state.selectionAnchor = null;
         state.pendingMarkerAnchors.clear();
-        void Promise.resolve(services.persistence.restoreCachedChanges())
+        void restoreCommentList()
           .then((deletedElementKeys) => {
             services.agentBridge.discardDeletedElementStates?.(deletedElementKeys);
             services.conversationTaskMonitor?.reconcile();
@@ -1554,6 +1682,9 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
 
       state.positionTracker = createPositionTracker({
         onPositionUpdate: services.interaction.handlePositionUpdate,
+        getAdditionalSelectionElements: () => getSelectedElements(state).filter(
+          (element) => element !== state.selectedElement,
+        ),
       });
 
       state.commentShortcutCleanup = null;
@@ -1570,7 +1701,7 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
         onApplyError: handleTransactionError,
       });
 
-      void Promise.resolve(services.persistence.restoreCachedChanges())
+      void restoreCommentList()
         .then((deletedElementKeys) => {
           services.agentBridge.discardDeletedElementStates?.(deletedElementKeys);
           services.agentBridge.rehydratePersistedAgentState();
@@ -1669,7 +1800,7 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
           ? undefined
           : (_x, _y, modifiers, event) => {
               const target =
-                state.selectionEngine?.findBestTargetFromEvent(event, modifiers) ?? null;
+                state.selectionEngine?.findBestTargetFromEvent(event, { ...modifiers, meta: false }) ?? null;
               return services.agentBridge.resolveSelectableElement(target);
             },
         getSelectedElement: () => state.selectedElement,
@@ -1853,9 +1984,12 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
             }
           },
           onSendCurrentElementPromptToAgent: async (element) => {
+            const selectedTargets = getSelectionActionTargets(state, element);
             if (shouldDelegateAiActionToHost()) {
-              const targetRef = resolvePromptTargetRef(element);
-              const editingRun = beginHostExternalEditing(targetRef ? [targetRef] : []);
+              const targetRefs = selectedTargets.length > 1
+                ? resolvePromptTargetRefs(element)
+                : [resolvePromptTargetRef(element)].filter((ref): ref is ExternalEditingElementTarget => ref !== null);
+              const editingRun = beginHostExternalEditing(targetRefs);
               const handled = await runHostAiAction(buildHostSendToAgentAction(element));
               if (!handled) {
                 const message = lastHostAiActionError || '宿主暂未处理 AI 执行请求。';
@@ -1872,11 +2006,36 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
               throw new Error('当前元素没有可发送给 AI 的编辑。');
             }
             try {
-              await services.agentBridge.handleSendPromptToAgentForElement(element, prompt);
+              if (selectedTargets.length > 1) {
+                await services.agentBridge.handleSendPromptToAgentForElements(selectedTargets, buildSaveRunPromptForAgentElement);
+              } else {
+                await services.agentBridge.handleSendPromptToAgentForElement(element, prompt);
+              }
             } finally {
               state.positionTracker?.forceUpdate(true);
             }
           },
+          getCommentListEntries,
+          componentComments,
+          getCommentListLoadState: () => commentListLoadState,
+          commentListLoadingContent: options.ui.commentListLoadingContent,
+          commentListDockOrigin: options.ui.commentListDockOrigin,
+          onRetryCommentList: async () => {
+            const deleted = await restoreCommentList();
+            services.agentBridge.discardDeletedElementStates?.(deleted);
+            services.agentBridge.rehydratePersistedAgentState();
+            services.conversationTaskMonitor?.reconcile();
+            services.changes.renderChangeMarkers();
+            onStatusChange?.();
+          },
+          onPersistComments: persistComments,
+          onRunCommentBatch: async (action, ids) => {
+            const revision = commentRestoreRevision;
+            await persistComments();
+            if (revision !== commentRestoreRevision) throw new Error('页面已切换，请重新选择批注');
+            await runCommentBatch(action, ids);
+          },
+          onSelectComment: element => { void services.interaction.handleSelect(element, DEFAULT_MODIFIERS); },
           onAbortAgentPrompt: async (element) => {
             if (shouldDelegateAiActionToHost()) {
               const locallyInterrupted = element === null
@@ -1999,33 +2158,36 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
             }
             return services.summaries.getSaveRunPromptForElementBlockReason(element);
           },
-          canExportSelectionToDesignTool: (_tool, element) => {
-            const targetElement = resolvePromptTarget(element);
-            return isExportableDesignElement(targetElement);
-          },
-          onExportSelectionToDesignTool: async (tool, element) => {
-            const targetElement = resolvePromptTarget(element);
-            if (!targetElement) {
-              throw new Error('当前没有可导出的元素。');
-            }
-            try {
-              await exportSelectionToDesignTool(tool, targetElement);
-              services.feedback.toast('success', `已导出到 ${tool}`);
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              services.feedback.toast('error', message || `导出到 ${tool} 失败`);
-            }
-          },
-          getExportSelectionToDesignToolBlockReason: (_tool, element) => {
-            const targetElement = resolvePromptTarget(element);
-            if (!targetElement) {
-              return '当前没有可导出的元素';
-            }
-            if (services.agentBridge.isElementInteractionLocked(targetElement)) {
-              return '当前元素正在由 AI 更新';
-            }
-            return getDesignToolExportBlockReason(targetElement);
-          },
+          onGenerateComponentStates: options.ui.onGenerateComponentStates ? createComponentStatesAction({
+            getSelectedElements: () => getSelectedElements(state),
+            deliver: options.ui.onGenerateComponentStates,
+            getSelector: element => services.changes.getMetaForElement(element)?.locator.selectors[0] || generateCssSelector(element),
+            capture: (element, name) => captureElementScreenshot(element, name, {
+              fallbackBackgroundColor: '#ffffff', isEditorUi: node => Boolean(state.shadowHost?.isOverlayElement(node)),
+            }),
+            toast: (tone, message) => services.feedback.toast(tone, message),
+          }) : undefined,
+          onDocumentComponent: options.ui.onDocumentComponent ? createDocumentComponentAction({
+            getSelectedElements: () => getSelectedElements(state),
+            deliver: options.ui.onDocumentComponent,
+            getSelector: (element) => services.changes.getMetaForElement(element)?.locator.selectors[0] || generateCssSelector(element),
+            onAccepted: (element) => {
+              const currentSelection = getSelectedElements(state);
+              if (currentSelection.length === 1 && currentSelection[0] === element) services.interaction.clearSelection();
+            },
+            capture: (element, name) => captureElementScreenshot(element, name, {
+              fallbackBackgroundColor: '#ffffff',
+              isEditorUi: (node) => Boolean(state.shadowHost?.isOverlayElement(node)),
+            }),
+            toast: (tone, message) => services.feedback.toast(tone, message),
+          }) : undefined,
+          ...createSelectionExportActions({
+            state,
+            isLocked: (target) => services.agentBridge.isElementInteractionLocked(target),
+            toast: (tone, message) => services.feedback.toast(tone, message),
+            prepareAxureExport: typeof rawOptions.ui?.onPrepareAxureExport === 'function'
+              ? options.ui.onPrepareAxureExport : undefined,
+          }),
           canEditText: (element) => services.textSession.isEditable(element),
           getTextValue: (element) => services.textSession.getText(element),
           onTextValueChange: (element, value, previousValue) => {
@@ -2072,7 +2234,10 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
                 }
               : null;
           },
-          canEditAiNote: (element) => !Boolean(services.changes.getMetaForElement(element)?.readOnly),
+          canEditAiNote: (element) => commentListLoadState.status === 'ready' && getSelectionActionTargets(state, element).every(
+            (target) => !services.changes.getMetaForElement(target)?.readOnly
+              && !services.agentBridge.isElementInteractionLocked(target),
+          ),
           canClearCurrentElementEdits: (element) => !Boolean(services.changes.getMetaForElement(element)?.readOnly),
           onDeleteExternalComment: (element, commentId) => {
             if (services.changes.getMetaForElement(element)?.readOnly) return false;
@@ -2082,51 +2247,60 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
           onPrepareAiNoteImages: options.ui.onPrepareImageAttachments,
           getAiNoteImages: (element) => services.changes.getImagesForElement(element),
           getHoveredElement: () => state.hoveredElement,
+          getSelectedElements: () => getSelectedElements(state),
           onRememberSelectionAnchor: (element, selectionAnchor) => {
             services.changes.rememberSelectionAnchor(element, selectionAnchor);
           },
-          onAiNoteChange: async (element, note, noteOptions) => {
-            if (services.changes.getMetaForElement(element)?.readOnly) return;
-            if (options.ui.externalAnnotationMode && element) {
-              const meta = services.changes.getMetaForElement(element);
-              if (meta) {
-                const existing = meta.externalComments?.[0];
-                meta.externalComments = note.trim()
-                  ? [{
-                      id: existing?.id || `review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                      authorId: existing?.authorId || 'pending-reviewer',
-                      authorName: existing?.authorName || options.ui.commenterName || '评审者',
-                      content: note.trim(),
-                      createdAt: existing?.createdAt || Date.now(),
-                      updatedAt: Date.now(),
-                    }]
-                  : [];
+          onAiNoteChange: async (selectedElement, note, noteOptions) => {
+            const targets = selectedElement
+              ? getSelectionActionTargets(state, selectedElement, noteOptions?.targetElements)
+              : [null];
+            const screenshotUpdates: Promise<unknown>[] = [];
+            for (const element of targets) {
+              if (services.changes.getMetaForElement(element)?.readOnly
+                || services.agentBridge.isElementInteractionLocked(element)) continue;
+              if (options.ui.externalAnnotationMode && element) {
+                const meta = services.changes.getMetaForElement(element);
+                if (meta) {
+                  const existing = meta.externalComments?.[0];
+                  meta.externalComments = note.trim()
+                    ? [{
+                        id: existing?.id || `review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                        authorId: existing?.authorId || 'pending-reviewer',
+                        authorName: existing?.authorName || options.ui.commenterName || '评审者',
+                        content: note.trim(),
+                        createdAt: existing?.createdAt || Date.now(),
+                        updatedAt: Date.now(),
+                      }]
+                    : [];
+                }
               }
-            }
-            if (noteOptions) {
-              services.changes.setNoteForElement(element, note, noteOptions);
-            } else {
-              services.changes.setNoteForElement(element, note);
-            }
-            if (element) {
-              const shouldCaptureTargetScreenshot =
-                state.uiSettings.captureTargetScreenshot &&
-                resolveActiveInteractionProfile() !== 'text-comment';
-              const initialSelectionElement =
-                state.selectedElement === element ? state.initialSelectionElement : undefined;
-              const targetScreenshotSync = targetScreenshotCoordinator.syncAfterNoteSave(
-                element,
-                note,
-                initialSelectionElement ?? undefined,
-              );
-              if (shouldCaptureTargetScreenshot) {
-                await targetScreenshotSync;
+              if (noteOptions) {
+                services.changes.setNoteForElement(element, note, noteOptions);
               } else {
-                void targetScreenshotSync;
+                services.changes.setNoteForElement(element, note);
               }
+              if (element) {
+                const shouldCaptureTargetScreenshot =
+                  state.uiSettings.captureTargetScreenshot &&
+                  resolveActiveInteractionProfile() !== 'text-comment';
+                const initialSelectionElement =
+                  state.selectedElement === element ? state.initialSelectionElement : undefined;
+                const targetScreenshotSync = targetScreenshotCoordinator.syncAfterNoteSave(
+                  element,
+                  note,
+                  initialSelectionElement ?? undefined,
+                );
+                if (shouldCaptureTargetScreenshot) {
+                  screenshotUpdates.push(targetScreenshotSync);
+                } else {
+                  void targetScreenshotSync;
+                }
+              }
+              state.positionTracker?.forceUpdate(true);
+              syncCommentContextAfterNoteSave(element, note);
             }
-            state.positionTracker?.forceUpdate(true);
-            syncCommentContextAfterNoteSave(element, note);
+            await Promise.all(screenshotUpdates);
           },
           onAiNoteImagesChange: (element, images) => {
             if (services.changes.getMetaForElement(element)?.readOnly) return;
@@ -2151,6 +2325,7 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
               state.canvasOverlay?.setHoverRect(null);
               state.canvasOverlay?.setSelectionEffect('default');
               state.canvasOverlay?.setSelectionRect(null);
+              state.canvasOverlay?.setAdditionalSelectionRects([]);
               state.canvasOverlay?.render();
               state.handlesController?.setSelectionRect(null);
             } else {
@@ -2373,6 +2548,7 @@ export function createLifecycleService(deps: EditorLifecycleDeps): EditorLifecyc
         // Reset transient selection/edit state but keep the panel alive.
         state.hoveredElement = null;
         state.selectedElement = null;
+        state.selectedElements = [];
         state.initialSelectionElement = null;
         state.selectionAnchor = null;
         state.pendingHoverTransition = false;

@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { useEffect, useState } from 'react';
 import { Check, Copy, Download, Eye, FilePlus, GitBranch, GitCommit, GitFork, History, Loader2, RefreshCw, RotateCcw, Settings2, Sparkles, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -661,9 +662,7 @@ export function VersionManagerContent({
 
             <div className="min-h-0 flex-1 overflow-y-auto">
                 {panelLoading ? (
-                    <div className="flex h-full min-h-[300px] items-center justify-center text-xs text-muted-foreground">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 正在加载仓库…
-                    </div>
+                    <PageSkeleton variant="list" label="正在加载版本记录" />
                 ) : null}
 
                 {!panelLoading && !item ? (

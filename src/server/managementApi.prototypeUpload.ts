@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,11 @@ import {
   type RegisteredProject,
 } from './projectCore/index.ts';
 
-import { sendJson } from './http.ts';
+import { sendJson, readJsonBody } from './http.ts';
+import { buildComponentStatesPrompt, validateComponentStatesRequest } from '../common/componentStates.ts';
+import { buildScreenshotPrototypePrompt, validateScreenshotPrototypeRequest } from '../common/screenshotPrototype.ts';
+import { loadPrdNamingRules } from './prdNamingRules.ts';
+import { renderLoadingSkeleton } from '../common/loadingSkeleton.ts';
 import { runLocalCommand } from './localCommand.ts';
 import type { ManagementApiOptions } from './managementApi.ts';
 import { PROTOTYPE_PLACEHOLDER_GUIDE } from './prototypePlaceholderGuide.ts';
@@ -1130,7 +1134,7 @@ const displayName = ${JSON.stringify(displayName)};
 export default function Placeholder() {
     return (
         <main className="placeholder-empty-page" aria-label={displayName}>
-            <span>正在等待生成</span>
+            <div dangerouslySetInnerHTML={{ __html: ${JSON.stringify(renderLoadingSkeleton('preview', '正在等待生成'))} }} />
         </main>
     );
 }
@@ -1140,8 +1144,7 @@ export default function Placeholder() {
 function createPlaceholderStyleCss(): string {
   return `.placeholder-empty-page {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
+  display: block;
   background: #ffffff;
   color: #475569;
   font-size: 14px;
@@ -1161,7 +1164,7 @@ const displayName = ${JSON.stringify(displayName)};
 export default function WaitingGeneration() {
     return (
         <main className="prototype-waiting-generation-page" aria-label={displayName}>
-            <span>正在等待生成</span>
+            <div dangerouslySetInnerHTML={{ __html: ${JSON.stringify(renderLoadingSkeleton('preview', '正在等待生成'))} }} />
         </main>
     );
 }
@@ -1171,8 +1174,7 @@ export default function WaitingGeneration() {
 function createWaitingGenerationStyleCss(): string {
   return `.prototype-waiting-generation-page {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
+  display: block;
   background: #ffffff;
   color: #475569;
   font-size: 14px;
@@ -1242,6 +1244,98 @@ export async function handleCreatePlaceholderPrototype(
     }, { status: 201 });
   } catch (error: any) {
     sendJson(res, { error: error?.message || '创建占位原型失败' }, { status: 400 });
+  }
+}
+
+export async function handleCreateComponentStatesPrototype(
+  req: IncomingMessage, res: ServerResponse, options: ManagementApiOptions,
+  context: PrototypeUploadProjectContext, targetBaseDir: string | null,
+): Promise<void> {
+  if (!targetBaseDir) { sendJson(res, { error: '当前项目没有可写入的原型目录' }, { status: 424 }); return; }
+  let targetDir: string | undefined;
+  let createdHere = false;
+  try {
+    const request = validateComponentStatesRequest(await readJsonBody(req));
+    const image = Buffer.from(request.capture.imageDataUrl.split(',')[1], 'base64');
+    if (image.length < 45 || image.length > 8 * 1024 * 1024 || !image.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) || image.toString('ascii', image.length - 8, image.length - 4) !== 'IEND') throw new Error('组件截图 PNG 无效，请重新选择组件');
+    const prompt = buildComponentStatesPrompt(request, loadPrdNamingRules());
+    const preparationHash = createHash('sha256').update(JSON.stringify({ request, prompt })).digest('hex');
+    const folderName = `component-states-${request.requestId || randomUUID()}`;
+    targetDir = path.join(targetBaseDir, folderName);
+    const indexPath = path.join(targetDir, 'index.tsx');
+    const clientUrl = resolvePrototypeClientUrl(options, context, folderName);
+    const result = { name: folderName, displayName: request.title, path: `prototypes/${folderName}`, filePath: createProjectRelativePath(context.project.root, indexPath), absoluteFilePath: indexPath, clientUrl, prompt };
+    if (fs.existsSync(targetDir)) {
+      const sourceFile = path.join(targetDir, 'component-states.source.json');
+      if (fs.lstatSync(targetDir).isSymbolicLink() || !fs.existsSync(sourceFile) || fs.lstatSync(sourceFile).isSymbolicLink()) throw new Error('此状态原型正在准备或来源无效，请稍后重试');
+      if (JSON.parse(fs.readFileSync(sourceFile, 'utf8')).preparationHash !== preparationHash) throw new Error('任务标识对应的要求已变化，请关闭窗口并重新选择组件');
+      sendJson(res, result, { status: 201 }); return;
+    }
+    fs.mkdirSync(targetBaseDir, { recursive: true });
+    fs.mkdirSync(targetDir); createdHere = true;
+    // The title is data. Escape comment terminators as well as JS string values.
+    fs.writeFileSync(indexPath, createWaitingGenerationIndexTsx(request.title.replace(/\*\//gu, '* /')));
+    fs.writeFileSync(path.join(targetDir, 'style.css'), createWaitingGenerationStyleCss());
+    fs.mkdirSync(path.join(targetDir, 'assets'));
+    fs.writeFileSync(path.join(targetDir, 'assets/source-component.png'), image);
+    fs.mkdirSync(path.join(targetDir, '.spec'));
+    fs.writeFileSync(path.join(targetDir, '.spec/spec.md'), `# ${request.title}\n\n用户已在组件状态生成确认窗口确认以下范围。\n\n${prompt}\n\n来源截图：../assets/source-component.png\n`);
+    fs.writeFileSync(path.join(targetDir, 'component-states.source.json'), JSON.stringify({ ...request, preparationHash, capture: { ...request.capture, imageDataUrl: 'assets/source-component.png' } }, null, 2));
+    updatePrototypeMetadataAfterUpload(context, { id: folderName, title: request.title, folderPath: targetDir, indexPath, clientUrl, placeholder: false });
+    sendJson(res, result, { status: 201 });
+  } catch (error) {
+    if (createdHere && targetDir) fs.rmSync(targetDir, { recursive: true, force: true });
+    sendJson(res, { error: error instanceof Error ? error.message : '准备组件状态原型失败' }, { status: 400 });
+  }
+}
+
+export async function handleCreateScreenshotPrototype(
+  req: IncomingMessage, res: ServerResponse, options: ManagementApiOptions,
+  context: PrototypeUploadProjectContext, targetBaseDir: string | null,
+): Promise<void> {
+  if (!targetBaseDir) { sendJson(res, { error: '当前项目没有可写入的原型目录' }, { status: 424 }); return; }
+  let targetDir: string | undefined;
+  let createdHere = false;
+  try {
+    const request = validateScreenshotPrototypeRequest(await readJsonBody(req));
+    const images = request.images.map((image, index) => {
+      const mime = image.dataUrl.slice(5, image.dataUrl.indexOf(';'));
+      const data = Buffer.from(image.dataUrl.split(',')[1], 'base64');
+      const valid = mime === 'image/png'
+        ? data.length >= 45 && data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) && data.toString('ascii', data.length - 8, data.length - 4) === 'IEND'
+        : mime === 'image/jpeg'
+          ? data.length >= 4 && data[0] === 255 && data[1] === 216 && data[data.length - 2] === 255 && data[data.length - 1] === 217
+          : data.length >= 20 && data.toString('ascii', 0, 4) === 'RIFF' && data.toString('ascii', 8, 12) === 'WEBP' && data.readUInt32LE(4) + 8 === data.length;
+      if (!valid) throw new Error(`截图 ${index + 1} 内容无效，请重新添加`);
+      return { data, file: `assets/source-${index + 1}.${mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1]}` };
+    });
+    const prompt = buildScreenshotPrototypePrompt(request);
+    const preparationHash = createHash('sha256').update(JSON.stringify({ request, prompt })).digest('hex');
+    const folderName = `screenshot-prototype-${request.requestId || randomUUID()}`;
+    targetDir = path.join(targetBaseDir, folderName);
+    const indexPath = path.join(targetDir, 'index.tsx');
+    const clientUrl = resolvePrototypeClientUrl(options, context, folderName);
+    const result = { name: folderName, displayName: request.title, filePath: createProjectRelativePath(context.project.root, indexPath), absoluteFilePath: indexPath, clientUrl, prompt };
+    if (fs.existsSync(targetDir)) {
+      const sourceFile = path.join(targetDir, 'screenshot-prototype.source.json');
+      if (fs.lstatSync(targetDir).isSymbolicLink() || !fs.existsSync(sourceFile) || fs.lstatSync(sourceFile).isSymbolicLink()) throw new Error('原型正在准备或来源无效，请稍后重试');
+      if (JSON.parse(fs.readFileSync(sourceFile, 'utf8')).preparationHash !== preparationHash) throw new Error('任务要求已变化，请重新开始生成');
+      sendJson(res, result, { status: 201 }); return;
+    }
+    fs.mkdirSync(targetBaseDir, { recursive: true });
+    fs.mkdirSync(targetDir); createdHere = true;
+    fs.writeFileSync(indexPath, createWaitingGenerationIndexTsx(request.title.replace(/\*\//gu, '* /')));
+    fs.writeFileSync(path.join(targetDir, 'style.css'), createWaitingGenerationStyleCss());
+    fs.mkdirSync(path.join(targetDir, 'assets'));
+    for (const image of images) fs.writeFileSync(path.join(targetDir, image.file), image.data);
+    fs.mkdirSync(path.join(targetDir, '.spec'));
+    fs.writeFileSync(path.join(targetDir, '.spec/spec.md'), `# ${request.title}\n\n${prompt}\n\n## 来源截图\n${images.map(image => `- ../${image.file}`).join('\n')}\n`);
+    fs.writeFileSync(path.join(targetDir, 'screenshot-prototype.source.json'), JSON.stringify({ ...request, preparationHash, images: request.images.map((image, index) => ({ name: image.name, file: images[index].file })) }, null, 2));
+    updatePrototypeMetadataAfterUpload(context, { id: folderName, title: request.title, folderPath: targetDir, indexPath, clientUrl, placeholder: false });
+    sendJson(res, result, { status: 201 });
+  } catch (error) {
+    if (createdHere && targetDir) fs.rmSync(targetDir, { recursive: true, force: true });
+    sendJson(res, { error: error instanceof Error ? error.message : '准备截图原型失败' }, { status: 400 });
   }
 }
 

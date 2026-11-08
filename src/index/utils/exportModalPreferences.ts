@@ -82,7 +82,6 @@ function sanitizeAxureCopyOptions(value: unknown): ExportModalPreferences['axure
     const preserveSvgIcons = typeof value.preserveSvgIcons === 'boolean'
         ? value.preserveSvgIcons
         : undefined;
-
     if (preserveHierarchy === undefined && preserveSvgIcons === undefined) {
         return undefined;
     }

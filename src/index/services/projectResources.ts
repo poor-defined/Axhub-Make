@@ -467,7 +467,9 @@ export function normalizeProjectDocResource(
     const ext = pickString(resource.ext);
     const openMode = normalizeResourceOpenMode(resource.openMode)
         || inferResourceOpenMode(ext, name, displayName, markdownPath, explicitFilePath, absoluteFilePath);
-    const contentEndpoint = buildDocContentEndpoint(projectId, name);
+    const contentEndpoint = resource.configuredPrd === true && projectId
+        ? `/api/projects/${encodeURIComponent(projectId)}/document-content?path=${encodeURIComponent(name)}`
+        : buildDocContentEndpoint(projectId, name);
     const isMarkdown = [
         name,
         markdownPath,

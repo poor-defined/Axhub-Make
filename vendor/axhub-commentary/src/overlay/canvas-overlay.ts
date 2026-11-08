@@ -93,6 +93,8 @@ export interface CanvasOverlay {
   setHoverRect(rect: ViewportRect | null, options?: { animate?: boolean }): void;
   /** Update selection highlight */
   setSelectionRect(rect: ViewportRect | null): void;
+  /** Selected members other than the active anchor. */
+  setAdditionalSelectionRects(rects: readonly ViewportRect[]): void;
   /** Update selection effect mode */
   setSelectionEffect(effect: 'default' | 'ai-editing' | 'inline-editing'): void;
   /** Update additional editing highlight rects */
@@ -304,6 +306,7 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
   let hoverAnimation: HoverAnimation | null = null;
 
   let selectionRect: ViewportRect | null = null;
+  let additionalSelectionRects: readonly ViewportRect[] = [];
   let selectionEffect: 'default' | 'ai-editing' | 'inline-editing' = 'default';
   let editingRects: readonly ViewportRect[] | null = null;
   let dragGhostRect: ViewportRect | null = null;
@@ -805,6 +808,9 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
     clearCanvas();
     drawTextHighlightRects(textHighlightRects);
     drawBox(hoverRectToRender, OVERLAY_BOX_STYLES.hover);
+    for (const rect of additionalSelectionRects) {
+      drawBox(rect, OVERLAY_BOX_STYLES.selection);
+    }
     if (selectionEffect !== 'ai-editing') {
       drawBox(
         selectionRect,
@@ -874,6 +880,11 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
     markDirty();
   }
 
+  function setAdditionalSelectionRects(rects: readonly ViewportRect[]): void {
+    additionalSelectionRects = rects;
+    markDirty();
+  }
+
   function setSelectionEffect(effect: 'default' | 'ai-editing' | 'inline-editing'): void {
     if (selectionEffect === effect) return;
     selectionEffect = effect;
@@ -916,6 +927,7 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
     hoverRect = null;
     hoverAnimation = null;
     selectionRect = null;
+    additionalSelectionRects = [];
     selectionEffect = 'default';
     editingRects = null;
     textHighlightRects = null;
@@ -969,6 +981,7 @@ export function createCanvasOverlay(options: CanvasOverlayOptions): CanvasOverla
     clear,
     setHoverRect,
     setSelectionRect,
+    setAdditionalSelectionRects,
     setSelectionEffect,
     setEditingRects,
     setTextHighlightRects,

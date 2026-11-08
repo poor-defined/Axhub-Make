@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type Server } from 'node:http';
 import path from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { PROTOTYPE_WIREFRAME_POLICY, withPrototypeWireframePolicy } from '../../common/prototypeWireframePolicy';
 
 import {
   resolveAcpConversationRunState,
@@ -189,6 +190,23 @@ afterEach(async () => {
 });
 
 describe('AI runs API', () => {
+  it.each(['codex', 'claude', 'opencode'])('enforces wireframe instructions at the actual %s send boundary', async (provider) => {
+    const root = createTempRoot('axhub-wireframe-policy-');
+    writeProjectMetadata(root, { project: { id: 'wireframe-test', name: 'Wireframe test' } });
+    const acp = await startAcpRunTestServer();
+    const server = await startRegisteredTestServer(root, acp);
+    try {
+      const response = await fetch(projectAiRunsUrl(server), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scene: 'direct', provider: `acp:${provider}`, prompt: '修改当前界面中的查询和重置按钮' }),
+      });
+      await collectRunEvents(response);
+      expect(response.status).toBe(200);
+      expect(acp.requests[0].body.system).toBe(PROTOTYPE_WIREFRAME_POLICY);
+      expect(acp.requests[0].body.messages[0].parts[0].text).toContain(PROTOTYPE_WIREFRAME_POLICY);
+      expect(acp.requests[0].body.messages[0].parts[0].text).toContain('查询和重置按钮');
+    } finally { await server.close(); }
+  });
   it('rejects a missing projectId before invoking ACP', async () => {
     const projectRoot = createTempRoot('axhub-ai-runs-project-required-');
     writeProjectMetadata(projectRoot, {
@@ -440,12 +458,32 @@ describe('AI runs API', () => {
 
       expect(response.status).toBe(200);
       expect(acp.requests[0].body.messages[0].parts).toEqual([
-        { type: 'text', text: '根据当前画布继续。' },
+        { type: 'text', text: withPrototypeWireframePolicy('根据当前画布继续。') },
         { type: 'image', image: 'data:image/png;base64,dmVycG9ydA==' },
       ]);
     } finally {
       await server.close();
     }
+  });
+
+  it('sends screenshot prototype images as vision parts while retaining the new prototype target', async () => {
+    const projectRoot = createTempRoot('axhub-ai-runs-screenshot-');
+    writeProjectMetadata(projectRoot, { project: { id: 'screenshot-vision', name: 'Screenshot Vision' } });
+    const acp = await startAcpRunTestServer();
+    const server = await startRegisteredTestServer(projectRoot, acp);
+    try {
+      const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2kAAAAABJRU5ErkJggg==';
+      const images = [png, png];
+      const preparation = await fetch(`${server.origin}/api/prototypes/create-from-screenshot?projectId=${server.projectId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: '截图首页', images: images.map((dataUrl, index) => ({ name: `${index}.png`, dataUrl })) }) });
+      expect(preparation.status).toBe(201);
+      const created = await preparation.json();
+      const response = await fetch(projectAiRunsUrl(server), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scene: 'prototype', prompt: created.prompt, targetPath: `prototypes/${created.name}`, referenceImages: images }) });
+      await collectRunEvents(response);
+      expect(response.status).toBe(200);
+      expect(acp.requests[0].body.messages[0].parts.filter((part: { type: string }) => part.type === 'image')).toEqual(images.map(image => ({ type: 'image', image })));
+      expect(acp.requests[0].body.messages[0].parts[0].text).toContain('截图首页');
+      expect(acp.requests[0].body.messages[0].parts[0].text).toContain(`${created.name}/.spec/spec.md`);
+    } finally { await server.close(); }
   });
 
   it('returns a structured open-settings run error when ACP runtime is unavailable', async () => {

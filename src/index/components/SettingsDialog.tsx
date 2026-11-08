@@ -3,6 +3,7 @@ import { ClaudeCode, Codex, Cursor, DeepSeek, Grok, OpenCode } from '@lobehub/ic
 import { QRCode } from 'antd';
 import { AlertTriangle, CheckCircle2, Copy, Loader2, Play, RefreshCw, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import PrdImageRenameDialog from './dialogs/PrdImageRenameDialog';
 
 import { codeBuddyIconUrl, qoderIconUrl } from '../assets/brand-icons/brandIconUrls';
 import { Button } from '@/components/ui/button';
@@ -120,6 +121,8 @@ interface ServerConfig {
 interface ProjectInfoConfig {
     name?: string | null;
     description?: string | null;
+    axurePublishDirectory?: string | null;
+    prdDocumentPath?: string | null;
 }
 
 interface Config {
@@ -165,6 +168,8 @@ interface SettingsFormState {
     skipLanPreviewAuth: boolean;
     projectName: string;
     projectDescription: string;
+    axurePublishDirectory: string;
+    prdDocumentPath: string;
     defaultTheme: string;
     conversationPromptClient: PromptClientPreference;
     conversationModel: string;
@@ -214,6 +219,8 @@ const DEFAULT_FORM_STATE: SettingsFormState = {
     skipLanPreviewAuth: false,
     projectName: '',
     projectDescription: '',
+    axurePublishDirectory: '',
+    prdDocumentPath: '',
     defaultTheme: '',
     conversationPromptClient: null,
     conversationModel: '',
@@ -293,6 +300,8 @@ function normalizeFormState(config: Config): SettingsFormState {
         skipLanPreviewAuth: config.server.skipLanPreviewAuth === true,
         projectName: config.projectInfo?.name || '',
         projectDescription: config.projectInfo?.description || '',
+        axurePublishDirectory: config.projectInfo?.axurePublishDirectory || '',
+        prdDocumentPath: config.projectInfo?.prdDocumentPath || '',
         defaultTheme: config.projectDefaults?.defaultTheme || '',
         conversationPromptClient: normalizePromptClientPreference(config.automation?.conversationPromptClient),
         conversationModel: config.automation?.conversationModel || '',
@@ -497,6 +506,10 @@ export default function SettingsDialog({ open, projectId, standalone, onClose, o
     const isAiStandalone = standalone === 'ai';
     const isNetworkStandalone = standalone === 'network';
     const [loading, setLoading] = useState(false);
+    const [prdRenameOpen, setPrdRenameOpen] = useState(false);
+    const [savedPrdPath, setSavedPrdPath] = useState('');
+    const closeAfterPrdRename = useRef(false);
+    useEffect(() => { setPrdRenameOpen(false); closeAfterPrdRename.current = false; }, [projectId, open]);
     const [formState, setFormState] = useState<SettingsFormState>(DEFAULT_FORM_STATE);
     const [activeTab, setActiveTab] = useState<SettingsDialogInitialTab>(isAiStandalone ? 'ai' : isNetworkStandalone ? 'network' : 'project');
     const [projectSettingsSection, setProjectSettingsSection] = useState<'info' | 'template' | 'update'>(initialTab === 'update' ? 'update' : 'info');
@@ -650,6 +663,7 @@ export default function SettingsDialog({ open, projectId, standalone, onClose, o
             }
             const config: Config = await response.json();
             setFormState(normalizeFormState(config));
+            setSavedPrdPath(config.projectInfo?.prdDocumentPath || '');
             setAiImageApiKeyConfigured(config.ai?.imageGeneration?.hasApiKey === true);
             setAiImageApiKeyClearRequested(false);
             setAvailableLANHosts(Array.isArray(config.availableLANHosts) ? config.availableLANHosts : []);
@@ -1328,6 +1342,8 @@ export default function SettingsDialog({ open, projectId, standalone, onClose, o
                 projectInfo: {
                     name: formState.projectName.trim() || null,
                     description: formState.projectDescription.trim() || null,
+                    axurePublishDirectory: formState.axurePublishDirectory.trim() || null,
+                    prdDocumentPath: formState.prdDocumentPath.trim() || null,
                 },
                 projectDefaults: {
                     ...(currentConfig.projectDefaults || {}),
@@ -1382,7 +1398,13 @@ export default function SettingsDialog({ open, projectId, standalone, onClose, o
                 lanHost: formState.lanHost.trim() || availableLANHosts[0] || '',
             };
             toast.success(result.message || '配置已保存');
+            setSavedPrdPath(formState.prdDocumentPath.trim());
             onSaved?.();
+            if (formState.prdDocumentPath.trim() && formState.prdDocumentPath.trim() !== (currentConfig.projectInfo?.prdDocumentPath || '').trim()) {
+                closeAfterPrdRename.current = true;
+                setPrdRenameOpen(true);
+                return;
+            }
             onClose();
         } catch (error: any) {
             console.error('Error saving config:', error);
@@ -1548,6 +1570,35 @@ export default function SettingsDialog({ open, projectId, standalone, onClose, o
                                 value={formState.defaultTheme || NO_PROTOTYPE_THEME_VALUE}
                                 onValueChange={(themeName) => updateField('defaultTheme', themeName === NO_PROTOTYPE_THEME_VALUE ? '' : themeName)}
                             />
+                        </Field>
+
+                        <Field>
+                            <FieldLabelWithHint hint="Axure 导出 HTML 的本地发布根目录，用于关联原型截图来源">Axure 本地发布目录</FieldLabelWithHint>
+                            <Input
+                                aria-label="Axure 本地发布目录"
+                                value={formState.axurePublishDirectory}
+                                onChange={(event) => updateField('axurePublishDirectory', event.target.value)}
+                                placeholder="例如：/Users/你的用户名/项目/Axure-export"
+                                spellCheck={false}
+                            />
+                            <FieldDescription>填写包含导出 HTML 的本地目录，可留空。</FieldDescription>
+                        </Field>
+
+                        <Field>
+                            <FieldLabelWithHint hint="对应 Markdown PRD 的本地目录或文件路径，用于定位文档与图片附件">PRD 文档路径</FieldLabelWithHint>
+                            <Input
+                                aria-label="PRD 文档路径"
+                                value={formState.prdDocumentPath}
+                                onChange={(event) => updateField('prdDocumentPath', event.target.value)}
+                                placeholder="例如：/Users/你的用户名/文档/项目 PRD.md"
+                                spellCheck={false}
+                            />
+                            <FieldDescription>支持 PRD 所在目录或具体 .md 文件，可留空。保存后可预览并确认图片改名清单。</FieldDescription>
+                            <Button type="button" size="sm" variant="outline" disabled={loading || !formState.prdDocumentPath.trim() || formState.prdDocumentPath.trim() !== savedPrdPath.trim()}
+                                onClick={() => { closeAfterPrdRename.current = false; setPrdRenameOpen(true); }}>
+                                整理图片名称
+                            </Button>
+                            <FieldDescription>新路径保存后会询问是否批量修改图片名称；已有路径也可手动整理。</FieldDescription>
                         </Field>
 
                         </section>
@@ -2389,6 +2440,12 @@ export default function SettingsDialog({ open, projectId, standalone, onClose, o
                         </div>
                     </SheetFooter>
                 </Tabs>
+                <PrdImageRenameDialog open={open && prdRenameOpen} projectId={projectId} onDone={(changed) => {
+                    setPrdRenameOpen(false);
+                    onSaved?.();
+                    if (closeAfterPrdRename.current) onClose();
+                    if (changed) window.location.reload();
+                }} />
             </SheetContent>
         </Sheet>
     );

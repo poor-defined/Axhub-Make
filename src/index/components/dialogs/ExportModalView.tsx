@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRightLeft, Copy, Loader2, RefreshCw, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -557,10 +558,7 @@ export default function ExportModal({
                                             className="h-full w-full object-contain"
                                         />
                                     ) : (
-                                        <div className="text-center text-sm text-muted-foreground">
-                                            <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
-                                            正在生成预览...
-                                        </div>
+                                        <PageSkeleton variant="preview" label="正在生成导出预览" />
                                     )}
                                 </div>
                                 <div className="space-y-4">
@@ -747,10 +745,7 @@ export default function ExportModal({
                                 </div>
 
                                 {isLoadingAxureApi ? (
-                                    <div className="rounded-md border p-4 text-center text-sm text-muted-foreground">
-                                        <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
-                                        正在解析 Axure API...
-                                    </div>
+                                    <PageSkeleton variant="form" label="正在解析 Axure API" />
                                 ) : axureApiError ? (
                                     <div className="rounded-md border border-amber-300/60 bg-amber-50/50 p-3 text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100">
                                         {axureApiError}
@@ -842,10 +837,7 @@ export default function ExportModal({
                                     <div className="space-y-2">
                                         <div className="text-sm font-medium">配置内容</div>
                                         {isLoadingConfig ? (
-                                            <div className="rounded-md border p-4 text-center text-sm text-muted-foreground">
-                                                <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
-                                                正在加载配置...
-                                            </div>
+                                            <PageSkeleton variant="form" label="正在加载导出配置" />
                                         ) : (
                                             <Textarea
                                                 value={exportContent}

@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { useCallback, useEffect, useState } from 'react';
 import { ExternalLink, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -81,10 +82,7 @@ export function DocumentTemplateSettings({ projectId }: DocumentTemplateSettings
 
     if (loading) {
         return (
-            <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                正在加载模板…
-            </div>
+            <PageSkeleton variant="list" label="正在加载文档模板" />
         );
     }
 

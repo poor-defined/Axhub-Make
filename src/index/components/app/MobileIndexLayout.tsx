@@ -1,5 +1,6 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React from 'react';
-import { Copy, ImageIcon, Loader2, MessageCircle, Search, Sparkles } from 'lucide-react';
+import { Copy, ImageIcon, MessageCircle, Search, Sparkles } from 'lucide-react';
 import type { ItemData } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,10 +113,7 @@ export default function MobileIndexLayout({
                 </div>
 
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                        <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-                        <div style={{ marginTop: 8, color: 'hsl(var(--muted-foreground))', fontSize: 12 }}>加载中...</div>
-                    </div>
+                    <PageSkeleton variant="list" label="正在加载原型列表" />
                 ) : (
                     <div>
                         {mobilePrototypes.length === 0 ? (

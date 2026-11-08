@@ -52,6 +52,11 @@ import {
   type WebEditorUiSettings,
   sanitizeWebEditorUiSettings,
 } from '../../core/editor/ui-settings';
+import { CommentListView } from './comment-list-view';
+import { RightEntry } from './right-entry';
+import { setPageZoomEnabled, suspendPageZoomForNativePanel } from '../../utils/page-zoom-toggle';
+import { PreviewCanvasControls } from './preview-canvas-controls';
+import { useCommentListHost } from './use-comment-list-host';
 
 function normalizeRuntimeUiSettings(
   settings: unknown,
@@ -202,6 +207,12 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
   const interactionProfile = propertyPanelOptions?.interactionProfile ?? 'design';
 
   const [currentTarget, setCurrentTarget] = React.useState<Element | null>(null);
+  const [commentListOpen, setCommentListOpen] = React.useState(false);
+  const [commentSelectedIds, setCommentSelectedIds] = React.useState<string[]>([]);
+  const [nativePanelsOpen, setNativePanelsOpen] = React.useState(false);
+  const [canvasActivationRevision, setCanvasActivationRevision] = React.useState(0);
+  const releaseCanvasRef = React.useRef<() => void>(() => {});
+  const [commentEditRequest, setCommentEditRequest] = React.useState<import('./types').PromptCardViewProps['commentEditRequest']>();
   const [anchorRect, setAnchorRect] = React.useState<ViewportRect | null>(null);
   const [uiMode, setUiMode] = React.useState<CommentEntryMode>(initialUiMode);
   const [toolMinimized, setToolMinimized] = React.useState(false);
@@ -262,6 +273,7 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
   const inlineTextTargetRef = React.useRef<HTMLElement | null>(null);
   const uiModeRef = React.useRef<CommentEntryMode>(initialUiMode);
   const noteStateRef = React.useRef<SharedNoteState>(noteState);
+  const noteTargetElementsRef = React.useRef<readonly Element[]>([]);
   const textStateRef = React.useRef<SharedTextState>(textState);
   const imageStateRef = React.useRef<SharedImageState>(imageState);
   const annotationStateRef = React.useRef<SharedAnnotationState>(annotationState);
@@ -272,6 +284,73 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
     initialSelectionModeActive,
     setToolMinimized,
   });
+  const commentListAvailable = Boolean(propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch
+    && interactionProfile === 'design' && !propertyPanelOptions.externalAnnotationMode);
+  React.useEffect(() => {
+    if (commentListAvailable && selectionGuards.selectionModeActive) setCommentListOpen(true);
+    if (!commentListAvailable) setCommentListOpen(false);
+  }, [commentListAvailable, currentTarget, selectionGuards.selectionModeActive]);
+  const showCommentList = commentListAvailable && commentListOpen && !toolMinimized && !blockingLayerOpen;
+  const hostedCommentList = useCommentListHost({
+    enabled: showCommentList && uiSettings.commentListPinned,
+    origin: propertyPanelOptions?.commentListDockOrigin,
+    snapshot: () => ({ scope: propertyPanelOptions?.componentComments?.getScopeKey() ?? '', open: showCommentList && uiSettings.commentListPinned,
+      entries: (propertyPanelOptions?.getCommentListEntries?.() ?? []).map(entry => ({ id: entry.id, label: entry.label, note: entry.note, purpose: entry.purpose, state: entry.state, disabledReason: entry.disabledReason, locatable: Boolean(entry.element) })),
+      selectedIds: commentSelectedIds, darkMode: uiSettings.darkMode, loadState: propertyPanelOptions?.getCommentListLoadState?.() ?? { status: 'ready' },
+      sendAvailable: !propertyPanelOptions?.hideExecutionControls && !propertyPanelOptions?.hideCurrentElementExecutionAction,
+      generateAvailable: Boolean(propertyPanelOptions?.onGenerateComponentStates), documentAvailable: Boolean(propertyPanelOptions?.onDocumentComponent) }),
+    onAction: async command => {
+      const ids = command.ids ?? [];
+      switch (command.action) {
+        case 'close': setCommentListOpen(false); break;
+        case 'unpin': handleUiSettingsChange({ ...uiSettings, commentListPinned: false }); break;
+        case 'select': {
+          const currentIds = new Set(propertyPanelOptions?.getCommentListEntries?.().map(entry => entry.id));
+          if (ids.some(id => !currentIds.has(id))) throw new Error('批注已变更，请重新选择');
+          setCommentSelectedIds(ids); break;
+        }
+        case 'edit': {
+          const result = propertyPanelOptions?.componentComments?.edit(ids[0]);
+          if (!result) throw new Error('无法编辑批注');
+          propertyPanelOptions?.onSelectComment?.(result.element); setBubbleStyleEditorOpen(false);
+          setCommentEditRequest({ id: ids[0], purpose: result.purpose, revision: Date.now() }); break;
+        }
+        case 'locate': {
+          const entry = propertyPanelOptions?.getCommentListEntries?.().find(entry => entry.id === ids[0]);
+          if (!entry?.element) throw new Error('组件已失效');
+          propertyPanelOptions?.onSelectComment?.(entry.element); break;
+        }
+        case 'remove': await propertyPanelOptions?.componentComments?.removeMany(ids); break;
+        case 'run':
+          if (!['send', 'generate', 'document'].includes(command.batchAction || '')) throw new Error('无效的批注动作');
+          await propertyPanelOptions?.onRunCommentBatch?.(command.batchAction!, ids); break;
+        case 'retry': await propertyPanelOptions?.onRetryCommentList?.(); break;
+        default: throw new Error('不支持的批注操作');
+      }
+    },
+  });
+  const releaseCommentDockRef = React.useRef<() => void>(() => {});
+  React.useEffect(() => {
+    let frame = 0;
+    const release = () => {
+      window.cancelAnimationFrame(frame);
+      setPageZoomEnabled(false, { owner: 'comment-list' });
+    };
+    releaseCommentDockRef.current = release;
+    const sync = () => {
+      release();
+      if (showCommentList && uiSettings.commentListPinned && !hostedCommentList && window.innerWidth > 760) {
+        // The native directory closes through its own React effect. Reserve the canvas afterwards.
+        frame = window.requestAnimationFrame(() => {
+          frame = window.requestAnimationFrame(() => setPageZoomEnabled(true, { owner: 'comment-list', reservedRightWidth: 372 }));
+        });
+      }
+    };
+    sync();
+    window.addEventListener('resize', sync);
+    return () => { window.removeEventListener('resize', sync); release(); };
+  }, [showCommentList, uiSettings.commentListPinned, hostedCommentList]);
+  const handleCommentSaved = React.useCallback(() => setCommentListOpen(true), []);
   const promptSelectionInteractionLockChangeRef = React.useRef(
     selectionGuards.handlePromptSelectionInteractionLockChange,
   );
@@ -419,6 +498,12 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
         nextSavedNote,
         resetDraft,
       );
+      if (resetDraft || !next.dirty) {
+        const selected = propertyPanelOptions?.getSelectedElements?.() ?? [];
+        noteTargetElementsRef.current = element && selected.includes(element)
+          ? selected.slice()
+          : element ? [element] : [];
+      }
       const nextState = {
         savedNote: next.saved,
         draftNote: next.draft,
@@ -555,6 +640,7 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
 
       await propertyPanelOptions.onAiNoteChange(element, nextValue, {
         skillIds: nextSkillIds,
+        targetElements: noteTargetElementsRef.current,
       });
 
       if (currentTargetRef.current === element) {
@@ -1370,6 +1456,48 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
   return (
     <div style={panelContainerStyle}>
       <style nonce={resolveCspNonce()}>{WEB_EDITOR_POPUP_ROOT_STYLES}</style>
+      {commentListAvailable && !toolMinimized && !blockingLayerOpen ? (
+        <RightEntry open={showCommentList} docked={showCommentList && uiSettings.commentListPinned && !hostedCommentList} onToggle={() => setCommentListOpen(open => !open)}
+          onNativePanelsChange={setNativePanelsOpen}
+          onNativeAction={() => {
+            suspendPageZoomForNativePanel();
+            releaseCanvasRef.current(); releaseCommentDockRef.current(); setPageZoomEnabled(false);
+            setCanvasActivationRevision(value => value + 1);
+            setPropertyPanelOpen(false); setNativePanelsOpen(true); setCommentListOpen(false);
+          }}
+          onShortcuts={() => { void propertyPanelRef.current?.runHostToolbarAction({ type: 'open-keyboard-shortcuts' }); }} />
+      ) : null}
+      {commentListAvailable ? <PreviewCanvasControls active={!toolMinimized && !blockingLayerOpen && !nativePanelsOpen}
+        docked={showCommentList && uiSettings.commentListPinned && !hostedCommentList} hasTarget={Boolean(currentTarget)} releaseRef={releaseCanvasRef}
+        getScopeKey={propertyPanelOptions?.componentComments?.getScopeKey}
+        activationRevision={canvasActivationRevision}
+        onInteractionChange={selectionGuards.handlePromptHoverSelectionSuppressedChange} /> : null}
+      {commentListAvailable && propertyPanelOptions?.getCommentListEntries && propertyPanelOptions.onRunCommentBatch ? (
+        <CommentListView getEntries={propertyPanelOptions.getCommentListEntries} onRun={propertyPanelOptions.onRunCommentBatch}
+          hidden={!showCommentList || hostedCommentList} pinned={uiSettings.commentListPinned}
+          selectedIds={commentSelectedIds} onSelectionChange={setCommentSelectedIds}
+          onPinnedChange={pinned => { if (pinned) setPropertyPanelOpen(false); handleUiSettingsChange({ ...uiSettings, commentListPinned: pinned }); }}
+          onEdit={propertyPanelOptions.componentComments ? id => {
+            const result = propertyPanelOptions.componentComments!.edit(id);
+            selectionGuards.handlePromptHoverSelectionSuppressedChange(false);
+            propertyPanelOptions.onSelectComment?.(result.element);
+            setBubbleStyleEditorOpen(false);
+            setCommentEditRequest({ id, purpose: result.purpose, revision: Date.now() });
+          } : undefined}
+          onRemove={propertyPanelOptions.componentComments?.remove}
+          onRemoveMany={propertyPanelOptions.componentComments?.removeMany}
+          getLoadState={propertyPanelOptions.getCommentListLoadState} onRetry={propertyPanelOptions.onRetryCommentList}
+          loadingContent={propertyPanelOptions.commentListLoadingContent}
+          onClose={() => setCommentListOpen(false)} hasTarget={Boolean(currentTarget)}
+          onLocate={element => {
+            selectionGuards.handlePromptHoverSelectionSuppressedChange(false);
+            propertyPanelOptions.onSelectComment?.(element);
+          }}
+          onInteractionChange={selectionGuards.handlePromptHoverSelectionSuppressedChange}
+          sendAvailable={!propertyPanelOptions.hideExecutionControls && !propertyPanelOptions.hideCurrentElementExecutionAction}
+          generateAvailable={Boolean(propertyPanelOptions.onGenerateComponentStates)}
+          documentAvailable={Boolean(propertyPanelOptions.onDocumentComponent)} />
+      ) : null}
       <ElementAgentTaskOverlays
         tasks={blockingLayerOpen ? [] : taskStateProvider.getVisibleTasks()}
         subscribeSessionActivity={propertyPanelOptions?.subscribeSessionActivity}
@@ -1381,6 +1509,21 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
           ref={breadcrumbsRef}
           options={breadcrumbsOptions}
           currentTarget={currentTarget}
+          selectedElementCount={propertyPanelOptions?.getSelectedElements?.().length ?? (currentTarget ? 1 : 0)}
+          pinnedToTopRight={uiSettings.promptCardPinnedToTopRight}
+          propertyPanelOpen={propertyPanelOpen}
+          commentListOpen={showCommentList && !hostedCommentList}
+          componentComments={propertyPanelOptions?.componentComments}
+          commentEditRequest={commentEditRequest}
+          getCommentListLoadState={propertyPanelOptions?.getCommentListLoadState}
+          commentListLoadingContent={propertyPanelOptions?.commentListLoadingContent}
+          onRetryCommentList={propertyPanelOptions?.onRetryCommentList}
+          onCommentSaved={handleCommentSaved}
+          onPersistComments={propertyPanelOptions?.onPersistComments}
+          onPinnedToTopRightChange={(pinned) => handleUiSettingsChange({
+            ...uiSettings,
+            promptCardPinnedToTopRight: pinned,
+          })}
           anchorRect={anchorRect}
           uiMode={uiMode}
           interactionProfile={interactionProfile}
@@ -1416,6 +1559,8 @@ export function WebEditorUiApp(props: WebEditorUiAppProps): React.ReactElement {
           }
           canExportSelectionToDesignTool={propertyPanelOptions?.canExportSelectionToDesignTool}
           onExportSelectionToDesignTool={propertyPanelOptions?.onExportSelectionToDesignTool}
+          onDocumentComponent={propertyPanelOptions?.onDocumentComponent}
+          onGenerateComponentStates={propertyPanelOptions?.onGenerateComponentStates}
           getExportSelectionToDesignToolBlockReason={
             propertyPanelOptions?.getExportSelectionToDesignToolBlockReason
           }

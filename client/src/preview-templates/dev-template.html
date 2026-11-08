@@ -11,10 +11,21 @@
       min-height: 100%;
       margin: 0;
     }
+    /* Portable first paint, including clients without a management connection. */
+    .ax-client-loading{padding:clamp(16px,3vw,40px);min-height:100vh;box-sizing:border-box;overflow:hidden}
+    .ax-client-loading i{display:block;background:#e9edf1;border-radius:6px;animation:ax-client-pulse 1.8s ease-in-out infinite}
+    .ax-client-loading .bar{height:24px;width:112px;margin-bottom:50px}
+    .ax-client-loading .hero{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+    .ax-client-loading .line{height:12px;width:75%;margin:14px 0}.ax-client-loading .heading{height:28px;width:85%;margin:18px 0}
+    .ax-client-loading .media{height:240px}.ax-client-loading .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}.ax-client-loading .cards i{height:140px}
+    @keyframes ax-client-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+    @media(max-width:640px){.ax-client-loading .hero{grid-template-columns:1fr;gap:20px}.ax-client-loading .media{height:140px}.ax-client-loading .cards{grid-template-columns:1fr}.ax-client-loading .cards i{height:75px}}
+    @media(prefers-reduced-motion:reduce){.ax-client-loading i{animation:none}}
+    .dark .ax-client-loading{background:#0f1720}.dark .ax-client-loading i{background:#28323c}
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"><div class="ax-client-loading" role="status" aria-busy="true" aria-label="正在加载原型"><div aria-hidden="true"><i class="bar"></i><div class="hero"><div><i class="heading"></i><i class="heading" style="width:55%"></i><i class="line"></i><i class="line"></i></div><i class="media"></i></div><div class="cards"><i></i><i></i><i></i></div></div></div></div>
   <script type="module">
 {{PREVIEW_LOADER}}
   </script>

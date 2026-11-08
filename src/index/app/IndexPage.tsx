@@ -10,6 +10,17 @@ import { useOpenCodeBridgeSync } from '../hooks/useOpenCodeBridgeSync';
 import { resolveOpenCodeCanvasAnnotationContext, resolveOpenCodeCurrentFilePath } from '../hooks/openCodeBridgeContext';
 import type { CanvasElementContextInfo } from '../components/content/canvas-embeds/AnnotationOverlay';
 import IndexPageLayout from '../components/app/IndexPageLayout';
+import AxureTreeOrganizationDialog from '../components/dialogs/AxureTreeOrganizationDialog';
+import ComponentDocumentationDialog from '../components/dialogs/ComponentDocumentationDialog';
+import ReferencePagesPanel from '../components/content/ReferencePagesPanel';
+import ReferencePageView from '../components/content/ReferencePageView';
+import { useComponentDocumentation } from '../domains/documentation/useComponentDocumentation';
+import { useComponentStates } from '../domains/prototype-generation/useComponentStates';
+import { useScreenshotPrototype } from '../domains/prototype-generation/useScreenshotPrototype';
+import type { ScreenshotPrototype } from '../domains/prototype-generation/screenshotPrototypeSession';
+import ComponentStatesDialog from '../components/dialogs/ComponentStatesDialog';
+import { useReferenceWorkspace } from '../domains/documentation/useReferenceWorkspace';
+import { withPrototypeWireframePolicy } from '../../common/prototypeWireframePolicy';
 import type { SettingsDialogAIContext, SettingsDialogInitialTab } from '../components/SettingsDialog';
 import type {
     ResourceSection,
@@ -272,6 +283,8 @@ export default function IndexPage({
     const surfaceCapabilities = useMemo(() => resolveMakeSurfaceCapabilities(makeSurface), [makeSurface]);
     const conversationUiEnabled = surfaceCapabilities.conversationUi;
     const workspace = useWorkspaceNavigationController({ messageApi });
+    const documentation = useComponentDocumentation(workspace.activeProjectId);
+    const references = useReferenceWorkspace(workspace.activeProjectId);
     const bridge = useAxhubBridge();
     const notificationPlayerRef = useRef<NotificationPlayer | null>(null);
     if (!notificationPlayerRef.current) {
@@ -818,7 +831,7 @@ export default function IndexPage({
     }, []);
 
     useEffect(() => {
-        if (!assistantCompactViewport || !assistantController.assistantVisible) {
+        if (!assistantCompactViewport || !assistantController.assistantVisible || references.active) {
             return;
         }
         assistantController.hideAssistantPanelTemporarily();
@@ -826,6 +839,7 @@ export default function IndexPage({
         assistantCompactViewport,
         assistantController.assistantVisible,
         assistantController.hideAssistantPanelTemporarily,
+        references.active,
     ]);
 
     useEffect(() => {
@@ -2715,11 +2729,28 @@ export default function IndexPage({
         shouldOpenInitialProjectDocumentEditor,
     ]);
 
+    const openScreenshotPrototype = (created: ScreenshotPrototype) => {
+        references.setActive(false);
+        prototypeSpec.close();
+        const refreshed = workspace.data.prototypes.find(item => item.name === created.name);
+        setSelectedItem(refreshed || { name: created.name, displayName: created.displayName, jsUrl: '', specUrl: '', filePath: created.filePath, clientUrl: created.clientUrl, previewUrl: created.clientUrl });
+        setSelectedPrototypePageId(null);
+        setPrototypeStartDraftActive(false);
+        setSidebarTab('prototype'); setActiveTab('prototypes'); setViewMode('demo');
+    };
+    const screenshotPrototype = useScreenshotPrototype(workspace.activeProjectId, {
+        promptClient: preferences.conversationPromptClient,
+        model: preferences.conversationModel,
+        autoOpen: contentMode === 'preview' && (!selectedItem || selectedItem.placeholder === true),
+        onDone: async () => { await workspace.loadData(); },
+        onOpen: openScreenshotPrototype,
+    });
     const presentationAreaProps = useIndexPagePresentationPropsBuilder({
         state: {
             collapsed,
             selectedItem,
             prototypeStartDraftActive,
+            screenshotPrototype,
             resourceStartDraftActive,
             themeStartDraftActive,
             viewMode,
@@ -2851,8 +2882,8 @@ export default function IndexPage({
     };
 
     const assistantPanelProps = {
-        mounted: conversationUiEnabled && !assistantCompactViewport && assistantController.assistantPanelMounted,
-        visible: conversationUiEnabled && !assistantCompactViewport && assistantController.assistantVisible,
+        mounted: conversationUiEnabled && (!assistantCompactViewport || references.active) && assistantController.assistantPanelMounted,
+        visible: conversationUiEnabled && (!assistantCompactViewport || references.active) && assistantController.assistantVisible,
         width: assistantController.assistantPanelWidth,
         minWidth: assistantController.assistantPanelMinWidth,
         maxWidth: assistantController.assistantPanelMaxWidth,
@@ -2997,6 +3028,20 @@ export default function IndexPage({
         currentVersionItem: resources.currentVersionItem,
     };
 
+    const componentStates = useComponentStates(workspace.activeProjectId, {
+        promptClient: preferences.annotationPromptClient,
+        model: preferences.annotationModel,
+        onDone: async () => { await workspace.loadData(); },
+        onOpen: (created) => {
+            references.setActive(false);
+            prototypeSpec.close();
+            const refreshed = workspace.data.prototypes.find(item => item.name === created.name);
+            setSelectedItem(refreshed || { name: created.name, displayName: created.displayName, jsUrl: '', specUrl: '', filePath: created.filePath, clientUrl: created.clientUrl, previewUrl: created.clientUrl });
+            setSelectedPrototypePageId(null);
+            setSidebarTab('prototype'); setActiveTab('prototypes'); setViewMode('demo');
+        },
+    });
+
     const mobileProps = {
         loading: workspace.loading,
         items: workspace.data.prototypes,
@@ -3012,6 +3057,26 @@ export default function IndexPage({
 
     return (
         <>
+            <ComponentStatesDialog state={componentStates.state} onEdit={componentStates.session.edit}
+                onGenerate={() => { void componentStates.session.generate(); }} onClose={componentStates.session.close}
+                onOpenPrototype={componentStates.openPrototype} />
+            <ComponentDocumentationDialog
+                state={documentation.state}
+                documents={documentation.documents}
+                documentsError={documentation.documentsError}
+                onSelectDocument={documentation.session.selectDocument}
+                onEdit={documentation.session.edit}
+                onGenerate={(instruction) => { void documentation.session.generate(instruction); }}
+                onAppend={() => { void documentation.session.append(); }}
+                onClose={documentation.session.close}
+            />
+            <AxureTreeOrganizationDialog
+                state={preview.axureOrganization.state}
+                onCancel={preview.axureOrganization.session.cancel}
+                onRetry={() => { void preview.axureOrganization.session.retry(); }}
+                onOrganize={(instruction) => { void preview.axureOrganization.session.organize(instruction); }}
+                onCopy={(version) => { void preview.axureOrganization.session.copy(version); }}
+            />
             <input
                 ref={startGuideResourceUploadInputRef}
                 type="file"
@@ -3025,6 +3090,34 @@ export default function IndexPage({
                 }}
             />
             <IndexPageLayout
+                referenceWorkspace={{
+                    active: references.active,
+                    onActiveChange: references.setActive,
+                    panel: <ReferencePagesPanel
+                        key={workspace.activeProjectId || ''}
+                        projectId={workspace.activeProjectId || ''}
+                        pages={references.pages}
+                        selectedId={references.selected?.id}
+                        loading={references.loading}
+                        error={references.error}
+                        localSource={references.localSource}
+                        onSelect={references.setSelected}
+                        onImported={references.imported}
+                        onDeleted={references.deleted}
+                        onRefresh={references.refresh}
+                    />,
+                    view: <ReferencePageView
+                        loading={references.loading}
+                        key={workspace.activeProjectId || ''}
+                        projectId={workspace.activeProjectId || ''}
+                        page={references.selected}
+                        onDocumentComponent={documentation.open}
+                        onGeneratePrototype={(prompt, targetPath) => handleExecutePromptAction(
+                            withPrototypeWireframePolicy(`请修改当前项目中的参考 HTML 文件 ${targetPath}。保留资源相对路径。\n\n${prompt}`),
+                            { scene: 'reference-annotation', targetPath, autoSend: true },
+                        )}
+                    />,
+                }}
                 sidebarProps={sidebarProps}
                 presentationAreaProps={presentationAreaProps}
                 assistantPanelProps={assistantPanelProps}

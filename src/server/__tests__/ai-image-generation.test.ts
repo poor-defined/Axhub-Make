@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { generateAiImages, normalizeAiImageRequestParams } from '../aiImageGeneration.ts';
+import { PROTOTYPE_WIREFRAME_POLICY } from '../../common/prototypeWireframePolicy';
 
 function sseJson(chunk: Record<string, unknown>) {
   return `data: ${JSON.stringify(chunk)}\n\n`;
@@ -72,6 +73,7 @@ describe('AI image generation ACP bridge', () => {
     const requestBody = JSON.parse(String((fetchImpl as any).mock.calls[0][1].body));
     const prompt = requestBody.messages[0].parts[0].text;
     expect(prompt).toContain('$ui-design-image');
+    expect(prompt).toContain(PROTOTYPE_WIREFRAME_POLICY);
   });
 
   it('passes image API connection settings to ACP builtin tool settings', async () => {

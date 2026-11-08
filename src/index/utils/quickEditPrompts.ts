@@ -1,4 +1,5 @@
 import type { AssistantContextElementV1 } from '../types';
+import { withPrototypeWireframePolicy } from '../../common/prototypeWireframePolicy';
 
 const DEFAULT_SKILL_LABELS = {
     workflow: '原型批注处理',
@@ -65,7 +66,7 @@ export function buildQuickEditAcpPrompt(params: {
     const skillWorkflow = String(params.skillPaths?.workflow || '').trim() || DEFAULT_SKILL_LABELS.workflow;
     const skillReference = String(params.skillPaths?.reference || '').trim() || DEFAULT_SKILL_LABELS.reference;
 
-    return `请执行网页快速编辑任务。
+    return withPrototypeWireframePolicy(`请执行网页快速编辑任务。
 
 【前置阅读】
 1. 工作流指南：${skillWorkflow}
@@ -89,7 +90,7 @@ ${renderSelectedElements(selectedElements)}
 与你对话的用户通常是产品经理或设计师，他们不关心底层代码。请在任务完成后，使用通俗、业务导向的语言简要回复用户：
 1. 说明完成了哪些具体界面/业务修改（例如：修改了某处文案、调整了按钮颜色等）。
 2. 若有未处理完或存在异常的节点，只需做简单的业务提示即可。
-**切勿**在回复中罗列修改了哪些具体代码文件、展示哪些技术排查排错过程，也无需向用户汇报底层节点的内部状态，保持沟通自然、简短。`;
+**切勿**在回复中罗列修改了哪些具体代码文件、展示哪些技术排查排错过程，也无需向用户汇报底层节点的内部状态，保持沟通自然、简短。`);
 }
 
 export function buildPrototypeAnnotationAcpPrompt(params: {
@@ -108,7 +109,7 @@ export function buildPrototypeAnnotationAcpPrompt(params: {
         throw new Error('当前文件无法转换为项目相对入口路径');
     }
 
-    return `请为当前原型生成或更新需求标注。
+    return withPrototypeWireframePolicy(`请为当前原型生成或更新需求标注。
 
 【前置阅读】
 1. 使用项目内的 prototype-annotation 技能；标注格式、接入方式和校验要求以该技能为准。
@@ -129,5 +130,5 @@ export function buildPrototypeAnnotationAcpPrompt(params: {
 遵循 prototype-annotation 技能生成或更新相关内容，保持已有有效标注和资料一致，并完成技能要求的验证。
 
 【最终回复】
-简要说明已补齐的需求标注范围，以及仍需产品确认的内容。`;
+简要说明已补齐的需求标注范围，以及仍需产品确认的内容。`);
 }

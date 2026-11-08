@@ -276,7 +276,7 @@ describe('make-server vendor packages', () => {
     expect(source).toContain('.we-runtime-prompt-card__textarea,');
     expect(source).toContain('.we-runtime-prompt-card__textarea::-webkit-scrollbar');
 
-    const noteTextareaStart = source.indexOf('placeholder={notePlaceholder}');
+    const noteTextareaStart = source.indexOf('placeholder={generateNewPrototype');
     const noteTextareaElementStart = source.lastIndexOf('<Input.TextArea', noteTextareaStart);
     const noteTextareaEnd = source.indexOf('onChange={(event) => {', noteTextareaStart);
     const noteTextareaSource = source.slice(noteTextareaElementStart, noteTextareaEnd);
@@ -288,7 +288,7 @@ describe('make-server vendor packages', () => {
     const annotationTextareaSource = source.slice(annotationTextareaElementStart, annotationTextareaSaveStart);
 
     expect(noteTextareaSource).toContain('allowClear');
-    expect(noteTextareaSource).toContain("padding: '6px 10px'");
+    expect(noteTextareaSource).toContain("padding: componentComposer ? '10px 12px' : '6px 10px'");
     expect(noteTextareaSource).not.toContain('padding: 0');
     expect(annotationTextareaSource).not.toContain('allowClear');
     expect(annotationTextareaSource).toContain("padding: '10px 12px'");
@@ -298,7 +298,7 @@ describe('make-server vendor packages', () => {
       const bundleEditorStart = bundle.indexOf('title: "\\u5220\\u9664\\u6807\\u6CE8"');
       const bundleEditorEnd = bundle.indexOf('placeholder: documentSourceMarkdownEditor', bundleEditorStart);
       const bundleEditorSource = bundle.slice(bundleEditorStart, bundleEditorEnd);
-      const bundleNotePlaceholderStart = bundle.indexOf('placeholder: notePlaceholder');
+      const bundleNotePlaceholderStart = bundle.indexOf('placeholder: generateNewPrototype');
       const bundleNoteTextareaStart = bundle.lastIndexOf('className: "we-runtime-prompt-card__textarea"', bundleNotePlaceholderStart);
       const bundleNoteTextareaEnd = bundle.indexOf('onChange: (event) => {', bundleNotePlaceholderStart);
       const bundleNoteTextareaSource = bundle.slice(bundleNoteTextareaStart, bundleNoteTextareaEnd);
@@ -333,7 +333,7 @@ describe('make-server vendor packages', () => {
       expect(bundle).toContain('.we-runtime-prompt-card__textarea,');
       expect(bundle).toContain('.we-runtime-prompt-card__textarea::-webkit-scrollbar');
       expect(bundleNoteTextareaSource).toContain('allowClear: true');
-      expect(bundleNoteTextareaSource).toContain('padding: "6px 10px"');
+      expect(bundleNoteTextareaSource).toContain('padding: componentComposer ? "10px 12px" : "6px 10px"');
       expect(bundleNoteTextareaSource).not.toContain('padding: 0');
       expect(bundleAnnotationTextareaSource).not.toContain('allowClear: true');
       expect(bundleAnnotationTextareaSource).toContain('padding: "10px 12px"');

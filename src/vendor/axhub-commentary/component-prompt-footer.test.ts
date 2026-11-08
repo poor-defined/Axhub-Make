@@ -1,0 +1,38 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { expect, it, vi } from 'vitest';
+import { ComponentPromptFooter } from '../../../vendor/axhub-commentary/src/ui/runtime/component-prompt-footer';
+vi.mock('@ant-design/icons', () => ({ ArrowUpOutlined: () => React.createElement('svg'), LoadingOutlined: () => React.createElement('svg') }));
+it('separates the output choice and primary action, updates the destination explanation and handles disabled states', async () => {
+  const change = vi.fn(), send = vi.fn();
+  const props = { newPrototypeAvailable: true, newPrototype: false, onNewPrototypeChange: change, selectedElementCount: 1, actionVisible: true, disabled: false, loading: false, actionTitle: '发送给 AI', onSend: send, shortcut: '⌘ Enter' };
+  let view!: ReactTestRenderer;
+  await act(async () => { view = create(React.createElement(ComponentPromptFooter, props)); });
+  const primary = () => view.root.findByProps({ 'data-we-component-prompt-submit': 'true' });
+  expect(primary().children).toContain('发送修改');
+  expect(JSON.stringify(view.toJSON())).toContain('调整当前选中的组件');
+  await act(async () => view.root.findByType('input').props.onChange({ target: { checked: true } }));
+  expect(change).toHaveBeenCalledWith(true);
+  await act(async () => view.update(React.createElement(ComponentPromptFooter, { ...props, newPrototype: true })));
+  expect(primary().children).toContain('生成状态页');
+  expect(JSON.stringify(view.toJSON())).toContain('独立页面');
+  await act(async () => primary().props.onClick());
+  expect(send).toHaveBeenCalledTimes(1);
+  await act(async () => view.update(React.createElement(ComponentPromptFooter, { ...props, loading: true, disabled: true })));
+  expect(primary().props.disabled).toBe(true); expect(view.root.findByType('input').props.disabled).toBe(true);
+  await act(async () => view.update(React.createElement(ComponentPromptFooter, { ...props, selectedElementCount: 2 })));
+  expect(view.root.findByType('input').props.disabled).toBe(true);
+  await act(async () => view.unmount());
+});
+it('saves a draft independently of sending and exposes save progress', async () => {
+  const save = vi.fn(), send = vi.fn(); let view!: ReactTestRenderer;
+  const props = { newPrototypeAvailable: false, newPrototype: false, onNewPrototypeChange: vi.fn(), selectedElementCount: 1, actionVisible: true, disabled: false, loading: false, actionTitle: '发送修改', onSend: send, shortcut: '⌘ Enter', onSave: save, saveDisabled: false, saving: false };
+  await act(async () => { view = create(React.createElement(ComponentPromptFooter, props)); });
+  const button = () => view.root.findByProps({ 'aria-label': '暂存批注' });
+  await act(async () => button().props.onClick());
+  expect(save).toHaveBeenCalledTimes(1); expect(send).not.toHaveBeenCalled();
+  await act(async () => view.update(React.createElement(ComponentPromptFooter, { ...props, saving: true })));
+  expect(button().props.disabled).toBe(true);
+  expect(button().props['aria-busy']).toBe(true);
+  await act(async () => view.unmount());
+});

@@ -81,6 +81,16 @@ export interface PropertyPanelOptions {
   onSendPromptToAgent?: (element?: Element | null) => void | Promise<void>;
   /** Send the current element's prompt to Agent without including other elements */
   onSendCurrentElementPromptToAgent?: (element: Element) => void | Promise<void>;
+  /** Page-scoped saved annotations, independent of the active canvas selection. */
+  getCommentListEntries?: () => import('../../core/editor/comment-batch').CommentListEntry[];
+  componentComments?: import('../../core/editor/component-comments').ComponentCommentApi;
+  onSelectComment?: (element: Element) => void;
+  onPersistComments?: () => Promise<void>;
+  getCommentListLoadState?: () => import('../../core/editor/comment-batch').CommentListLoadState;
+  onRetryCommentList?: () => Promise<void>;
+  commentListLoadingContent?: import('react').ReactNode;
+  commentListDockOrigin?: string;
+  onRunCommentBatch?: (action: import('../../core/editor/comment-batch').CommentBatchAction, ids: readonly string[]) => Promise<void>;
   /** Interrupt the active Agent execution for the current element */
   onAbortAgentPrompt?: (element?: Element | null) => void | Promise<void>;
   /** Wake Agent after the host confirms the backend is ready */
@@ -157,6 +167,8 @@ export interface PropertyPanelOptions {
   /** Whether the host's ACP UI service is currently connected. */
   getAcpUiConnected?: () => boolean;
   /** Execute a host toolbar action from the inline toolbar/settings surface. */
+  onDocumentComponent?: (element: Element, note: string) => void | Promise<void>;
+  onGenerateComponentStates?: (element: Element, note: string) => void | Promise<void>;
   onHostToolbarAction?: (
     action: CommentaryHostToolbarAction,
   ) => CommentaryHostToolbarActionResult | Promise<CommentaryHostToolbarActionResult>;
@@ -321,6 +333,8 @@ export interface PropertyPanelOptions {
 
   /** Read the current hover target when selection mode is active */
   getHoveredElement?: () => Element | null;
+  /** Live members of the current Command-click selection. */
+  getSelectedElements?: () => readonly Element[];
 
   /** Persist a marker anchor for the target element using viewport coordinates */
   onRememberSelectionAnchor?: (
@@ -332,7 +346,7 @@ export interface PropertyPanelOptions {
   onAiNoteChange?: (
     element: Element | null,
     note: string,
-    options?: { skillIds?: readonly string[] },
+    options?: { skillIds?: readonly string[]; targetElements?: readonly Element[] },
   ) => void | Promise<void>;
 
   /** Update the saved AI note images for the current element */

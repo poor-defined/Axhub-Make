@@ -489,6 +489,8 @@ export interface CommentaryExternalEditingTaskRef {
 }
 
 export interface CommentaryExternalEditingTargetRef {
+  /** Optional independent component-comment identity for record-scoped execution. */
+  commentId?: string;
   locator?: ElementLocator | null;
   label?: string | null;
 }
@@ -530,6 +532,10 @@ export interface PrototypeEditCommentMarkerEntry {
 
 export interface PrototypeEditCommentEntry {
   id: string;
+  /** Component composer records are independent of DOM edit transactions. */
+  componentComment?: boolean;
+  purpose?: import('./core/editor/component-comments').ComponentCommentPurpose | (string & {});
+  createdAt?: number;
   /** Stable node identity used by external review comments and execution context. */
   elementKey?: WebEditorElementKey;
   deletedAt?: number | null;
@@ -777,15 +783,38 @@ export interface CommentaryHostToolbarState {
   annotationEnableTitle: string;
 }
 
+export interface CommentaryDocumentComponentCapture {
+  imageDataUrl: string;
+  note: string;
+  component: { name: string; selector?: string; text?: string };
+  source: { title: string; url: string };
+}
+export interface CommentaryComponentStatesRequest {
+  capture: CommentaryDocumentComponentCapture;
+  title: string;
+  layout: 'overview' | 'interactive';
+  sourceHtml: string;
+}
+
 export type CommentaryHostToolbarAction =
+  | { type: 'generate-component-states'; payload: CommentaryComponentStatesRequest }
+  | { type: 'document-component'; payload: CommentaryDocumentComponentCapture }
+  | { type: 'prepare-axure-export'; payload: unknown }
   | { type: 'wake-agent' }
   | ({
       type: 'send-to-agent';
+      /** Keep list-owned comments available for other independent batch actions. */
+      preserveOnAutoClear?: boolean;
       /** Real persisted comment identity; execution hosts must not infer a prompt-only task. */
       commentId?: string;
       elementKey?: WebEditorElementKey;
       pane?: 'primary' | 'secondary';
       promptText?: string;
+      /** Explicit members of a Command-click group, including persisted comment identities. */
+      targets?: Array<CommentaryExternalEditingTargetRef & {
+        elementKey: WebEditorElementKey;
+        commentId?: string;
+      }>;
     } & CommentaryExternalEditingTargetRef)
   | { type: 'interrupt-agent' }
   | { type: 'copy-prompt'; clipboard?: 'host' }
@@ -908,6 +937,8 @@ export interface CommentaryHostOptions {
    * If omitted, the editor falls back to its built-in prompt builder.
    */
   buildCopyPrompt?: (context: CommentaryCopyPromptContext) => string;
+  /** Apply host-owned project rules to outgoing prompts without changing saved annotations. */
+  transformPrompt?: (prompt: string) => string;
   /** Return optional host-owned actions for the selected element card. */
   getElementTools?: (element: Element | null) => CommentaryElementTool[];
   /** Run a host-owned selected-element action. */

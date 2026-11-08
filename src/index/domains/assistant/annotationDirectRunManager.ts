@@ -13,12 +13,13 @@ export interface AnnotationDirectRunTaskRef {
 
 export interface AnnotationDirectRunEditingTarget {
   commentId?: string;
-  /** Voice-owned comments remain available after an automatic completed-task cleanup. */
+  /** Voice and list-owned comments remain available for independent follow-up actions. */
   preserveOnAutoClear?: boolean;
   pane?: 'primary' | 'secondary';
   iframe?: HTMLIFrameElement | null;
   elementKey: string;
   targetRef?: {
+    commentId?: string;
     locator?: ElementLocator | null;
     label?: string | null;
   } | null;

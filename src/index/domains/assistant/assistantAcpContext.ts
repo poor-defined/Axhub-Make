@@ -3,6 +3,18 @@ import {
   normalizeAssistantCurrentFileV1,
 } from '../../../common/assistant-context/bridge';
 import type { AssistantContextElementV1, AssistantContextV1 } from '../../../common/assistant-context/types';
+import { PROTOTYPE_WIREFRAME_POLICY } from '../../../common/prototypeWireframePolicy';
+
+export const WIREFRAME_CONTEXT_POLICY_ID = 'axhub:project-policy:wireframe';
+
+function withWireframeContextPolicy(items: AcpContextItem[]): AcpContextItem[] {
+  return [...items.filter((item) => item.id !== WIREFRAME_CONTEXT_POLICY_ID), {
+    kind: 'annotation', id: WIREFRAME_CONTEXT_POLICY_ID, pinned: true, hidden: true,
+    title: '全局原型线框图规则', body: PROTOTYPE_WIREFRAME_POLICY,
+    target: { type: 'text', label: '项目级风格规则' }, source: 'axhub-project-policy',
+    metadata: { policy: 'REQ-008', readOnly: true },
+  }];
+}
 
 type AcpContextItemKind = 'file' | 'annotation';
 export type AcpPostMessageFilter = 'snapshot' | 'artifacts';
@@ -437,18 +449,20 @@ export function mapAssistantContextToAcpContextBundle(
 }
 
 export function buildAcpContextPostMessage(
-  context: AssistantContextV1,
+  context: AssistantContextV1 | null | undefined,
   mode: 'replace' | 'append' = 'replace',
   requestId?: string,
   now: Date = new Date(),
   messageFilter: AcpPostMessageFilter = 'snapshot',
 ): AcpContextPostMessage {
-  const bundle = mapAssistantContextToAcpContextBundle(context, now);
+  const bundle = mapAssistantContextToAcpContextBundle(context ?? {
+    version: '1', systemContext: '', currentFile: '', selectedElements: [],
+  }, now);
   return {
     type: mode === 'append' ? 'acp.context.add' : 'acp.context.replace',
     ...(requestId ? { requestId } : {}),
     payload: {
-      items: bundle.items,
+      items: withWireframeContextPolicy(bundle.items),
       messageFilter,
     },
   };
@@ -464,7 +478,7 @@ export function buildAcpContextItemsPostMessage(
     type: mode === 'append' ? 'acp.context.add' : 'acp.context.replace',
     ...(requestId ? { requestId } : {}),
     payload: {
-      items: Array.isArray(items) ? items : [],
+      items: withWireframeContextPolicy(Array.isArray(items) ? items : []),
       messageFilter,
     },
   };

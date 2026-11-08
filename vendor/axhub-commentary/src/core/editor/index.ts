@@ -50,6 +50,7 @@ import { createInteractionService } from './interaction';
 import { createLifecycleService } from './lifecycle';
 import { createLocalActionsService } from './local-actions';
 import { createPersistenceService } from './persistence';
+import { transitionComponentComment } from './component-comments';
 import { createConversationTaskMonitor } from './conversation-task-monitor';
 import { captureElementScreenshot } from './screenshot';
 import {
@@ -127,6 +128,7 @@ export function createCommentary(options: CommentaryInitOptions = {}): Commentar
     getPersistedPrototypeCommentsDocument: () =>
       persistence?.getPersistedPrototypeCommentsDocument() ?? null,
     buildCopyPromptOverride: resolvedOptions.host.buildCopyPrompt,
+    transformPrompt: resolvedOptions.host.transformPrompt,
     getCommentarySkillOptions: () => resolvedOptions.ui.commentarySkillOptions,
   });
   const feedback = createFeedbackService({
@@ -826,6 +828,21 @@ export function createCommentary(options: CommentaryInitOptions = {}): Commentar
     targetRef?: CommentaryExternalEditingTargetRef | null,
   ): Promise<CommentaryExternalEditingStateResult> {
     const normalizedTaskRef = normalizeExternalTaskRef(taskRef);
+    const componentComment = targetRef?.commentId ? state.componentCommentsById.get(targetRef.commentId) : null;
+    if (componentComment) {
+      const applied = transitionComponentComment(componentComment, nextState, normalizedTaskRef);
+      if (applied) {
+        const target = { elementKey, locator: componentComment.entry.locator, label: componentComment.entry.label || '组件' };
+        if (nextState === 'editing') agentBridge?.setExternalEditingStateByElementKey?.(target, taskRef);
+        else if (nextState === 'idle') agentBridge?.clearExternalEditingStateByElementKey?.(elementKey, taskRef);
+        else agentBridge?.setExternalEditingTerminalStateByElementKey?.(target, nextState, taskRef);
+        persistence?.flushPendingWrite('state');
+        await persistence?.waitForPendingWrites();
+        if (nextState === 'editing') conversationTaskMonitor?.reconcile();
+        state.propertyPanel?.refresh(); notifyStatusChange();
+      }
+      return { elementKey, state: nextState, applied, ...(normalizedTaskRef ? { taskRef: normalizedTaskRef } : {}) };
+    }
     const settlePersistedEditingTask = async (): Promise<void> => {
       await persistence?.waitForPendingWrites();
       if (nextState === 'editing') {
@@ -1059,6 +1076,7 @@ export function createCommentary(options: CommentaryInitOptions = {}): Commentar
   persistence = createPersistenceService({
     state,
     changes,
+    purgeLegacyComponentComments: resolvedOptions.interactionProfile === 'design' && !resolvedOptions.ui.externalAnnotationMode,
     getResourceContext: resolvedOptions.host.getResourceContext,
     getPersistenceScope: resolvedOptions.host.getPersistenceScope,
     persistenceAdapter: resolvedOptions.host.persistenceAdapter,
@@ -1121,6 +1139,7 @@ export function createCommentary(options: CommentaryInitOptions = {}): Commentar
       ...resolvedOptions.agentBridge,
       projectPath: resolvedProjectPath,
     },
+    transformPrompt: resolvedOptions.host.transformPrompt,
     onAvailabilityChange: (available) => {
       if (agentBridge?.isConnected() && !state.uiSettings.agentAwake) {
         state.uiSettings = {

@@ -76,6 +76,29 @@ function writeMultipartBody(boundary: string, files: Array<{ fieldName: string; 
 }
 
 describe('make-server project docs APIs', () => {
+  it('adds the configured external PRD to project documents and serves its content and images', async () => {
+    const projectRoot = createTempRoot(), docs = createTempRoot();
+    writeProjectMetadata(projectRoot, { project: { id: 'configured-prd-client', name: 'PRD' } });
+    fs.mkdirSync(path.join(projectRoot, '.axhub/make'), { recursive: true });
+    fs.writeFileSync(path.join(projectRoot, '.axhub/make/axhub.config.json'), JSON.stringify({ projectInfo: { prdDocumentPath: docs } }));
+    fs.writeFileSync(path.join(docs, 'PRD.md'), '# Default PRD\n![image](image.png)');
+    fs.writeFileSync(path.join(docs, 'image.png'), 'image');
+    const server = await startTestServer(projectRoot);
+    try {
+      await registerProject(server.origin, projectRoot, 'configured-prd-client');
+      const base = `${server.origin}/api/projects/configured-prd-client`;
+      const bundle = await fetch(`${base}/resources`).then(r => r.json());
+      expect(bundle.resources.docs[0]).toMatchObject({ id: 'configured-prd/PRD.md', configuredPrd: true });
+      const refreshed = await fetch(scopeProjectApiUrl(projectRoot, `${server.origin}/api/docs`)).then(r => r.json());
+      expect(refreshed[0]).toMatchObject({ id: 'configured-prd/PRD.md', configuredPrd: true });
+      const content = await fetch(`${base}/document-content?path=configured-prd%2FPRD.md`).then(r => r.json());
+      expect(content.content).toContain('# Default PRD');
+      const image = await fetch(`${base}/document-asset?path=configured-prd%2FPRD.md&asset=image.png`);
+      expect(image.status).toBe(200);
+      expect(await image.text()).toBe('image');
+      expect((await fetch(`${base}/document-content?path=configured-prd%2F..%2Fsecret.md`)).status).toBe(403);
+    } finally { await server.close(); }
+  });
   it('exposes docs handling from its domain module', () => {
     expect(handleProjectDocsApi).toBeTypeOf('function');
   });

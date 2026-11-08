@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useRef, useState } from 'react';
 import { ArrowLeft, ChevronDown, CircleHelp, Copy, FileText, Loader2, RefreshCw, Send, Trash2 } from 'lucide-react';
 import { XMarkdown } from '@ant-design/x-markdown';
@@ -410,10 +411,7 @@ export default function UiReviewPanel({
         <>
             <div className="min-h-0 flex-1 overflow-auto px-3 py-3">
                 {loading ? (
-                    <div className="flex h-full items-center justify-center text-[12px] text-muted-foreground">
-                        <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" />
-                        正在加载报告...
-                    </div>
+                    <PageSkeleton variant="list" label="正在加载评审报告" />
                 ) : error ? (
                     <div className="flex h-full items-center justify-center text-center">
                         <div className="max-w-[260px]">
@@ -525,10 +523,7 @@ export default function UiReviewPanel({
             </div>
             <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
                 {detailLoading ? (
-                    <div className="flex h-full items-center justify-center text-[12px] text-muted-foreground">
-                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                        正在读取报告...
-                    </div>
+                    <PageSkeleton variant="document" label="正在读取评审报告" />
                 ) : selectedReport ? (
                     <XProvider locale={zhCN_X}>
                         <div className="max-w-none text-[13px] leading-6">

@@ -1,3 +1,4 @@
+import { PreviewIframe } from '@/components/ui/preview-iframe';
 import React from 'react';
 import {
     ChevronDown,
@@ -709,7 +710,7 @@ export default function MultiPagePreviewCanvas({
                                 }}
                             >
                                 {active ? (
-                                    <iframe
+                                    <PreviewIframe
                                         ref={(iframe) => {
                                             iframeRefs.current[slotId] = iframe;
                                             if (activeSlots[0] === slotId) {

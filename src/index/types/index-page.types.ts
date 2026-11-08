@@ -1,4 +1,5 @@
 import type { MutableRefObject, RefObject } from 'react';
+import type { ScreenshotPrototypeController } from '../domains/prototype-generation/useScreenshotPrototype';
 import type { IDEAvailabilityMap, MainIDEPreference } from '../../common/ide';
 import type { RuntimeAgentAvailability } from '../../common/agent';
 import type { AcpProvider } from '@/common/assistant-context/types';
@@ -303,6 +304,7 @@ export interface PresentationAreaState {
     collapsed: boolean;
     selectedItem: ItemData | null;
     prototypeStartDraftActive?: boolean;
+    screenshotPrototype?: ScreenshotPrototypeController;
     resourceStartDraftActive?: boolean;
     themeStartDraftActive?: boolean;
     viewMode: ViewMode;

@@ -1,7 +1,47 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { executePromptCardCurrentElementAction } from '../../../vendor/axhub-commentary/src/ui/runtime/prompt-card-actions';
+import { executePromptCardCurrentElementAction, executePromptCardDocumentAction, executePromptCardSaveAction, resolveComponentPrototypeDestination, resolvePromptSubmitShortcut } from '../../../vendor/axhub-commentary/src/ui/runtime/prompt-card-actions';
 import { getAgentPromptBubbleActionState } from '../../../vendor/axhub-commentary/src/ui/agent-prompt-action';
+it('opens the saved list only after persistence succeeds and keeps failed saves retryable', async () => {
+  let complete!: () => void;
+  const save = vi.fn(() => new Promise<void>(resolve => { complete = resolve; }));
+  const open = vi.fn();
+  const pending = executePromptCardSaveAction({ onConfirmNote: save, onSaved: open });
+  expect(open).not.toHaveBeenCalled();
+  complete(); await pending; expect(open).toHaveBeenCalledTimes(1);
+  save.mockRejectedValueOnce(new Error('save failed'));
+  await expect(executePromptCardSaveAction({ onConfirmNote: save, onSaved: open })).rejects.toThrow('save failed');
+  expect(open).toHaveBeenCalledTimes(1);
+});
+it('waits for the durable comment write and propagates write failures before acknowledging a saved comment', async () => {
+  const save = vi.fn(async () => {}), open = vi.fn();
+  const persist = vi.fn(async () => { throw new Error('write conflict'); });
+  await expect(executePromptCardSaveAction({ onConfirmNote: save, onPersist: persist, onSaved: open })).rejects.toThrow('write conflict');
+  expect(save).toHaveBeenCalledOnce(); expect(open).not.toHaveBeenCalled();
+});
+it('submits component requests with Cmd/Ctrl+Enter while preserving annotation saves and IME input', () => {
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', metaKey: true, componentComposer: true })).toBe('send');
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', ctrlKey: true, generateNewPrototype: true })).toBe('send');
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', ctrlKey: true })).toBe('save');
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', metaKey: true, componentComposer: true, isComposing: true })).toBe(null);
+  expect(resolvePromptSubmitShortcut({ key: 'Enter', componentComposer: true })).toBe(null);
+});
+it('ignores a previously selected prototype destination immediately when the same selection enters another editing mode', () => {
+  const previousSelection = { requested: true, generatorAvailable: true };
+  expect(resolveComponentPrototypeDestination(previousSelection)).toBe(true);
+  for (const mode of [{ interactionProfile: 'annotation' }, { interactionProfile: 'text-comment' }, { externalAnnotationMode: true }, { generatorAvailable: false }]) {
+    const generateNewPrototype = resolveComponentPrototypeDestination({ ...previousSelection, ...mode });
+    expect(generateNewPrototype).toBe(false);
+    expect(resolvePromptSubmitShortcut({ key: 'Enter', ctrlKey: true, generateNewPrototype })).toBe('save');
+  }
+});
+it('routes new-prototype generation without saving text or executing changes on the source page', async () => {
+  const edit = vi.fn(), save = vi.fn(), send = vi.fn(), generate = vi.fn();
+  const target = {} as Element;
+  expect(await executePromptCardCurrentElementAction({ currentTarget: target, onConfirmText: edit, onConfirmNote: save, onSendCurrentElementPromptToAgent: send, generateNewPrototype: true, note: '登录状态', onGenerateComponentStates: generate })).toBe(true);
+  expect(generate).toHaveBeenCalledWith(target, '登录状态');
+  expect(edit).not.toHaveBeenCalled(); expect(save).not.toHaveBeenCalled(); expect(send).not.toHaveBeenCalled();
+});
 
 function createDeferred<T = void>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -78,4 +118,16 @@ describe('prompt card current element action', () => {
 
     expect(onDismissSelection).not.toHaveBeenCalled();
   });
+});
+
+
+it('persists the component note before handing off documentation so clearing selection does not lose the draft', async () => {
+ const order:string[]=[]; const target={} as Element;
+ const onConfirmNote=vi.fn(async()=>{order.push('save')});
+ const onDocumentComponent=vi.fn(async()=>{order.push('capture')});
+ await executePromptCardDocumentAction({currentTarget:target,note:'草稿说明',onConfirmNote,onDocumentComponent});
+ expect(order).toEqual(['save','capture']);expect(onDocumentComponent).toHaveBeenCalledWith(target,'草稿说明');
+ onConfirmNote.mockRejectedValueOnce(new Error('保存失败'));
+ await expect(executePromptCardDocumentAction({currentTarget:target,note:'草稿说明',onConfirmNote,onDocumentComponent})).rejects.toThrow('保存失败');
+ expect(onDocumentComponent).toHaveBeenCalledTimes(1);
 });

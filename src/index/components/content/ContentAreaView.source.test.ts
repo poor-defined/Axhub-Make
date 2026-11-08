@@ -182,7 +182,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
     const legacyPrototypeCanvasBranch = getSourceSegment(
       source,
@@ -228,7 +228,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(source).toContain("const selectedResourceCanvas = selectedDoc?.openMode === 'canvas' ? selectedDoc : null;");
@@ -244,7 +244,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(source).not.toContain("import CanvasWelcomeGuide from './CanvasWelcomeGuide';");
@@ -272,7 +272,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(standaloneCanvasBranch).toContain("activeProjectId={activeProjectId || ''}");
@@ -580,7 +580,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(source).toContain('preferredModel?: string | null;');
@@ -1106,7 +1106,7 @@ describe('ContentAreaView review zoom source', () => {
     expect(documentPreviewSegment).toContain('isJsonDocumentResource(selectedMarkdownItem)');
     expect(documentPreviewSegment).toContain('<JsonDocumentPreview');
     expect(documentPreviewSegment.indexOf('<JsonDocumentPreview'))
-      .toBeLessThan(documentPreviewSegment.indexOf('<iframe'));
+      .toBeLessThan(documentPreviewSegment.indexOf('<PreviewIframe'));
   });
 
   it('passes ACP selector and project resource context into start guide composers', () => {
@@ -1245,7 +1245,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
 
     expect(standaloneCanvasBranch).toContain('onSubmitCanvasAssistantPrompt={onSubmitCanvasAssistantPrompt}');
@@ -1257,7 +1257,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
     const prototypeCanvasBranch = getSourceSegment(
       source,
@@ -1276,7 +1276,7 @@ describe('ContentAreaView review zoom source', () => {
     const standaloneCanvasBranch = getSourceSegment(
       source,
       "if (contentMode === 'canvas') {",
-      '    return (\n        <div\n            ref={containerRef}',
+      '<CommentListWorkspace',
     );
     const prototypeCanvasBranch = getSourceSegment(
       source,
@@ -1317,7 +1317,7 @@ describe('ContentAreaView review zoom source', () => {
     expect(source).not.toContain('reviewPageZoomEnabled?: boolean;');
     expect(source).not.toContain('const desktopReviewZoomLayout = useMemo');
     expect(source).not.toContain('reviewPageZoomEnabled && viewMode === \'demo\'');
-    expect(desktopBranch).toContain('<iframe');
+    expect(desktopBranch).toContain('<PreviewIframe');
     expect(desktopBranch).toContain('ref={previewIframeRef}');
     expect(desktopBranch).toContain('src={primaryIframeUrl}');
     expect(desktopBranch).not.toContain('desktopReviewZoomLayout.enabled');

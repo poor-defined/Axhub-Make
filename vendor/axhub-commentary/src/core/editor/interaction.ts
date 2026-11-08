@@ -18,6 +18,7 @@ import type { CommentEntryMode } from '../../ui/selection-ui-mode';
 import type { TextComment } from '../../selection/text-comment-manager';
 import { createMarkerAnchor } from './marker-anchor';
 import { formatTextCommentLabel } from './text-comment-target';
+import { getSelectedElements } from './element-selection';
 import {
   isAnnotationMarkerElement,
   openAnnotationMarkerCommentTarget,
@@ -110,6 +111,29 @@ export function createInteractionService(options: {
     if (!element.isConnected || agentBridge.isElementInteractionLocked(element)) {
       return false;
     }
+    const previousSelection = getSelectedElements(state);
+    if (!modifiers.meta && previousSelection.length > 1) dismissMultiSelectionMarkers();
+    const nextSelection = modifiers.meta
+      ? previousSelection.includes(element)
+        ? previousSelection.filter((target) => target !== element)
+        : [...previousSelection, element]
+      : [element];
+    state.selectedElements = nextSelection;
+    if (nextSelection.length > 1) {
+      for (const target of nextSelection) {
+        const meta = options.changes.getMetaForElement?.(target);
+        if (meta) state.multiSelectionSessionMarkerKeys.add(meta.elementKey);
+      }
+    }
+    if (nextSelection.length === 0) {
+      clearSelection();
+      return true;
+    }
+    if (!nextSelection.includes(element)) {
+      element = nextSelection[nextSelection.length - 1];
+      initialSelectionElement = element;
+      selectionAnchor = undefined;
+    }
     if (state.activeTextComment) {
       state.activeTextComment = null;
       state.canvasOverlay?.setTextHighlightRects(null);
@@ -120,6 +144,9 @@ export function createInteractionService(options: {
       state.breadcrumbs?.setAnchorRect(null);
     }
     options.changes.rememberSelectionAnchor(element, selectionAnchor);
+    // Reopening an element starts a new comment session for that target.
+    const markerMeta = options.changes.getMetaForElement?.(element);
+    if (markerMeta) state.dismissedSelectionMarkerKeys.delete(markerMeta.elementKey);
 
     state.selectedElement = element;
     state.initialSelectionElement = initialSelectionElement ?? element;
@@ -127,11 +154,12 @@ export function createInteractionService(options: {
 
     state.positionTracker?.setHoverElement(null);
     state.positionTracker?.setSelectionElement(element);
-    state.positionTracker?.forceUpdate();
+    state.positionTracker?.forceUpdate(true);
 
     syncShadowHostMount(element);
     state.breadcrumbs?.setTarget(element);
     state.propertyPanel?.setTarget(element);
+    state.propertyPanel?.refresh();
     state.handlesController?.setTarget(element);
     state.parentSelectController?.setTarget(element);
     options.onStatusChange?.();
@@ -179,8 +207,22 @@ export function createInteractionService(options: {
     selectResolvedElement(element, modifiers, selectionAnchor, initialSelectionElement);
   }
 
+  function dismissMultiSelectionMarkers(): void {
+    const targets = getSelectedElements(state);
+    if (targets.length > 1) {
+      for (const target of targets) {
+        const meta = options.changes.getMetaForElement?.(target);
+        if (meta) state.multiSelectionSessionMarkerKeys.add(meta.elementKey);
+      }
+    }
+    for (const key of state.multiSelectionSessionMarkerKeys) state.dismissedSelectionMarkerKeys.add(key);
+    state.multiSelectionSessionMarkerKeys.clear();
+  }
+
   function handleDeselect(): void {
+    dismissMultiSelectionMarkers();
     closeAnnotationBridgeSelection(null);
+    state.selectedElements = [];
 
     if (!state.selectedElement && state.activeTextComment) {
       options.changes.clearPendingSelectionAnchor();
@@ -258,6 +300,13 @@ export function createInteractionService(options: {
     state.canvasOverlay.setHoverRect(hoverRect, { animate: animateHover });
     state.canvasOverlay.setSelectionEffect(selectionEffect);
     state.canvasOverlay.setSelectionRect(selectionRect);
+    state.canvasOverlay.setAdditionalSelectionRects(
+      hideChrome || textCommentActive
+        ? []
+        : rects.additionalSelections ?? getSelectedElements(state)
+            .filter((element) => element !== state.selectedElement)
+            .map((element) => element.getBoundingClientRect()),
+    );
     state.canvasOverlay.setEditingRects(null);
     state.handlesController?.setSelectionRect(handlesRect);
     state.parentSelectController?.setSelectionRect(selectionRect);
@@ -317,6 +366,7 @@ export function createInteractionService(options: {
   }
 
   function clearSelection(): void {
+    dismissMultiSelectionMarkers();
     const hadElementSelection = Boolean(state.selectedElement);
     const hadTextCommentSelection = Boolean(state.activeTextComment);
     if (!hadElementSelection && !hadTextCommentSelection && !state.selectionAnchor) return;
@@ -579,6 +629,7 @@ export function createInteractionService(options: {
     // Since text comments don't have a real target element,
     // we keep DOM selection empty and use a synthetic target node for UI plumbing.
     state.selectedElement = null;
+    state.selectedElements = [];
     state.initialSelectionElement = null;
     state.selectionAnchor = markerAnchor;
     state.hoveredElement = null;

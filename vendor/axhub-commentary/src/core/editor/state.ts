@@ -91,6 +91,11 @@ export interface WebEditorV2UiOptions {
   /** Read whether the host's ACP UI service is currently connected. */
   getAcpUiConnected?: () => boolean;
   getAssistantPanelOpen?: () => boolean;
+  onDocumentComponent?: (capture: import('../../web-editor-types').CommentaryDocumentComponentCapture) => Promise<boolean>;
+  commentListLoadingContent?: ReactNode;
+  commentListDockOrigin?: string;
+  onGenerateComponentStates?: (request: import('../../web-editor-types').CommentaryComponentStatesRequest) => Promise<boolean>;
+  onPrepareAxureExport?: (payload: unknown) => Promise<boolean>;
   onHostToolbarAction?: (
     action: CommentaryHostToolbarAction,
   ) => CommentaryHostToolbarActionResult | Promise<CommentaryHostToolbarActionResult>;
@@ -164,12 +169,13 @@ export interface WebEditorV2InitOptions {
 export type CommentaryInitOptions = WebEditorV2InitOptions;
 
 export interface ResolvedWebEditorOptions {
-  ui: Required<Omit<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange'>> &
-    Pick<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange'>;
+  ui: Required<Omit<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange' | 'onDocumentComponent' | 'onGenerateComponentStates'>> &
+    Pick<WebEditorV2UiOptions, 'getAcpUiConnected' | 'onCommenterNameChange' | 'onDocumentComponent' | 'onGenerateComponentStates'>;
   host: Required<Pick<CommentaryHostOptions, 'getResourceContext'>> &
     Pick<
       CommentaryHostOptions,
       | 'buildCopyPrompt'
+      | 'transformPrompt'
       | 'getCurrentHoveredElement'
       | 'getElementTools'
       | 'onElementToolAction'
@@ -385,6 +391,10 @@ export interface EditorRuntimeState {
   hoveredElement: Element | null;
   pendingHoverTransition: boolean;
   selectedElement: Element | null;
+  selectedElements: Element[];
+  /** Presentation-only cleanup for a finished multi-element comment session. */
+  dismissedSelectionMarkerKeys: Set<WebEditorElementKey>;
+  multiSelectionSessionMarkerKeys: Set<WebEditorElementKey>;
   initialSelectionElement: Element | null;
   selectionAnchor: MarkerAnchor | null;
   commentEntryMode: CommentEntryMode;
@@ -393,6 +403,7 @@ export interface EditorRuntimeState {
   propertyPanelPosition: { left: number; top: number } | null;
   uiResizeCleanup: (() => void) | null;
   editMetaByKey: Map<WebEditorElementKey, ElementEditMeta>;
+  componentCommentsById: Map<string, import('./component-comments').ComponentCommentRecord>;
   deleteElementAnnotationsByTransactionId: Map<string, DeleteElementAnnotationLink>;
   processedEditTimestampsByKey: Map<WebEditorElementKey, number>;
   pendingMarkerAnchors: Map<WebEditorElementKey, MarkerAnchor>;
@@ -450,6 +461,8 @@ export function resolveWebEditorOptions(
       hideToolbarCloseAction: false,
       compactToolbar: false,
       toolbarExtraContent: null,
+      commentListLoadingContent: null,
+      commentListDockOrigin: '',
       externalAnnotationMode: false,
       commenterName: '',
       onCommenterNameChange: undefined,
@@ -465,6 +478,7 @@ export function resolveWebEditorOptions(
       getAcpUiConnected: undefined,
       getAssistantPanelOpen: () => false,
       onHostToolbarAction: async () => false,
+      onPrepareAxureExport: async () => false,
       onEnableAnnotation: async () => false,
       getAnnotationEnabled: () => false,
       getAnnotationEnableAvailable: () => false,
@@ -483,6 +497,7 @@ export function resolveWebEditorOptions(
     host: {
       getResourceContext: options.host?.getResourceContext ?? (() => null),
       buildCopyPrompt: options.host?.buildCopyPrompt ?? undefined,
+      transformPrompt: options.host?.transformPrompt ?? undefined,
       getCurrentHoveredElement: options.host?.getCurrentHoveredElement ?? undefined,
       getElementTools: options.host?.getElementTools ?? undefined,
       onElementToolAction: options.host?.onElementToolAction ?? undefined,
@@ -565,6 +580,9 @@ export function createEditorRuntimeState(): EditorRuntimeState {
     hoveredElement: null,
     pendingHoverTransition: false,
     selectedElement: null,
+    selectedElements: [],
+    dismissedSelectionMarkerKeys: new Set(),
+    multiSelectionSessionMarkerKeys: new Set(),
     initialSelectionElement: null,
     selectionAnchor: null,
     commentEntryMode: 'bubble-card',
@@ -573,6 +591,7 @@ export function createEditorRuntimeState(): EditorRuntimeState {
     propertyPanelPosition: null,
     uiResizeCleanup: null,
     editMetaByKey: new Map(),
+    componentCommentsById: new Map(),
     deleteElementAnnotationsByTransactionId: new Map(),
     processedEditTimestampsByKey: new Map(),
     pendingMarkerAnchors: new Map(),
@@ -603,12 +622,16 @@ export function clearAnnotationBridgeSelection(state: EditorRuntimeState): void 
 export function resetEditorTransientState(state: EditorRuntimeState): void {
   clearAnnotationBridgeSelection(state);
   state.editMetaByKey.clear();
+  state.componentCommentsById?.clear();
   state.deleteElementAnnotationsByTransactionId.clear();
   state.processedEditTimestampsByKey.clear();
   state.pendingMarkerAnchors.clear();
   state.markerLayer = null;
   state.hoveredElement = null;
   state.selectedElement = null;
+  state.selectedElements = [];
+  state.dismissedSelectionMarkerKeys.clear();
+  state.multiSelectionSessionMarkerKeys.clear();
   state.initialSelectionElement = null;
   state.selectionAnchor = null;
   state.pendingHoverTransition = false;
@@ -647,6 +670,9 @@ export function clearEditorRuntimeRefs(state: EditorRuntimeState): void {
   state.markerLayer = null;
   state.hoveredElement = null;
   state.selectedElement = null;
+  state.selectedElements = [];
+  state.dismissedSelectionMarkerKeys.clear();
+  state.multiSelectionSessionMarkerKeys.clear();
   state.initialSelectionElement = null;
   state.selectionAnchor = null;
   state.pendingHoverTransition = false;

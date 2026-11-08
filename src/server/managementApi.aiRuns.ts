@@ -37,6 +37,7 @@ import {
   sanitizeAgentRunConcurrency,
 } from './projectCore/server-config.ts';
 import { classifyAiArtifact } from '../common/aiArtifactClassification.ts';
+import { PROTOTYPE_WIREFRAME_POLICY, withPrototypeWireframePolicy } from '../common/prototypeWireframePolicy.ts';
 import { resolvePrototypeMainSpecStatus } from './managementApi.prototypeSpec.ts';
 
 const DEFAULT_ACP_API_BASE_URL = 'http://localhost:32124/api';
@@ -959,6 +960,7 @@ export function handleAiRunsApi(
         ].join('\n')
       : prompt;
     const promptPlan = buildRunPrompt({ scene, prompt: executionPrompt, body: request, config });
+    promptPlan.prompt = withPrototypeWireframePolicy(promptPlan.prompt);
     const aiRunTimeoutMs = resolveAiRunTimeoutMs(scene, config);
     const artifacts: AiArtifact[] = [];
     const emittedArtifactIds = new Set<string>();
@@ -1094,6 +1096,7 @@ export function handleAiRunsApi(
       };
 
       for await (const event of streamAcpChat({
+        system: PROTOTYPE_WIREFRAME_POLICY,
         acpApiBaseUrl,
         id: runId,
         threadId,

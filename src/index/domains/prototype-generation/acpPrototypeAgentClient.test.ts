@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PROTOTYPE_WIREFRAME_POLICY } from '../../../common/prototypeWireframePolicy';
 
 import {
   buildPrototypeGenerationPrompt,
@@ -12,6 +13,11 @@ function sseEvent(event: string, data: unknown): string {
 }
 
 describe('ACP prototype agent client', () => {
+  it('uses the declared new prototype directory when it differs from the default source layout', () => {
+    const prompt = buildPrototypeGenerationPrompt({ prompt: '组件状态', generatorElementId: 'states', currentPrototype: { name: 'header-states' }, prototypeDirectory: 'content/prototypes/header-states/' });
+    expect(prompt).toContain('目标目录：content/prototypes/header-states/');
+    expect(prompt).not.toContain('目标目录：src/prototypes/header-states/');
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
@@ -52,7 +58,7 @@ describe('ACP prototype agent client', () => {
       },
     });
 
-    expect(prompt.split('\n')).toHaveLength(20);
+    expect(prompt).toContain(PROTOTYPE_WIREFRAME_POLICY);
     expect(prompt).toContain('做一个 CRM 工作台');
     expect(prompt).toContain('只在当前 prototype 中新增/更新页面');
     expect(prompt).toContain('src/prototypes/dashboard/');

@@ -1,5 +1,6 @@
 import type { AcpProvider as AcpPromptProvider } from '../../../common/assistant-context/types';
 import type { ContextBundleV2 } from '@axhub/acp/runtime';
+import { withPrototypeWireframePolicy } from '../../../common/prototypeWireframePolicy';
 import { getGenerationArtifactHistoryStore } from '../ai-generation/generationArtifactHistoryStore';
 import { withProjectScope } from '../../services/projectScope';
 
@@ -49,6 +50,8 @@ export interface PrototypeGenerationSettings {
 }
 
 export interface PrototypeGenerationPromptOptions {
+  /** Actual project-relative directory declared by the resource creation API. */
+  prototypeDirectory?: string;
   taskId?: string;
   prompt: string;
   canvasFilePath?: string;
@@ -118,6 +121,7 @@ function formatPrototypeDirectoryFromTargetPath(targetPath: string | undefined):
 }
 
 export function buildPrototypeGenerationPrompt({
+  prototypeDirectory,
   prompt,
   targetPath,
   currentPrototype,
@@ -131,15 +135,15 @@ export function buildPrototypeGenerationPrompt({
   const theme = settings?.theme?.name
     ? `${settings.theme.name}${settings.theme.displayName && settings.theme.displayName !== settings.theme.name ? ` (${settings.theme.displayName})` : ''}`
     : '';
-  const targetPrototypeDirectory = currentPrototype?.name
+  const targetPrototypeDirectory = prototypeDirectory || (currentPrototype?.name
     ? `src/prototypes/${currentPrototype.name}/`
-    : formatPrototypeDirectoryFromTargetPath(targetPath);
+    : formatPrototypeDirectoryFromTargetPath(targetPath));
   const explicitScopeLines = [
     requestedCount == null ? '' : `- 数量：${requestedCount}（当前 prototype 下页面/方案数）`,
     theme ? `- 设计系统：${theme}` : '',
   ].filter(Boolean);
 
-  return [
+  return withPrototypeWireframePolicy([
     '你正在为 Axhub Make 当前项目生成/更新 prototype 原型资源；这是一次非交互式任务：用户无法补充信息，不要追问用户，直接完成。',
     '跳过浏览器验证；不要运行 `check-app-ready.mjs`。',
     '',
@@ -158,7 +162,7 @@ export function buildPrototypeGenerationPrompt({
     formatKnownPrototypes(knownPrototypes),
     '',
     '最终消息：已完成',
-  ].join('\n');
+  ].join('\n'));
 }
 
 async function executePrototypeSessionRun(payload: {
@@ -305,13 +309,14 @@ export async function runAcpPrototypeAgent(options: RunAcpPrototypeAgentOptions)
       contextBundle: options.contextBundle,
       onEvent: options.onEvent,
     });
-    if (result.sessionId) {
-      options.onEvent?.({ stage: 'running', sessionId: result.sessionId });
+    const sessionId = typeof result.sessionId === 'string' ? result.sessionId : undefined;
+    if (sessionId) {
+      options.onEvent?.({ stage: 'running', sessionId });
     }
-    options.onEvent?.({ stage: 'completed', sessionId: result.sessionId });
+    options.onEvent?.({ stage: 'completed', sessionId });
     return {
       status: 'done',
-      ...(result.sessionId ? { sessionId: result.sessionId } : {}),
+      ...(sessionId ? { sessionId } : {}),
       ...(typeof result.runId === 'string' ? { runId: result.runId } : {}),
     };
   } catch (error: any) {

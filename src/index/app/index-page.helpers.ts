@@ -8,6 +8,7 @@ import {
 } from '../constants';
 import { normalizeMarkdownResourceName } from '../utils/markdownResourcePath';
 import { buildMarkdownFileUrl, buildSpecTemplatePreviewUrl } from '../utils/markdownPreview';
+import { normalizeProjectDocResource } from '../services/projectResources';
 
 export interface ModalActionConfig {
     title: string;
@@ -529,9 +530,13 @@ export function findResourceItemByPathOrName(
 }
 
 export function normalizeDocItem(
-    doc: { name?: string; displayName?: string; path?: string; absoluteFilePath?: string; fileSize?: number },
+    doc: { name?: string; displayName?: string; path?: string; absoluteFilePath?: string; fileSize?: number; configuredPrd?: boolean },
     projectId: string | null,
 ): ItemData {
+    if (doc.configuredPrd) {
+        const configured = normalizeProjectDocResource(doc, projectId);
+        if (configured) return configured;
+    }
     const normalizedName = normalizeMarkdownResourceName('doc', String(doc?.name || '').trim());
     const sourcePath = String(doc?.path || '').trim();
     const absoluteFilePath = String(doc?.absoluteFilePath || '').trim();

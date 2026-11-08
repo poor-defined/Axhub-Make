@@ -1,3 +1,4 @@
+import { PageSkeleton } from '../components/ui/page-skeleton';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Excalidraw } from '@axhub/excalidraw';
 import '@axhub/excalidraw/index.css';
@@ -133,7 +134,7 @@ export default function ExcalidrawCanvas({ canvasName, isDarkMode }: ExcalidrawC
     }, []);
 
     if (loading) {
-        return <div className="canvas-template-status">加载中...</div>;
+        return <PageSkeleton variant="canvas" label="正在加载画布" />;
     }
 
     if (error) {

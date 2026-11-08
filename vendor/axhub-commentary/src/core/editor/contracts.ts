@@ -276,7 +276,9 @@ export interface EditorPersistenceService {
   scheduleWrite(): void;
   persistFromTransactions(): void;
   flushPendingWrite(reason?: PrototypeEditCommentsWriteReason): void;
+  refreshLocalSnapshot?(): void;
   restoreCachedChanges(): Promise<WebEditorElementKey[]>;
+  getCurrentPageScope?(): string;
   getPersistedPrototypeCommentsDocument(): PrototypeEditCommentsDocument | null;
   clearCachedChanges(kind: 'text' | 'style'): void;
   clearStorage(

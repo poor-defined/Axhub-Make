@@ -1,4 +1,7 @@
 export * from './web-editor-types';
+export { CommentListView } from './ui/runtime/comment-list-view';
+export * from './ui/runtime/comment-list-dock-protocol';
+export { createEditorChromeCssVars } from './ui/runtime/theme';
 export * from './acp-runtime-events';
 export * from './agent-bridge';
 export {

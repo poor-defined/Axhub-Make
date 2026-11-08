@@ -810,6 +810,9 @@ describe('useIndexPagePreviewActions source', () => {
     const source = readPreviewActionsSource();
 
     expect(source).toContain('const payload = await requestAxureJson(options);');
+    expect(source).not.toContain('aiOrganize');
+    expect(source).toContain('axureOrganization.session.start(payload);');
+    expect(source).toContain("messageApi.loading('正在采集原型结构...', 0)");
     expect(source).toContain('if (exportAvailability.axureRuntimeDisabledReason)');
     expect(source).not.toContain('resolveServerBackedAxurePayload');
     expect(source).not.toContain('apiService.fetchAxureExportCode');

@@ -27,6 +27,23 @@ function readIndexPageSource() {
 }
 
 describe('SettingsDialog source', () => {
+    it('prompts for optional image renaming after a new PRD path is saved', () => {
+        const source = readSource();
+        expect(source).toContain('setPrdRenameOpen(true)');
+        expect(source).toContain("formState.prdDocumentPath.trim() !== (currentConfig.projectInfo?.prdDocumentPath || '').trim()");
+        expect(source).toContain('<PrdImageRenameDialog open={open && prdRenameOpen}');
+        expect(source).toContain('整理图片名称');
+    });
+    it('loads, edits, and saves project-specific Axure and PRD paths in project information', () => {
+        const source = readSource();
+        expect(source).toContain('Axure 本地发布目录');
+        expect(source).toContain('PRD 文档路径');
+        for (const field of ['axurePublishDirectory', 'prdDocumentPath']) {
+            expect(source).toContain(`${field}: config.projectInfo?.${field} || ''`);
+            expect(source).toContain(`value={formState.${field}}`);
+            expect(source).toContain(`${field}: formState.${field}.trim() || null`);
+        }
+    });
     it('organizes project, AI, and network settings into independent entry points', () => {
         const source = readSource();
         const dialogsSource = readIndexDialogsSource();

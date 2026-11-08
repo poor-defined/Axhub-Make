@@ -9,7 +9,7 @@ export function restoreSelectionModeFromOutsidePointerDown(params: {
   event: Pick<
     PointerEvent,
     'composedPath' | 'preventDefault' | 'stopPropagation' | 'stopImmediatePropagation'
-  >;
+  > & { metaKey?: boolean };
   selectionInteractionLockOwnersRef: React.MutableRefObject<Set<'panel' | 'prompt'>>;
   selectionHoverOwnersRef: React.MutableRefObject<Set<'panel' | 'prompt'>>;
   selectionNeedsExplicitReactivateRef: React.MutableRefObject<boolean>;
@@ -25,6 +25,7 @@ export function restoreSelectionModeFromOutsidePointerDown(params: {
 
   if (
     selectionInteractionLockOwnersRef.current.size === 0 &&
+    selectionHoverOwnersRef.current.size === 0 &&
     !selectionNeedsExplicitReactivateRef.current
   ) {
     return false;
@@ -49,14 +50,27 @@ export function restoreSelectionModeFromOutsidePointerDown(params: {
 
   // Restore selection mode before the event reaches document capture so the
   // same click can be consumed by the editor instead of leaking to the page.
-  event.preventDefault();
-  event.stopPropagation();
-  event.stopImmediatePropagation();
+  // A Command-click must keep travelling to the document selection handler so
+  // adding a member does not require a second click after leaving the prompt.
+  if (!event.metaKey) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  }
   selectionHoverOwnersRef.current.clear();
   selectionInteractionLockOwnersRef.current.clear();
   selectionNeedsExplicitReactivateRef.current = false;
   syncSelectionModeAvailability();
   return true;
+}
+
+export function restoreSelectionModeFromCommandHover(
+  params: Parameters<typeof restoreSelectionModeFromOutsidePointerDown>[0] & {
+    event: { buttons: number };
+  },
+): boolean {
+  if (!params.event.metaKey || params.event.buttons !== 0) return false;
+  return restoreSelectionModeFromOutsidePointerDown(params);
 }
 
 export function useOutsideClickSelectionRestore(params: {
@@ -82,10 +96,24 @@ export function useOutsideClickSelectionRestore(params: {
         syncSelectionModeAvailability,
       });
     };
+    const restoreSelectionForCommandHover = (event: PointerEvent | MouseEvent) => {
+      restoreSelectionModeFromCommandHover({
+        event,
+        selectionInteractionLockOwnersRef,
+        selectionHoverOwnersRef,
+        selectionNeedsExplicitReactivateRef,
+        syncSelectionModeAvailability,
+      });
+    };
+    const moveEventType = typeof PointerEvent === 'undefined' ? 'mousemove' : 'pointermove';
 
     window.addEventListener('pointerdown', restoreSelectionAfterOutsideClick, true);
+    // Restore before the document controller handles this same move, so it can
+    // paint the next candidate while retaining the current selected group.
+    window.addEventListener(moveEventType, restoreSelectionForCommandHover, true);
     return () => {
       window.removeEventListener('pointerdown', restoreSelectionAfterOutsideClick, true);
+      window.removeEventListener(moveEventType, restoreSelectionForCommandHover, true);
     };
   }, [
     selectionHoverOwnersRef,

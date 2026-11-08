@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExternalLink, Loader2, Plus, RefreshCw, Send, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -296,10 +297,7 @@ export default function AxhubPublishDialog({
 
                 <div className="min-h-0 flex-1 overflow-hidden px-5 py-4">
                     {loading ? (
-                        <div className="flex h-full min-h-[320px] items-center justify-center text-muted-foreground">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            加载中...
-                        </div>
+                        <PageSkeleton variant="form" label="正在加载发布配置" />
                     ) : !connected ? (
                         enterpriseFormOpen ? (
                             <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 text-center">

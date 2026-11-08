@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
@@ -83,12 +84,14 @@ import { makeClientTemplateMirrorDownloadUrl, makeClientTemplatePrimaryDownloadU
 import { formatProjectRootDisplayPath } from './projectSwitcherPathDisplay';
 import { copyToClipboard } from '../../utils/clipboard';
 import { buildPrototypePageSegments, findPrototypePageGroupKey } from './prototypePageGroups';
+import PrdScreenshotDialog from '../dialogs/PrdScreenshotDialog';
 import type { PrototypePageItem } from './prototypePageGroups';
 
 interface ContentPanelProps {
-    activeTab: SidebarTab;
+    activeTab: SidebarTab | 'reference';
+    referencePanel?: React.ReactNode;
     viewMode: ViewMode;
-    onTabChange: (tab: SidebarTab) => void;
+    onTabChange: (tab: SidebarTab | 'reference') => void;
     onPrototypeViewSelect: (item: ItemData, mode: ViewMode) => void | Promise<void>;
     projectTitle: string;
     activeProjectId: string | null;
@@ -1687,6 +1690,7 @@ function ProjectSetupDialog({
 
 export default function ContentPanel({
     activeTab,
+    referencePanel,
     viewMode,
     onTabChange,
     onPrototypeViewSelect,
@@ -1763,6 +1767,8 @@ export default function ContentPanel({
     const openInTargetPath = openInTargetProjectRoot;
 
     const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [prdScreenshotDocument, setPrdScreenshotDocument] = useState<{ documentId: string; projectId: string } | null>(null);
+    useEffect(() => { setPrdScreenshotDocument(null); }, [activeProjectId]);
     const [tempTitle, setTempTitle] = useState(projectTitle);
     const titleInputRef = useRef<HTMLInputElement>(null);
     const [projectSwitcherMenuOpen, setProjectSwitcherMenuOpen] = useState(false);
@@ -2492,7 +2498,7 @@ export default function ContentPanel({
                     <DropdownMenuContent
                         side="right"
                         align="start"
-                        className="w-48 text-sm"
+                        className={isDocItem ? 'w-64 text-sm' : 'w-48 text-sm'}
                         onPointerDown={stopRowActivation}
                         onClick={stopRowActivation}
                         onKeyDown={stopRowActivation}
@@ -2520,6 +2526,12 @@ export default function ContentPanel({
                     <DropdownMenuItem onClick={() => void handleOpenResourceInSystem(node?.path || item.name)}>
                         <FolderOpen className="mr-2 h-4 w-4" />
                         打开所在目录
+                    </DropdownMenuItem>
+                ) : null}
+                {isDocItem && /\.md$/iu.test(item.filePath || item.name) ? (
+                    <DropdownMenuItem onSelect={() => setPrdScreenshotDocument({ documentId: item.filePath || item.resourceId || item.name, projectId: item.projectId || activeProjectId || '' })}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        从本地参考发布更新截图
                     </DropdownMenuItem>
                 ) : null}
                 {isThemeItem && onSetDefaultTheme ? (
@@ -2666,7 +2678,7 @@ export default function ContentPanel({
 
     const renderPrototypePageRows = (item: ItemData, depth: number) => {
         const pages = getPrototypePageMatches(item);
-        if (dataTab !== 'prototypes' || pages.length === 0) {
+        if (dataTab !== 'prototypes' || pages.length <= 1) {
             return null;
         }
         const segments = item.name === selectedPrototypeId
@@ -2931,7 +2943,7 @@ export default function ContentPanel({
 
     const renderTreeContent = () => {
         if (loading) {
-            return <div className="py-8 text-center text-[12px] text-muted-foreground">加载中...</div>;
+            return <PageSkeleton variant="list" label="正在加载项目资源" />;
         }
         if (displayTree.length === 0) {
             if (dataTab === 'themes' && !searchText.trim()) {
@@ -3222,7 +3234,7 @@ export default function ContentPanel({
                     <ToggleGroup
                         type="single"
                         value={activeTab}
-                        onValueChange={(v) => v && onTabChange(v as SidebarTab)}
+                        onValueChange={(v) => v && onTabChange(v as SidebarTab | 'reference')}
                         className="w-auto justify-start p-0 gap-1"
                     >
                         <ToggleGroupItem
@@ -3243,10 +3255,13 @@ export default function ContentPanel({
                         >
                             设计
                         </ToggleGroupItem>
+                        <ToggleGroupItem value="reference" className="h-6 w-auto min-w-[36px] rounded-sm px-2 text-[11px] data-[state=off]:text-muted-foreground/60 data-[state=on]:bg-accent">
+                            参考
+                        </ToggleGroupItem>
                     </ToggleGroup>
                 </div>
 
-                <div className="flex items-center gap-1 px-2 pb-2">
+                <div className={cn('flex items-center gap-1 px-2 pb-2', activeTab === 'reference' && 'hidden')}>
                     <div className={cn('relative flex items-center transition-all duration-300', isSearchExpanded ? 'flex-1' : 'w-auto')}>
                         {isSearchExpanded ? (
                             <Input
@@ -3445,7 +3460,7 @@ export default function ContentPanel({
                     }}
                 >
                     <ScrollArea className="h-full p-2 [&_[data-radix-scroll-area-viewport]>div]:!block [&_[data-radix-scroll-area-viewport]>div]:!w-full [&_[data-radix-scroll-area-viewport]>div]:!min-w-0">
-                        {renderTreeContent()}
+                        {activeTab === 'reference' ? referencePanel : renderTreeContent()}
                     </ScrollArea>
                     {isFileDropActive && activeTab === 'document' ? (
                         <div className="absolute inset-0 z-50 flex items-center justify-center rounded-md border-2 border-dashed border-primary/50 bg-primary/5 backdrop-blur-[1px] pointer-events-none">
@@ -3462,6 +3477,10 @@ export default function ContentPanel({
                     ) : null}
                 </div>
         </div>
+        {prdScreenshotDocument && <PrdScreenshotDialog projectId={prdScreenshotDocument.projectId} documentId={prdScreenshotDocument.documentId} onClose={(changed) => {
+            setPrdScreenshotDocument(null);
+            if (changed) window.location.reload();
+        }} />}
         <ProjectSetupDialog
             open={projectSetupOpen}
             initialMode={projectSetupInitialMode}

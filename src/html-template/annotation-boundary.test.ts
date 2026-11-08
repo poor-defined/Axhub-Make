@@ -58,7 +58,10 @@ describe('html-template annotation boundary', () => {
     expect(source).toContain('normalizeHtmlReviewDocumentPath');
     expect(source).toContain('contextResourceId');
     expect(source).toContain('shouldAllowPageEvent: shouldAllowHtmlReviewPageEvent');
-    expect(source).toContain('htmlFileSaveEnabled: true');
+    expect(source).toContain('htmlFileSaveEnabled: htmlEditorContext?.referenceSandbox !== true');
+    expect(source).toContain('createReferenceCommentsBridge(() => trustedParentEditorOrigin)');
+    expect(source).toContain("AXHUB_REFERENCE_SELECT_COMPONENT");
+    expect(source).toContain("if (!isTrustedParentVoiceEvent(event) || htmlEditorContext?.referenceSandbox !== true) return;");
     expect(source).toContain("urlParams.get('mode') === 'edit'");
     expect(source).toContain("toolbarMode: 'inline'");
   });

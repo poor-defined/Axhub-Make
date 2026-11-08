@@ -38,6 +38,7 @@ client/src/resources/prd/
 .env.*.local
 
 # Axhub Make runtime data
+**/.axhub/sessions/
 **/.axhub/make/project.json
 **/.axhub/make/.admin-server-info.json
 **/.axhub/make/.dev-server-info.json

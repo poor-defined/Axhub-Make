@@ -1,5 +1,6 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AppWindow, Boxes, Code2, Globe, Loader2, UploadCloud, X } from 'lucide-react';
+import { AppWindow, Boxes, Code2, Globe, UploadCloud, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { PromptClientPreference } from '../../types';
 import { IDEAvailabilityMap, MainIDEPreference } from '../../../common/ide';
@@ -509,10 +510,7 @@ export default function CreateDialog({
                         {activeKey === 'onlineImport' ? (
                             <div className="min-h-[320px] space-y-3">
                                 {templateLibrary.loading ? (
-                                    <div className="flex min-h-[220px] items-center justify-center gap-2 text-sm text-muted-foreground">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        正在读取在线模板库
-                                    </div>
+                                    <PageSkeleton variant="cards" label="正在读取在线模板库" />
                                 ) : templateLibrary.error ? (
                                     <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                                         {templateLibrary.error}

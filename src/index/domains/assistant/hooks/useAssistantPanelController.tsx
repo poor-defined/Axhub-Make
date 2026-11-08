@@ -38,7 +38,6 @@ import {
     type AcpContextItem,
     type AssistantImageGenerationConfig,
     type AssistantPreviewMcpConfig,
-    buildAcpContextPostMessage,
     getAcpImageGenerationConfigSignature,
     getAcpPreviewMcpConfigSignature,
 } from '../assistantAcpContext';
@@ -59,6 +58,7 @@ import {
 import type { AcpProvider } from '@/common/assistant-context/types';
 import { resolveAcpPromptClientProvider } from '@/common/acpModelConfig';
 import { readAssistantImageSavedEvent, type AssistantImageSavedEvent } from '../assistantImageSavedEvent';
+import { maintainAssistantWindowPolicy, syncAssistantWindowContext } from '../assistantWindowContext';
 
 type AssistantTriggerSource = 'button' | 'event';
 type AssistantRuntimeState = Awaited<ReturnType<typeof apiService.getAssistantRuntime>>;
@@ -933,29 +933,21 @@ export function useAssistantPanelController({
         targetUrl: string,
         context: AssistantContextV1 | null | undefined,
     ) => {
-        if (!targetWindow || !context) {
+        if (!targetWindow) {
             return;
         }
 
-        let targetOrigin = '*';
+        let targetOrigin: string;
         try {
             targetOrigin = new URL(targetUrl, window.location.origin).origin;
         } catch {
-            // Keep wildcard only for malformed URLs that still opened.
+            return;
         }
 
-        const postContext = () => {
-            try {
-                targetWindow.postMessage(buildAcpContextPostMessage(context, 'replace'), targetOrigin);
-            } catch (error) {
-                console.warn(`${ASSISTANT_RUNTIME_UI_LOG_PREFIX} child window context sync failed`, error);
-            }
-        };
-
-        postContext();
-        window.setTimeout(postContext, 160);
-        window.setTimeout(postContext, 520);
-        window.setTimeout(postContext, 1200);
+        maintainAssistantWindowPolicy(targetWindow, targetOrigin);
+        void syncAssistantWindowContext(targetWindow, targetOrigin, context).catch((error) => {
+            console.warn(`${ASSISTANT_RUNTIME_UI_LOG_PREFIX} child window context sync failed`, error);
+        });
     }, []);
 
     const assistantBaseContextV1 = useMemo<AssistantContextV1>(() => {
@@ -1693,7 +1685,8 @@ export function useAssistantPanelController({
         assistantIframeCurrentUrlRef.current = nextUrl;
         assistantIframeResourceSwitchSignatureRef.current = `${latestAssistantResourcePathRef.current}::${nextUrl}`;
         latestAssistantNavigationThreadIdRef.current = resolveAcpNavigationThreadId(nextUrl);
-        const windowFeatures = contextOverride ? undefined : 'noopener,noreferrer';
+        // A policy-only window also needs its postMessage channel, without file/selection context.
+        const windowFeatures = undefined;
         const childWindow = window.open(nextUrl, '_blank', windowFeatures);
         postAssistantContextToWindowWithRetry(childWindow, nextUrl, contextOverride);
     }, [postAssistantContextToWindowWithRetry, resolveAssistantUrl]);

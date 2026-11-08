@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PROTOTYPE_WIREFRAME_POLICY } from '../../../common/prototypeWireframePolicy';
 
 import {
   buildAcpPreviewMcpPostMessage,
@@ -95,6 +96,7 @@ describe('assistant ACP context mapping', () => {
               source: 'axhub-runtime',
             },
           },
+          expect.objectContaining({ id: 'axhub:project-policy:wireframe', body: PROTOTYPE_WIREFRAME_POLICY }),
         ],
         messageFilter: 'snapshot',
       },

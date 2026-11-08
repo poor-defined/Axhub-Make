@@ -474,10 +474,25 @@ export function resolveAnnotationActionEditingTargets(
     modifiedElements: readonly CommentaryModifiedElementSummary[] = [],
 ): Array<{
     commentId?: string;
+    preserveOnAutoClear?: boolean;
     elementKey: string;
-    targetRef: { locator: ElementLocator | null; label: string };
+    targetRef: { locator: ElementLocator | null; label: string; commentId?: string };
 }> {
     if (action?.type === 'send-to-agent') {
+        if (Array.isArray(action.targets) && action.targets.length > 0) {
+            const members = new Map<string, ReturnType<typeof resolveAnnotationActionEditingTargets>[number]>();
+            for (const member of action.targets) {
+                if (!String(member?.elementKey || '').trim()) continue;
+                const [target] = resolveAnnotationActionEditingTargets({
+                    type: 'send-to-agent',
+                    ...(action.preserveOnAutoClear === true ? { preserveOnAutoClear: true } : {}),
+                    ...member,
+                }, modifiedElements);
+                const identity = target?.commentId || target?.elementKey;
+                if (target && identity && !members.has(identity)) members.set(identity, target);
+            }
+            if (members.size > 0) return Array.from(members.values());
+        }
         const elementKey = String(action.elementKey || '').trim();
         if (elementKey) {
             const commentId = String(action.commentId || '').trim()
@@ -485,11 +500,13 @@ export function resolveAnnotationActionEditingTargets(
                     String(item?.elementKey || '').trim() === elementKey
                 ))?.commentId || '').trim();
             return [{
+                ...(action.preserveOnAutoClear === true ? { preserveOnAutoClear: true } : {}),
                 ...(commentId
                     ? { commentId }
                     : {}),
                 elementKey,
                 targetRef: {
+                    ...(action.preserveOnAutoClear && commentId ? { commentId } : {}),
                     locator: action.locator ?? null,
                     label: String(action.label || '').trim() || elementKey,
                 },

@@ -2441,10 +2441,8 @@ function ensureAdminServerInfo(
   if (!adminServerInfo) {
     return;
   }
-  writeServerInfo(projectRoot, 'admin', {
-    ...adminServerInfo,
-    projectRoot,
-  }, options);
+  // The admin record belongs to the global Make state directory, not this client.
+  writeServerInfo(projectRoot, 'admin', adminServerInfo, options);
 }
 
 function tryEnsureAdminServerInfo(

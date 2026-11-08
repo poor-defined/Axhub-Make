@@ -1,3 +1,4 @@
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -415,7 +416,7 @@ export default function DocumentManagementDialog({
                     onDrop={handleDropToRoot}
                 >
                     {loading ? (
-                        <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">正在读取标注文档...</div>
+                        <PageSkeleton variant="list" label="正在读取标注文档" />
                     ) : visibleTree.length ? visibleTree.map((node) => (
                         <DocumentRow
                             key={node.id}

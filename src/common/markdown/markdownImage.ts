@@ -42,7 +42,15 @@ function buildProjectDocumentAssetUrl(parsedUrl: URL, assetPath: string): string
   const filePath = String(parsedUrl.searchParams.get('path') || '').trim();
   if (!projectId || !filePath) return '';
 
-  return `/api/projects/${encodeURIComponent(projectId)}/document-asset?path=${encodeURIComponent(filePath)}&asset=${encodeURIComponent(assetPath)}`;
+  // Markdown destinations are URL paths; the asset API accepts a filesystem path.
+  // Decode once before query encoding so %20 is not treated as a literal filename.
+  const fileAssetPath = decodeMarkdownAssetPath(assetPath);
+  return `/api/projects/${encodeURIComponent(projectId)}/document-asset?path=${encodeURIComponent(filePath)}&asset=${encodeURIComponent(fileAssetPath)}`;
+}
+
+function decodeMarkdownAssetPath(value: string): string {
+  const pathname = value.split(/[?#]/u)[0];
+  try { return decodeURIComponent(pathname); } catch { return pathname; }
 }
 
 export function resolvePrototypeSpecResourceUrl(value: string, documentUrl: string): string | null {
@@ -106,7 +114,7 @@ export function resolveMarkdownImageSrc(src: string, documentUrl?: string): stri
     if (parsedUrl.pathname === '/api/markdown-file') {
       const filePath = String(parsedUrl.searchParams.get('path') || '').trim();
       if (filePath) {
-        return `/api/markdown-file-asset?path=${encodeURIComponent(filePath)}&asset=${encodeURIComponent(safeSrc)}`;
+        return `/api/markdown-file-asset?path=${encodeURIComponent(filePath)}&asset=${encodeURIComponent(decodeMarkdownAssetPath(safeSrc))}`;
       }
     }
     const projectDocumentAssetUrl = buildProjectDocumentAssetUrl(parsedUrl, safeSrc);

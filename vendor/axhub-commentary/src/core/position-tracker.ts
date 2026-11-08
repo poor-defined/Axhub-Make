@@ -17,6 +17,7 @@
 
 import type { ViewportRect } from '../overlay/canvas-overlay';
 import { Disposer } from '../utils/disposables';
+import { PAGE_LAYOUT_CHANGE_EVENT } from '../utils/page-zoom-toggle';
 
 // =============================================================================
 // Types
@@ -26,6 +27,7 @@ import { Disposer } from '../utils/disposables';
 export interface PositionTrackerOptions {
   /** Callback when tracked positions change */
   onPositionUpdate: (rects: TrackedRects) => void;
+  getAdditionalSelectionElements?: () => readonly Element[];
 }
 
 /** Container for tracked element rectangles */
@@ -34,6 +36,7 @@ export interface TrackedRects {
   hover: ViewportRect | null;
   /** Selection element rectangle (null if no selection) */
   selection: ViewportRect | null;
+  additionalSelections?: readonly ViewportRect[];
 }
 
 /** Position tracker public interface */
@@ -147,8 +150,12 @@ function rectApproximatelyEqual(a: ViewportRect | null, b: ViewportRect | null):
  * Check if two TrackedRects are approximately equal
  */
 function trackedRectsEqual(a: TrackedRects, b: TrackedRects): boolean {
+  const extraA = a.additionalSelections ?? [];
+  const extraB = b.additionalSelections ?? [];
   return (
     rectApproximatelyEqual(a.hover, b.hover) && rectApproximatelyEqual(a.selection, b.selection)
+    && extraA.length === extraB.length
+    && extraA.every((rect, index) => rectApproximatelyEqual(rect, extraB[index]))
   );
 }
 
@@ -292,6 +299,9 @@ export function createPositionTracker(options: PositionTrackerOptions): Position
    * Compute current rects for all tracked elements
    */
   function computeRects(): TrackedRects {
+    const additionalSelections = (options.getAdditionalSelectionElements?.() ?? [])
+      .map((element) => readElementRect(resolveConnected(element)))
+      .filter((rect): rect is ViewportRect => rect !== null);
     // Resolve elements, dropping stale references
     const resolvedHover = resolveConnected(hoverElement);
     const resolvedSelection = resolveConnected(selectionElement);
@@ -309,12 +319,13 @@ export function createPositionTracker(options: PositionTrackerOptions): Position
     // Optimization: if both point to same element, read rect once
     if (resolvedHover && resolvedSelection && resolvedHover === resolvedSelection) {
       const rect = readElementRect(resolvedHover);
-      return { hover: rect, selection: rect };
+      return { hover: rect, selection: rect, additionalSelections };
     }
 
     return {
       hover: readElementRect(resolvedHover),
       selection: readElementRect(resolvedSelection),
+      additionalSelections,
     };
   }
 
@@ -356,6 +367,7 @@ export function createPositionTracker(options: PositionTrackerOptions): Position
 
   // Listen for resize
   disposer.listen(window, 'resize', handleViewportChange, PASSIVE_LISTENER);
+  disposer.listen(window, PAGE_LAYOUT_CHANGE_EVENT, handleViewportChange, PASSIVE_LISTENER);
 
   // ==========================================================================
   // Public API

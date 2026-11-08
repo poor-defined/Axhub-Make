@@ -1,9 +1,35 @@
-# AGENTS.md
+# Repository Guidelines
 
-This is the standalone Axhub Make publishing repository.
+## Project Structure & Module Organization
 
-- Use `pnpm` for this repository's development, tests, and release scripts.
-- Do not force `pnpm` in published runtime or generated client projects. User environments may be Windows, may not have Git, and may not have pnpm; prefer `npm`/`npx`-safe flows outside development-only docs or scripts.
-- Keep `vendor/` committed; it contains required vendor artifacts for standalone builds.
-- Do not commit local runtime data, build outputs, caches, or generated project metadata.
-- Under `client/.axhub/make/`, keep only `client.json`, `axhub.config.json`, `README.md`, and the template seed `sidebar-tree.json` in Git.
+This repository is currently an empty starting point: no source code, tests, assets, or build configuration is present. When introducing the initial implementation, document its layout in `README.md`.
+
+Use clear top-level directories where appropriate: `src/` for application code, `tests/` for automated tests, `assets/` for static resources, and `docs/` for supporting documentation. Group related code by feature or responsibility and keep generated files separate from maintained source.
+
+## Build, Test, and Development Commands
+
+No installation, development, build, or test commands are configured yet. When adding tooling, provide reproducible commands in `README.md` and the relevant package manifest or task runner. Explain prerequisites, required runtime versions, and configuration steps. Include the dependency lockfile supported by the selected tooling.
+
+## Coding Style & Naming Conventions
+
+No language-specific conventions or formatter are established. Follow the idioms of the language selected for the initial implementation, and configure formatting and linting alongside it. Use consistent indentation within each file, descriptive identifiers, and filenames that reflect their purpose. Avoid unrelated formatting changes in functional patches.
+
+For every new feature or change involving asynchronous page content, include loading behavior in the design and implementation. Reuse `PageSkeleton` and `PreviewIframe` from `src/components/ui/`, choosing a skeleton layout that resembles the final content. Cover initial loading, resource/page switching, completion, failure, and empty states; support narrow screens, dark mode, and reduced motion. Remove skeletons when content is ready or loading fails, and avoid stale or duplicate overlays. Plain loading text or a lone spinner should not be the default for page content; retain suitable progress feedback for button actions, uploads, and other operations.
+
+## Testing Guidelines
+
+No testing framework or coverage threshold is configured. Add automated tests with the first executable functionality, covering expected behavior, boundary cases, and failure paths. Use descriptive test names that identify the behavior under test. Document test discovery conventions and the exact command for running the suite.
+
+## Commit & Pull Request Guidelines
+
+Before starting each new feature, inspect the working tree and current branch, then create and switch to a dedicated `codex/<feature-name>` branch before editing files. State the branch name in the progress update. Continue related changes and commits on that feature branch; create a new branch for a different feature, rather than for every commit. Do not develop a new feature directly on `main` or reuse an unrelated feature branch.
+
+Choose the branch base from the feature's dependencies: use the current integration branch for independent work, or the required feature branch for dependent work, and explain that dependency. Preserve existing uncommitted changes when switching branches. Run relevant checks before committing, and commit, push, or merge only when authorized by the user. Report the branch, commit, validation results, and any remaining uncommitted changes when handing off.
+
+There is no Git history available from which to infer commit conventions. Use concise, imperative commit subjects, such as `Add initial project configuration`, and keep changes focused.
+
+Pull requests should describe the problem, implementation, and validation performed. Link relevant issues and include screenshots for visible UI changes. Clearly identify any setup steps, compatibility changes, or checks that could not be run.
+
+## Security & Configuration
+
+Keep credentials and local configuration out of version control. Provide placeholder values in an example configuration file when needed, and exclude secrets, generated artifacts, and local caches through `.gitignore`.

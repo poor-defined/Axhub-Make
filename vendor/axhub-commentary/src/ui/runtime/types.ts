@@ -214,6 +214,18 @@ export interface PromptCardViewProps
     SharedAnnotationActions {
   options: BreadcrumbsOptions;
   currentTarget: Element | null;
+  selectedElementCount?: number;
+  pinnedToTopRight?: boolean;
+  onPinnedToTopRightChange?: (pinned: boolean) => void;
+  propertyPanelOpen?: boolean;
+  commentListOpen?: boolean;
+  componentComments?: import('../../core/editor/component-comments').ComponentCommentApi;
+  getCommentListLoadState?: () => import('../../core/editor/comment-batch').CommentListLoadState;
+  commentListLoadingContent?: React.ReactNode;
+  onRetryCommentList?: () => Promise<void>;
+  commentEditRequest?: { id: string; purpose: import('../../core/editor/component-comments').ComponentCommentPurpose; revision: number };
+  onCommentSaved?: () => void;
+  onPersistComments?: () => Promise<void>;
   anchorRect: ViewportRect | null;
   uiMode: CommentEntryMode;
   interactionProfile: WebEditorInteractionProfile;
@@ -245,6 +257,8 @@ export interface PromptCardViewProps
     tool: WebEditorDesignAdjustmentTool,
     element: Element | null,
   ) => boolean;
+  onDocumentComponent?: (element: Element, note: string) => void | Promise<void>;
+  onGenerateComponentStates?: (element: Element, note: string) => void | Promise<void>;
   onExportSelectionToDesignTool?: (
     tool: WebEditorDesignAdjustmentTool,
     element: Element,
@@ -282,6 +296,8 @@ export type AgentPromptRoute = 'frontend' | 'agent-run';
 export type IconActionTone = 'neutral' | 'accent' | 'danger' | 'dark';
 
 export interface IconActionButtonProps {
+  label?: string;
+  pressed?: boolean;
   title: string;
   icon: React.ReactNode;
   onClick?: () => void;

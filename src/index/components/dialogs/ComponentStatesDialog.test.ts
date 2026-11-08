@@ -1,0 +1,25 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { expect, it, vi } from 'vitest';
+import ComponentStatesDialog from './ComponentStatesDialog';
+import type { ComponentStatesState } from '../../domains/prototype-generation/componentStatesSession';
+vi.mock('@/components/ui/dialog', () => ({ Dialog: ({ open, children }: any) => open ? React.createElement('div', {}, children) : null, DialogContent: 'div', DialogHeader: 'div', DialogTitle: 'h2', DialogDescription: 'p', DialogFooter: 'div' }));
+it('shows the captured component for host confirmation, supports layout selection and locks requests while generating', async () => {
+  const state: ComponentStatesState = { phase: 'review', visible: true, projectId: 'p', prepared: null, error: '', message: '', request: { title: 'Header 状态说明', layout: 'overview', sourceHtml: '', capture: { imageDataUrl: 'data:image/png;base64,aGVsbG8=', note: '未登录、已登录', component: { name: 'Header' }, source: { title: '首页', url: 'http://localhost:51720/' } } } };
+  const generate = vi.fn(), edit = vi.fn(), close = vi.fn();
+  const props = { state, onGenerate: generate, onEdit: edit, onClose: close, onOpenPrototype: vi.fn() };
+  let view!: ReactTestRenderer;
+  await act(async () => { view = create(React.createElement(ComponentStatesDialog, props)); });
+  expect(generate).not.toHaveBeenCalled();
+  expect(view.root.findByType('img').props.src).toBe(state.request!.capture.imageDataUrl);
+  await act(async () => view.root.findAllByType('input').find(input => input.props.value === 'interactive')!.props.onChange());
+  expect(edit).toHaveBeenCalledWith({ layout: 'interactive' });
+  await act(async () => view.root.findAllByType('button').find(button => button.children.includes('确认生成'))!.props.onClick());
+  expect(generate).toHaveBeenCalledTimes(1);
+  await act(async () => view.update(React.createElement(ComponentStatesDialog, { ...props, state: { ...state, phase: 'running', message: 'AI 处理中' } })));
+  expect(view.root.findByType('textarea').props.disabled).toBe(true);
+  expect(view.root.findAllByType('button').find(button => button.children.includes('正在生成…'))!.props.disabled).toBe(true);
+  await act(async () => view.root.findAllByType('button').find(button => button.children.includes('后台运行'))!.props.onClick());
+  expect(close).toHaveBeenCalledTimes(1);
+  await act(async () => view.unmount());
+});

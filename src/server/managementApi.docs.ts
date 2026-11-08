@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
+import { listConfiguredPrdDocuments } from './configuredPrd.ts';
 import path from 'node:path';
 
 import {
@@ -602,7 +603,7 @@ export function handleProjectDocsApi(
 
   if (pathname === '/api/docs' || pathname === '/api/docs/') {
     if (req.method === 'GET') {
-      sendJson(res, listResourceFiles(docsDir, docsDir, { nameMode: 'basename' }));
+      sendJson(res, [...listConfiguredPrdDocuments(projectRoot), ...listResourceFiles(docsDir, docsDir, { nameMode: 'basename' })]);
       return true;
     }
   }
